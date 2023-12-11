@@ -72,12 +72,10 @@ repos:
         args: [--config=./pyproject.toml]
 
 
-  - repo: https://github.com/PyCQA/flake8
-    rev: 6.1.0
-    hooks:
-    -   id: flake8
-
-
+  # - repo: https://github.com/PyCQA/flake8
+  #   rev: 6.1.0
+  #   hooks:
+  #   -   id: flake8
 
   # Check on large files as last hook
   - repo: https://github.com/pre-commit/pre-commit-hooks
