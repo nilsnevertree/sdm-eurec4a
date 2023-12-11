@@ -71,10 +71,10 @@ black = true
 in-place = true
 pre-summary-newline = true
 
-[tool.flake8]
-max-line-length = 105
-extend-ignore = "E203, W503, E501"
-select = ["C", "E", "F", "W", "B", "B950"]
+# [tool.flake8]
+# max-line-length = 105
+# extend-ignore = "E203, W503, E501, E712, F401"
+# select = ["C", "E", "F", "W", "B", "B950"]
 
 [tool.codespell]
 skip = "*.nc,*.ipynb,./notebooks/*,environment.yml"
