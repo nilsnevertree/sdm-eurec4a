@@ -1,0 +1,84 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "sdm_eurec4a"
+version = "0.2.0"
+author = "Nils Niebaum"
+authors = [{name = "Nils Niebaum", email = "nils.niebaum@gmx.de"},]
+description = "Use Super-Droplet Model and EUREC4A data to simulate rain evaporation"
+readme = "README.md"
+requires-python = ">=3.8"
+license = "GPL-3.0-or-later"
+classifiers = ["Private :: Do Not Upload",
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+    "Operating System :: OS Independent",
+    "Natural Language :: English",
+    "Topic :: Scientific/Engineering :: Atmospheric Science",
+    "Development Status :: 2 - Pre-Alpha",]
+# dynamic = ["version", "description"]
+homepage = "https://github.com/nilsnevertree/sdm_eurec4a"
+issues = "https://github.com/nilsnevertree/sdm_eurec4a/issues"
+
+dependencies = ["numpy>=1.21.2",]
+
+[project.urls]
+homepage = "https://github.com/nilsnevertree/sdm_eurec4a"
+issues = "https://github.com/nilsnevertree/sdm_eurec4a/issues"
+
+
+[project.optional-dependencies]
+test = ["black>=21.9b0",
+    "pre-commit>=2.15.0",
+    "pytest==6.2.5",
+    "pytest-cov==3.0.0",]
+
+deploy = ["flit==3.4.0",]
+
+[tool.interrogate]
+# tool to check code documentation
+# https://interrogate.readthedocs.io/en/latest/
+ignore-init-method = true
+ignore-init-module = false
+ignore-magic = false
+ignore-semiprivate = true
+ignore-private = true
+ignore-property-decorators = true
+ignore-module = false
+fail-under = 95
+exclude = ["setup.py", "docs", "tests", "data", "notebooks", "temporary"]
+verbose = 1
+quiet = false
+color = true
+
+[tool.isort]
+known_third_party = ["click", "pytest", "sdm_eurec4a"]
+
+[tool.pytest.ini_options]
+minversion = "6.0"
+addopts = "-v"
+# only test the root level, otherwise it picks up the tests of the project template
+testpaths = ["tests",]
+
+[tool.black]
+line-length = 105
+target-version = ['py39', 'py310', 'py311']
+
+[tool.docformatter]
+black = true
+in-place = true
+pre-summary-newline = true
+
+[tool.flake8]
+max-line-length = 105
+extend-ignore = "E203, W503, E501"
+select = ["C", "E", "F", "W", "B", "B950"]
+
+[tool.codespell]
+skip = "*.nc,*.ipynb,./notebooks/*,environment.yml"
+quiet-level = 2
+builtin = "clear,rare,code"
+ignore-words-list = "jupyter,Jupyter"
+write-changes = true
