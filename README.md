@@ -1,16 +1,17 @@
 # sdm-euerc4a
+Using Super Droplet Model and EUREC4A data to simulate rain evaporation.
 
-[![PyPI](https://img.shields.io/pypi/v/sdm-euerc4a.svg)][pypi status]
-[![Status](https://img.shields.io/pypi/status/sdm-euerc4a.svg)][pypi status]
-[![Python Version](https://img.shields.io/pypi/pyversions/sdm-euerc4a)][pypi status]
-[![License](https://img.shields.io/pypi/l/sdm-euerc4a)][license]
-
-[![Read the documentation at https://sdm-euerc4a.readthedocs.io/](https://img.shields.io/readthedocs/sdm-euerc4a/latest.svg?label=Read%20the%20Docs)][read the docs]
-[![Tests](https://github.com/nilsnevertree/sdm-euerc4a/workflows/Tests/badge.svg)][tests]
-[![Codecov](https://codecov.io/gh/nilsnevertree/sdm-euerc4a/branch/main/graph/badge.svg)][codecov]
-
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 [![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit&logoColor=white)][pre-commit]
 [![Black](https://img.shields.io/badge/code%20style-black-000000.svg)][black]
+
+<!-- [![PyPI](https://img.shields.io/pypi/v/sdm-euerc4a.svg)][pypi status]
+[![Status](https://img.shields.io/pypi/status/sdm-euerc4a.svg)][pypi status]
+[![Python Version](https://img.shields.io/pypi/pyversions/sdm-euerc4a)][pypi status] -->
+<!-- [![Read the documentation at https://sdm-euerc4a.readthedocs.io/](https://img.shields.io/readthedocs/sdm-euerc4a/latest.svg?label=Read%20the%20Docs)][read the docs]
+[![Tests](https://github.com/nilsnevertree/sdm-euerc4a/workflows/Tests/badge.svg)][tests]
+[![Codecov](https://codecov.io/gh/nilsnevertree/sdm-euerc4a/branch/main/graph/badge.svg)][codecov] -->
+
 
 [pypi status]: https://pypi.org/project/sdm-euerc4a/
 [read the docs]: https://sdm-euerc4a.readthedocs.io/
@@ -18,6 +19,8 @@
 [codecov]: https://app.codecov.io/gh/nilsnevertree/sdm-euerc4a
 [pre-commit]: https://github.com/pre-commit/pre-commit
 [black]: https://github.com/psf/black
+
+In this project, the rain evaporation below cloud base shall be simulated using the Super Droplet Model [CLEO].
 
 
 ## Commiting.
@@ -64,7 +67,7 @@ This project was generated from [@cjolowicz]'s [Hypermodern Python Cookiecutter]
 
 
 <!-- LINKS -->
-
+[CLEO]: https://github.com/yoctoyotta1024/CLEO
 [@cjolowicz]: https://github.com/cjolowicz
 [pypi]: https://pypi.org/
 [hypermodern python cookiecutter]: https://github.com/cjolowicz/cookiecutter-hypermodern-python
