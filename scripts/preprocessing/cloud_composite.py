@@ -24,8 +24,10 @@ import pandas as pd
 import xarray as xr
 
 
-ORIGIN_DIRECTORY = Path("../../data/observation/cloud_composite/raw")
-DESTINATION_DIRECTORY = Path("../../data/observation/cloud_composite/processed")
+REPO_PATH = Path(__file__).resolve().parent.parent.parent
+
+ORIGIN_DIRECTORY = REPO_PATH / Path("data/observation/cloud_composite/raw")
+DESTINATION_DIRECTORY = REPO_PATH / Path("data/observation/cloud_composite/processed")
 DESTINATION_DIRECTORY.mkdir(parents=True, exist_ok=True)
 DESTINATION_FILENAME = "cloud_composite.nc"
 
@@ -37,8 +39,8 @@ logging.basicConfig(
 )
 logging.info("============================================================")
 logging.info("Start cloud composite pre-processing")
-logging.info("Origin directory: %s", ORIGIN_DIRECTORY)
-logging.info("Destination directory: %s", DESTINATION_DIRECTORY)
+logging.info("Origin directory: %s", ORIGIN_DIRECTORY.relative_to(REPO_PATH))
+logging.info("Destination directory: %s", DESTINATION_DIRECTORY.relative_to(REPO_PATH))
 logging.info("Destination filename: %s", DESTINATION_FILENAME)
 
 
@@ -166,6 +168,10 @@ test_validate_datasets_same_attrs()
 
 
 files = sorted(ORIGIN_DIRECTORY.glob("*.nc"))
+if len(files) == 0:
+    logging.error("No files found in %s", ORIGIN_DIRECTORY)
+    raise FileNotFoundError("No files found in %s", ORIGIN_DIRECTORY)
+
 logging.info("Number of files: %s", len(files))
 
 # --- Validate that all datasets have the same attributes except for fligth_id and creation_date ---
