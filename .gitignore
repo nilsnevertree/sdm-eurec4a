@@ -15,9 +15,11 @@ CONTRIBUTING.md
 
 # exclude data from source control by default
 # data/*
+
+*.nc
 # one can include specific files/folders like python scripts
-# !data/*.py
-# !data/scripts
+!data/*.py
+!data/scripts
 
 # Temporary folder to store untracked files
 temporary/*
@@ -27,10 +29,8 @@ results/*
 # one can include specific files/folders like python scripts
 !results/scripts
 
-# For MlFLow need to exclude the tracking folder
-mlruns/*
-mlflow-artifacts/*
-
+# Logging data
+*.log
 
 # ----
 #  GENERAL IGNORES
@@ -84,9 +84,6 @@ coverage.xml
 # Translations
 *.mo
 *.pot
-
-# Django stuff:
-*.log
 
 # Sphinx documentation
 docs/_build/
