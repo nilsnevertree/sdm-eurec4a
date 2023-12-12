@@ -1,5 +1,9 @@
 # For the beginning ignore some unused files and folders
 
+# Private data
+
+.pypirc
+
 CODE_OF_CONDUCT.md
 .flake8
 .editorconfig
