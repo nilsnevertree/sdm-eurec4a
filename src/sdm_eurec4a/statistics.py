@@ -89,9 +89,7 @@ def xarray_RMSE(
     return np.sqrt(((x - y) ** 2).mean(dim=dim))
 
 
-def coverage(
-    x: np.ndarray, P: np.ndarray, y: np.ndarray, stds: float = 0.64
-) -> np.ndarray:
+def coverage(x: np.ndarray, P: np.ndarray, y: np.ndarray, stds: float = 0.64) -> np.ndarray:
     """
     Calculate the coverage of a prediction interval.
 
@@ -123,9 +121,7 @@ def coverage(
     return (y >= x - stds * np.sqrt(P)) & (y <= x + stds * np.sqrt(P))
 
 
-def coverage_prob(
-    x: np.ndarray, P: np.ndarray, y: np.ndarray, stds: float = 0.64
-) -> np.ndarray:
+def coverage_prob(x: np.ndarray, P: np.ndarray, y: np.ndarray, stds: float = 0.64) -> np.ndarray:
     """
     Calculate the coverage probability of a prediction interval.
 
@@ -200,9 +196,7 @@ def xarray_coverage_prob(
     return res.sum(dim=dim) / np.size(res[dim])
 
 
-def gaussian_weights_2D(
-    x: np.ndarray, y: np.ndarray, axis: int = 0, alpha: float = 0.2
-) -> np.ndarray:
+def gaussian_weights_2D(x: np.ndarray, y: np.ndarray, axis: int = 0, alpha: float = 0.2) -> np.ndarray:
     """
     Creates a Gaussian weights for a 2D-array x centered at positions given by
     y. The weights will be computed along the specified axis.
@@ -620,9 +614,7 @@ def crosscorr(ds1: xr.DataArray, ds2: xr.DataArray, lag: int = 0, dim: str = "ti
     if isinstance(ds1, xr.DataArray) and isinstance(ds2, xr.DataArray):
         return xr.corr(ds1, ds2.shift({f"{dim}": lag}), dim=dim)
     else:
-        raise NotImplementedError(
-            f"Not implemented for type: {type(ds1)} and {type(ds2)}."
-        )
+        raise NotImplementedError(f"Not implemented for type: {type(ds1)} and {type(ds2)}.")
 
 
 def compute_fft_spectrum(
