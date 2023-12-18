@@ -1,3 +1,29 @@
+"""
+First look at the observations
+==============================
+This notebook is a first look at the observations.
+It is used to get a first idea of the data and to get a feeling for the data.
+It is not used for the actual analysis.
+
+The following data sets are used:
+- ART measurements
+- Dropsondes
+
+It shall be a first draft on how to select related data from the two data sets.
+The selection criteria can be changed.
+A first idea is to use the following criteria:
+- Temporal contraint :
+    RF15 as Raphaela told us
+- Spatial constraint :
+    - Altitude
+    - Position
+- Physical constraints
+    - rain existence
+    - high liquid water content
+
+
+"""
+
 # %%
 from pathlib import Path
 
@@ -7,7 +33,11 @@ import matplotlib.pyplot as plt
 import numpy as np
 import xarray as xr
 
-from sdm_eurec4a.reductions import polygon2mask
+from sdm_eurec4a.reductions import (
+    latlon_dict_to_polygon,
+    polygon2mask,
+    rectangle_spatial_mask,
+)
 from sdm_eurec4a.visulization import gen_color, plot_colors, set_custom_rcParams
 from shapely.geometry import Polygon
 
@@ -19,40 +49,8 @@ plt.style.use("dark_background")
 colors = set_custom_rcParams()
 plot_colors(colors)
 
-figure_dir = Path("../results/first-data-analysis/rain_mask")
+figure_dir = Path("../results/first-data-analysis/all")
 figure_dir.mkdir(exist_ok=True, parents=True)
-
-
-# %%
-def select_region(
-    ds: xr.Dataset, area: list, lon_name: str = "lon", lat_name: str = "lat"
-) -> xr.Dataset:
-    """
-    Select a region from a xarray dataset based on a given area.
-
-    Parameters
-    ----------
-    ds : xarray.Dataset
-        Dataset to select from.
-    area : list
-        List of four values [lon_min, lon_max, lat_min, lat_max].
-    lon_name : str, optional
-        Name of the longitude variable. The default is 'lon'.
-    lat_name : str, optional
-        Name of the latitude variable. The default is 'lat'.
-    Returns
-    -------
-    ds : xarray.Dataset
-        Dataset with the selected region.
-    """
-
-    return (
-        (ds[lon_name] > area[0])
-        & (ds[lon_name] < area[1])
-        & (ds[lat_name] > area[2])
-        & (ds[lat_name] < area[3])
-    )
-
 
 # %% [markdown]
 # ## 1. Load datasets
@@ -73,20 +71,23 @@ display(drop_sondes)
 # ## 2. Get a first idea of the combined datasets
 
 # %%
-selection_area = [-58.75, -58.25, 13.5, 14]
-selection_polygon = Polygon(
-    [
-        [selection_area[0], selection_area[2]],
-        [selection_area[0], selection_area[3]],
-        [selection_area[1], selection_area[3]],
-        [selection_area[1], selection_area[2]],
-        [selection_area[0], selection_area[2]],
-    ]
+area_cloud_composite = dict(
+    lon_min=-58.75,
+    lon_max=-58.25,
+    lat_min=13.5,
+    lat_max=14,
 )
+
+area_drop_sondes = dict(
+    lon_min=-59,
+    lon_max=-58,
+    lat_min=13,
+    lat_max=14.5,
+)
+
 
 # %%
 sonde_ids = drop_sondes.sonde_id.values
-
 halo_ids = sonde_ids[["HALO" in v for v in sonde_ids]]
 p3_ids = sonde_ids[["P3" in v for v in sonde_ids]]
 # make sure no flight is used twice
@@ -96,6 +97,7 @@ halo_launches = drop_sondes.time.where(drop_sondes.sonde_id.isin(halo_ids), drop
 p3_launches = drop_sondes.time.where(drop_sondes.sonde_id.isin(p3_ids), drop=True)
 
 # %%
+
 # Draw a map of all dropsondes released during the campaign
 
 
@@ -105,11 +107,23 @@ ax = plt.axes(projection=ccrs.PlateCarree())
 # ax.add_feature(cfeature.LAND)
 # ax.add_feature(cfeature.OCEAN, color="navy", alpha=0.2)
 # ax.add_feature(cfeature.BORDERS, linestyle=":")
-ax.gridlines(draw_labels=True)
+ax.gridlines(draw_labels=True, linestyle=":", alpha=0.4)
 ax.set_extent([-60, -56, 12, 15])
 
-xx, yy = selection_polygon.exterior.xy
-ax.plot(xx, yy, transform=ccrs.PlateCarree(), color="red", linewidth=2, label="selected area")
+xx, yy = latlon_dict_to_polygon(area_cloud_composite).exterior.xy
+ax.plot(xx, yy, transform=ccrs.PlateCarree(), color="red", linewidth=2, label="ART selected area")
+
+xx, yy = latlon_dict_to_polygon(area_drop_sondes).exterior.xy
+ax.plot(
+    xx,
+    yy,
+    transform=ccrs.PlateCarree(),
+    color="red",
+    linestyle="--",
+    linewidth=2,
+    label="Dropsondes selected area",
+)
+
 
 ax.scatter(
     cloud_composite.lon,
@@ -126,7 +140,8 @@ ax.scatter(
     drop_sondes.sel(time=halo_launches).flight_lat,
     transform=ccrs.PlateCarree(),
     label="HALO",
-    marker="o",
+    marker="+",
+    color=colors[1],
     alpha=0.7,
 )
 
@@ -135,7 +150,8 @@ ax.scatter(
     drop_sondes.sel(time=p3_launches).flight_lat,
     transform=ccrs.PlateCarree(),
     label="P3",
-    marker="o",
+    marker="x",
+    color=colors[1],
     alpha=0.7,
 )
 
@@ -160,7 +176,7 @@ ax.set_title("Dropsonde and ART locations overview")
 #     - high liquid water content
 
 # %% [markdown]
-# ### Temporal constraint: Use Flight number RF15 / 15
+# ### First idea on some constraints
 
 # %% [markdown]
 # For an ART measurement to be considered,
@@ -175,20 +191,32 @@ ax.set_title("Dropsonde and ART locations overview")
 
 # %%
 #  constraints
-
+"""
+CONSTRAINTS ON THE DATASETS
+"""
 flight_constraint = cloud_composite.flight_number.isin([14, 15, 16])
 altitude_constraint = cloud_composite.alt < 1100
-spatial_constraint = select_region(cloud_composite, [-58.75, -58.25, 13.5, 14])
-drop_sondes_spatial_constraint = select_region(drop_sondes, [-58.75, -58.25, 13.5, 14])
+spatial_constraint = rectangle_spatial_mask(
+    ds=cloud_composite,
+    area=area_cloud_composite,
+    lat_name="lat",
+    lon_name="lon",
+)
+drop_sondes_spatial_constraint = rectangle_spatial_mask(
+    ds=drop_sondes,
+    area=area_drop_sondes,
+    lat_name="flight_lat",
+    lon_name="flight_lon",
+)
 
 
-mask_constraint = cloud_composite.rain_mask == 1
+# mask_constraint = cloud_composite.rain_mask == 1
 # liquid_water_content_constraint = cloud_composite.liquid_water_content > cloud_composite.liquid_water_content.quantile(dim="time", q=0.9)
 full_constraint = (
-    # flight_constraint #& liquid_water_content_constraint
+    # flight_constraint
     altitude_constraint
     & spatial_constraint
-    & mask_constraint
+    # & mask_constraint
 )
 time_values_of_constraint = cloud_composite.time.where(full_constraint, drop=True)
 
@@ -196,57 +224,23 @@ time_values_of_constraint = cloud_composite.time.where(full_constraint, drop=Tru
 # For the cloud composite data set it is sufficient to use the time values of the constraint to select the data
 cc_constraint = cloud_composite.sel(time=time_values_of_constraint)
 
-
-# For the dropsonde data set we need to drop all sondes that do not match the spatial constraint
+# For the dropsonde data set we need select:
+# 1. Match the spatial constraint
+# 2. All time values that match the time constraint.
+#    For this, the for each ART measurement the nearest dropsonde is selected.
+# 3. Only use unqiue timevalus to avoid double counting
 ds_constraint = drop_sondes.where(drop_sondes_spatial_constraint, drop=True)
-# Then we need to drop all time values that do not match the time constraint
-# Only unqiue values are kept
 drop_sondes_time_constraint_all = ds_constraint.time.sel(
     time=time_values_of_constraint, method="nearest"
 )
 drop_sondes_time_constraint = np.unique(drop_sondes_time_constraint_all)
 ds_constraint = ds_constraint.sel(time=drop_sondes_time_constraint)
 
-# plt.scatter(
-#     cc_constraint.time,
-#     cc_constraint.alt,
-#     c = cc_constraint.flight_number,
-# )
-# plt.colorbar()
-
-print(f"{len(time_values_of_constraint)} ART measurments are selected by the constraint")
-print(f"{len(drop_sondes_time_constraint)} dropsondes are selected by the constraint")
-
-# %%
-fig, ax = plt.subplots(figsize=(10, 2))
-ax.plot(
-    time_values_of_constraint,
-    time_values_of_constraint.astype(int) * 0 + 0.1,
-    marker="+",
-    linestyle="",
-    label=f"{len(time_values_of_constraint)} ART measurments",
-)
-
-ax.plot(
-    drop_sondes_time_constraint,
-    drop_sondes_time_constraint.astype(int) * 0,
-    marker="x",
-    linestyle="",
-    label=f"{len(drop_sondes_time_constraint)} dropsondes",
-)
-ax.legend(ncol=2, loc="upper center")
-ax.set_ylim(-0.1, 0.2)
-ax.set_yticks([0.1, 0], ["ART", "Dropsondes"])
-# ax.set_xticks(rotation=-45, ha="left")
-ax.set_title(
-    "Measurement times of ART fitting the conditions.\nAnd temporal 'nearest' dropsondes in the selcted area."
-)
-fig.tight_layout()
-fig.savefig(figure_dir / "conditions_art_sonde_times.png", dpi=300, transparent=False)
+print(f"{len(time_values_of_constraint)} ART measurments are selected")
+print(f"{len(drop_sondes_time_constraint)} dropsondes are selected")
 
 # %%
 # Draw a map of all dropsondes released during the campaign
-
 
 fig = plt.figure(figsize=(10, 10))
 ax = plt.axes(projection=ccrs.PlateCarree())
@@ -258,8 +252,19 @@ ax.gridlines(draw_labels=True)
 ax.set_extent([-60, -56, 12, 15])
 cm = plt.cm.get_cmap("RdYlBu")
 
-xx, yy = selection_polygon.exterior.xy
-ax.plot(xx, yy, transform=ccrs.PlateCarree(), color="red", linewidth=2, label="selected area")
+xx, yy = latlon_dict_to_polygon(area_cloud_composite).exterior.xy
+ax.plot(xx, yy, transform=ccrs.PlateCarree(), color="red", linewidth=2, label="ART selected area")
+
+xx, yy = latlon_dict_to_polygon(area_drop_sondes).exterior.xy
+ax.plot(
+    xx,
+    yy,
+    transform=ccrs.PlateCarree(),
+    color="red",
+    linestyle="--",
+    linewidth=2,
+    label="Dropsondes selected area",
+)
 
 mpl = ax.scatter(
     cc_constraint.lon,
@@ -285,6 +290,118 @@ ax.set_title("ART locations fitting conditions and related dropsondes")
 fig.savefig(figure_dir / "art_sonde_locations_condition.png", dpi=300, transparent=False)
 
 # %%
+fig, ax = plt.subplots(figsize=(10, 2))
+ax.plot(
+    time_values_of_constraint,
+    time_values_of_constraint.astype(int) * 0 + 0.1,
+    marker="+",
+    linestyle="",
+    label=f"{len(time_values_of_constraint)} ART measurments",
+)
+
+ax.plot(
+    drop_sondes_time_constraint,
+    drop_sondes_time_constraint.astype(int) * 0,
+    marker="x",
+    linestyle="",
+    label=f"{len(drop_sondes_time_constraint)} dropsondes",
+)
+# ax.legend(ncol=2, loc="upper center")
+ax.set_ylim(-0.05, 0.15)
+ax.set_yticks(
+    [
+        0.1,
+        0,
+    ],
+    [
+        f"ART\n#{len(time_values_of_constraint)}",
+        f"Dropsondes\n#{len(drop_sondes_time_constraint)}",
+    ],
+)
+# ax.set_xticks(rotation=-45, ha="left")
+ax.set_title(
+    "Measurement times of ART fitting the conditions.\nAnd temporal 'nearest' dropsondes in the selcted area."
+)
+fig.tight_layout()
+fig.savefig(figure_dir / "conditions_art_sonde_times.png", dpi=300, transparent=False)
+
+# %%
+# Analysis based on the given masks
+
+fig, ax = plt.subplots(figsize=(10, 3))
+ax.plot(
+    time_values_of_constraint,
+    time_values_of_constraint.astype(int) * 0 + 0.1,
+    marker="+",
+    linestyle="",
+    label=f"{len(time_values_of_constraint)} ART",
+)
+
+ax.plot(
+    drop_sondes_time_constraint,
+    drop_sondes_time_constraint.astype(int) * 0.0,
+    marker="x",
+    linestyle="",
+    label=f"{len(drop_sondes_time_constraint)} Dropsondes",
+)
+
+# plot the drizzle, cloud, rain mask
+
+drizzle_time_values = time_values_of_constraint.where(cc_constraint.drizzle_mask == 1, drop=True)
+cloud_time_values = time_values_of_constraint.where(cc_constraint.cloud_mask == 1, drop=True)
+rain_time_values = time_values_of_constraint.where(cc_constraint.rain_mask == 1, drop=True)
+
+ax.plot(
+    cloud_time_values,
+    cloud_time_values.astype(int) * 0 + 0.2,
+    marker="+",
+    linestyle="",
+    label=f"{len(cloud_time_values)} ART cloud",
+)
+
+ax.plot(
+    drizzle_time_values,
+    drizzle_time_values.astype(int) * 0 + 0.3,
+    marker="+",
+    linestyle="",
+    label=f"{len(drizzle_time_values)} ART drizzle",
+)
+
+ax.plot(
+    rain_time_values,
+    rain_time_values.astype(int) * 0 + 0.4,
+    marker="+",
+    linestyle="",
+    label=f"{len(rain_time_values)} ART rain",
+)
+
+
+# # Shrink current axis's height by 10% on the bottom
+# box = ax.get_position()
+# ax.set_position([box.x0, box.y0 + box.height * 0.1,
+#                  box.width, box.height * 0.9])
+
+ax.set_ylim(-0.05, 0.45)
+ax.set_yticks(
+    [0.1, 0, 0.2, 0.3, 0.4],
+    [
+        f"ART\n#{len(time_values_of_constraint)}",
+        f"Dropsondes\n#{len(drop_sondes_time_constraint)}",
+        f"ART cloud\n#{len(cloud_time_values)}",
+        f"ART drizzle\n#{len(drizzle_time_values)}",
+        f"ART rain\n#{len(rain_time_values)}",
+    ],
+)
+# ax.set_xticks(rotation=-45, ha="left")
+ax.set_title(
+    "Measurement times of ART fitting the conditions.\nAnd temporal 'nearest' dropsondes in the selcted area."
+)
+# ax.legend(bbox_to_anchor=(1.04, 0.5))
+fig.tight_layout()
+fig.savefig(figure_dir / "conditions_art_sonde_times_masks.png", dpi=300, transparent=False)
+# %%
+
+
 fig, axs = plt.subplots(1, 1, figsize=(15, 5))
 
 
