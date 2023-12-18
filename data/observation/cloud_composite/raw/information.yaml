@@ -5,3 +5,4 @@ accesed_date : '2023-12-08'
 doi : 10.25326/237
 citation :
   Coutris, P. (2021).  SAFIRE ATR42 PMA/Cloud composite dataset.  [Dataset].  Aeris.  https://doi.org/10.25326/237
+download_command : wget -r --no-parent -nH -nd --cut-dirs=1 --reject "index.html*" --accept "*.nc" -P SPECIFYTHIS https://observations.ipsl.fr/aeris/eurec4a-data/AIRCRAFT/ATR/PMA/PROCESSED/CloudComposite/
