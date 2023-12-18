@@ -40,6 +40,12 @@ results/*
 #  GENERAL IGNORES
 # ----
 
+# Temporary files
+*~
+*.swp
+*.tmp
+
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
