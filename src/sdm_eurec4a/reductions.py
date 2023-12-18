@@ -1,3 +1,5 @@
+from typing import Union
+
 import numpy as np
 import xarray as xr
 
@@ -57,3 +59,115 @@ def polygon2mask(lon, lat, pg, lat_name="lat", lon_name="lon"):
     mask = mask.transpose(*[d for d in dobj.dims if d in [lon_name, lat_name]])
 
     return mask
+
+
+def rectangle_spatial_mask(
+    ds: xr.Dataset,
+    area: Union[dict, list],
+    lon_name: str = "lon",
+    lat_name: str = "lat",
+    include_boundary: bool = True,
+) -> xr.DataArray:
+    """
+    Select a region from a xarray dataset based on a given area. The area can
+    be defined as a dictionary with keys ['lon_min', 'lon_max', 'lat_min',
+    'lat_max'] or as a list of four values [lon_min, lon_max, lat_min,
+    lat_max].
+
+    The ``lon_name`` and ``lat_name`` parameters can be used to specify the names of the coords or variables where the
+    longitude and latitude values are stored. By default, the function assumes that the longitude and latitude values
+    are stored in variables named 'lon' and 'lat', respectively.
+
+    The ``include_boundary`` parameter can be used to specify whether the boundary of the selected region should be
+    included in the mask. By default, the boundary is included in the mask.
+
+    The function returns a DataArray with the selected region marked as True. The DataArray has the same dimensions as
+    longitude and latitude.
+    Thus, if the latitude and longitude are not coordinates, the DataArray will have the same dimensions as the
+    latitude and longitude variables.
+
+
+    Parameters
+    ----------
+    ds : xarray.Dataset
+        Dataset to select from.
+    area : Union(dict, list)
+        Dictionary with keys ['lon_min', 'lon_max', 'lat_min', 'lat_max'] or
+        List of four values [lon_min, lon_max, lat_min, lat_max].
+    lon_name : str, optional
+        Name of the longitude variable. The default is 'lon'.
+    lat_name : str, optional
+        Name of the latitude variable. The default is 'lat'.
+    include_boundary : bool, optional
+        Whether to include the boundary of the selected region in the mask. The default is True.
+
+    Returns
+    -------
+    ds : xarray.DataArray
+        DataArray with the selected region marked as True.
+
+    Examples
+    --------
+    >>> import numpy as np
+    >>> import xarray as xr
+    >>> from sdm_eurec4a import reductions
+    >>>
+    >>> # Create a sample dataset
+    >>> ds = xr.Dataset(
+    ...     coords=dict(
+    ...         lon=np.arange(0, 10),
+    ...         lat=np.arange(-5, 5),
+    ...     )
+    ... )
+    >>>
+    >>> # Define the area of interest
+    >>> # Include bounds and dict
+    >>> area_dict = dict(lat_min=-5, lat_max=5, lon_min=0, lon_max=10)
+    >>>
+    >>> # Call the function
+    >>> result_dict = reductions.rectangle_spatial_mask(
+    ...     ds=ds,
+    ...     area=area_dict,
+    ...     include_boundary=True
+    ... )
+    """
+
+    if isinstance(area, list):
+        area = dict(lat_min=area[2], lat_max=area[3], lon_min=area[0], lon_max=area[1])
+
+    if include_boundary:
+        mask = (
+            (ds[lon_name] >= area["lon_min"])
+            & (ds[lon_name] <= area["lon_max"])
+            & (ds[lat_name] >= area["lat_min"])
+            & (ds[lat_name] <= area["lat_max"])
+        )
+    else:
+        mask = (
+            (ds[lon_name] > area["lon_min"])
+            & (ds[lon_name] < area["lon_max"])
+            & (ds[lat_name] > area["lat_min"])
+            & (ds[lat_name] < area["lat_max"])
+        )
+
+    return mask
+
+
+def latlon_dict_to_polygon(area):
+    """
+    Create a shapely polygon from a dictionary with lat lon values.
+
+    Input:
+        area: dict with keys ['lon_min', 'lon_max', 'lat_min', 'lat_max']
+    Output:
+        shapely.geometry.Polygon
+        with x values as lon and y values as lat
+    """
+    return Polygon(
+        [
+            (area["lon_min"], area["lat_min"]),
+            (area["lon_min"], area["lat_max"]),
+            (area["lon_max"], area["lat_max"]),
+            (area["lon_max"], area["lat_min"]),
+        ]
+    )
