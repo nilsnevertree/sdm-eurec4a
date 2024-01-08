@@ -1,0 +1,23 @@
+name: sdm_eurec4a_env
+channels:
+  - defaults
+  - conda-forge
+dependencies:
+  - python >= 3.12
+  # Required for full project functionality (dont remove)
+  - pip
+  - pytest
+  # Examples (remove and add as needed)
+  - click
+  - numpy
+  - scipy
+  - pandas
+  - matplotlib
+  - cftime
+  - xarray
+  - dask
+  - netcdf4
+  - cartopy
+  - jupyter
+  - jupyterlab
+  - pre-commit

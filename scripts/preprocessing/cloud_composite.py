@@ -210,9 +210,9 @@ try:
     # Use longer names for variable to make it more readable
     # do not rename the dimension time and size
     VARNAME_MAPPING = {
-        "lon": "longitude",
-        "lat": "latitude",
-        "alt": "altitude",
+        "lon": "lon",
+        "lat": "lat",
+        "alt": "alt",
         "PSD": "particle_size_distribution",
         "MSD": "mass_size_distribution",
         "LWC": "liquid_water_content",

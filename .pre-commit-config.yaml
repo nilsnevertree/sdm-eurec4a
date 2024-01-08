@@ -20,14 +20,14 @@ repos:
         files: requirements-dev.txt
 
     # Enforce that notebooks outputs are cleared
-  # - repo: https://github.com/kynan/nbstripout
-  #   rev: 0.6.1
-  #   hooks:
-  #   -   id: nbstripout
-  #       args:
-  #         [
-  #           --max-size=1k
-  #         ]
+  - repo: https://github.com/kynan/nbstripout
+    rev: 0.6.1
+    hooks:
+    -   id: nbstripout
+        args:
+          [
+            --max-size=1k
+          ]
 
     # Docformatter to format docstrings
   - repo: https://github.com/PyCQA/docformatter
