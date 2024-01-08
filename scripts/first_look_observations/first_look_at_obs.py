@@ -6,7 +6,7 @@ It is used to get a first idea of the data and to get a feeling for the data.
 It is not used for the actual analysis.
 
 The following data sets are used:
-- ART measurements
+- ATR measurements
 - Dropsondes
 
 It shall be a first draft on how to select related data from the two data sets.
@@ -20,9 +20,9 @@ A first idea is to use the following criteria:
 - Physical constraints
     - rain existence
     - high liquid water content
-
-
 """
+
+import os
 
 # %%
 from pathlib import Path
@@ -39,9 +39,14 @@ from sdm_eurec4a.reductions import (
     polygon2mask,
     rectangle_spatial_mask,
 )
-from sdm_eurec4a.visulization import gen_color, plot_colors, set_custom_rcParams, adjust_lightness
+from sdm_eurec4a.visulization import (
+    adjust_lightness,
+    gen_color,
+    plot_colors,
+    set_custom_rcParams,
+)
 from shapely.geometry import Polygon
-import os
+
 
 # %%
 # Set custom colors
@@ -54,21 +59,23 @@ colors = set_custom_rcParams()
 
 # %%
 
+RFs = np.array([6, 7, 8])
+
 script_path = os.path.abspath(__file__)
 print(script_path)
 
 REPOSITORY_ROOT = Path(script_path).parent.parent
 print(REPOSITORY_ROOT)
 
-figure_dir = REPOSITORY_ROOT / Path("results/first-data-analysis/selection")
-
-try :
-    print(f"REPO dir.: {REPOSITORY_ROOT}")
-    print(f"Figure dir.: {figure_dir}")
-    user_input = input("Is this correct?\ny/n\n")
-    assert user_input == "y"
-except AssertionError:
-    raise AssertionError("Please check the paths above.")
+figure_dir = REPOSITORY_ROOT / Path(f"results/correct_name/RF{np.min(RFs)}-{np.max(RFs)}")
+print(figure_dir)
+# try :
+# print(f"REPO dir.: {REPOSITORY_ROOT}")
+# print(f"Figure dir.: {figure_dir}")
+#     user_input = input("Is this correct?\ny/n\n")
+#     assert user_input == "y"
+# except AssertionError:
+#     raise AssertionError("Please check the paths above.")
 
 figure_dir.mkdir(exist_ok=True, parents=True)
 
@@ -81,20 +88,22 @@ print(FILEPATH)
 cloud_composite = xr.open_dataset(FILEPATH)
 # display(cloud_composite)
 
-FILEPATH = REPOSITORY_ROOT / Path("data/observation/dropsonde/Level_3/EUREC4A_JOANNE_Dropsonde-RD41_Level_3_v2.0.0.nc")
+FILEPATH = REPOSITORY_ROOT / Path(
+    "data/observation/dropsonde/Level_3/EUREC4A_JOANNE_Dropsonde-RD41_Level_3_v2.0.0.nc"
+)
 drop_sondes = xr.open_dataset(FILEPATH)
 drop_sondes = drop_sondes.rename({"launch_time": "time"})
 drop_sondes = drop_sondes.swap_dims({"sonde_id": "time"})
 drop_sondes = drop_sondes.sortby("time")
 # display(drop_sondes)
 
-# %%
+# # %%
 
-psd_all = cloud_composite["particle_size_distribution"]# * 1e9
-msd_all = cloud_composite["mass_size_distribution"] #* 1e12
-mask = ""
-psd = psd_all.where(psd_all != 0, drop=True)	
-msd = msd_all.where(msd_all != 0, drop=True)
+# psd_all = cloud_composite["particle_size_distribution"]# * 1e9
+# msd_all = cloud_composite["mass_size_distribution"] #* 1e12
+# mask = ""
+# psd = psd_all.where(psd_all != 0, drop=True)
+# msd = msd_all.where(msd_all != 0, drop=True)
 
 
 # %% [markdown]
@@ -116,7 +125,7 @@ msd = msd_all.where(msd_all != 0, drop=True)
 # ### First idea on some constraints
 
 # %% [markdown]
-# For an ART measurement to be considered,
+# For an ATR measurement to be considered,
 # all the following criteria need to be met:
 # - flight number 14, 15, 16
 # - altitude below 1000 m
@@ -131,7 +140,7 @@ msd = msd_all.where(msd_all != 0, drop=True)
 """
 CONSTRAINTS ON THE DATASETS
 """
-
+print("Applying constraints on the datasets")
 # %%
 area_cloud_composite = dict(
     lon_min=-58.75,
@@ -147,7 +156,7 @@ area_drop_sondes = dict(
     lat_max=14.5,
 )
 
-flight_constraint = cloud_composite.flight_number.isin([14, 15, 16])
+flight_constraint = cloud_composite.flight_number.isin(RFs)
 altitude_constraint = cloud_composite.alt < 1100
 spatial_constraint = rectangle_spatial_mask(
     ds=cloud_composite,
@@ -180,7 +189,7 @@ cc_constraint = cloud_composite.sel(time=time_values_of_constraint)
 # For the dropsonde data set we need select:
 # 1. Match the spatial constraint
 # 2. All time values that match the time constraint.
-#    For this, the for each ART measurement the nearest dropsonde is selected.
+#    For this, the for each ATR measurement the nearest dropsonde is selected.
 # 3. Only use unqiue timevalus to avoid double counting
 ds_constraint = drop_sondes.where(drop_sondes_spatial_constraint, drop=True)
 drop_sondes_time_constraint_all = ds_constraint.time.sel(
@@ -189,8 +198,8 @@ drop_sondes_time_constraint_all = ds_constraint.time.sel(
 drop_sondes_time_constraint = np.unique(drop_sondes_time_constraint_all)
 ds_constraint = ds_constraint.sel(time=drop_sondes_time_constraint)
 
-print(f"{len(time_values_of_constraint)} ART measurments are selected")
-print(f"{len(drop_sondes_time_constraint)} dropsondes are selected")
+print(f"{len(time_values_of_constraint)} ATR measurments are selected")
+print(f"{len(drop_sondes_time_constraint)} drop sondes are selected")
 
 
 # # %%
@@ -205,8 +214,8 @@ print(f"{len(drop_sondes_time_constraint)} dropsondes are selected")
 
 # # %%
 
-# # Draw a map of all dropsondes released during the campaign
-
+# # Draw a map of all drop sondes released during the campaign
+# print("Plotting all drop sondes and ATR locations")
 
 # fig = plt.figure(figsize=(10, 10), layout="constrained")
 # ax = plt.axes(projection=ccrs.PlateCarree())
@@ -218,7 +227,7 @@ print(f"{len(drop_sondes_time_constraint)} dropsondes are selected")
 # ax.set_extent([-60, -56, 12, 15])
 
 # xx, yy = latlon_dict_to_polygon(area_cloud_composite).exterior.xy
-# ax.plot(xx, yy, transform=ccrs.PlateCarree(), color="red", linewidth=2, label="ART selected area")
+# ax.plot(xx, yy, transform=ccrs.PlateCarree(), color="red", linewidth=2, label="ATR selected area")
 
 # xx, yy = latlon_dict_to_polygon(area_drop_sondes).exterior.xy
 # ax.plot(
@@ -239,7 +248,7 @@ print(f"{len(drop_sondes_time_constraint)} dropsondes are selected")
 #     # color = 'b',
 #     marker=".",
 #     alpha=0.7,
-#     label="ART",
+#     label="ATR",
 # )
 
 # ax.scatter(
@@ -264,12 +273,12 @@ print(f"{len(drop_sondes_time_constraint)} dropsondes are selected")
 
 
 # ax.legend()
-# ax.set_title("Dropsonde and ART locations overview")
-# # fig.savefig(figure_dir / "sonde_art_locations_overview.png", dpi=300, transparent=False)
+# ax.set_title("Dropsonde and ATR locations overview")
+# fig.savefig(figure_dir / "sonde_art_locations_overview.png", dpi=300, transparent=False)
 
 # %%
-# Draw a map of all dropsondes released during the campaign
-
+# Draw a map of all drop sondes released during the campaign
+print("Plotting selected drop sondes and ATR locations")
 fig = plt.figure(figsize=(10, 10))
 ax = plt.axes(projection=ccrs.PlateCarree())
 # ax.coastlines()
@@ -281,7 +290,7 @@ ax.set_extent([-60, -56, 12, 15])
 cm = plt.cm.get_cmap("RdYlBu")
 
 xx, yy = latlon_dict_to_polygon(area_cloud_composite).exterior.xy
-ax.plot(xx, yy, transform=ccrs.PlateCarree(), color="red", linewidth=2, label="ART selected area")
+ax.plot(xx, yy, transform=ccrs.PlateCarree(), color="red", linewidth=2, label="ATR selected area")
 
 xx, yy = latlon_dict_to_polygon(area_drop_sondes).exterior.xy
 ax.plot(
@@ -301,7 +310,7 @@ ax.scatter(
     # c = cc_constraint.flight_number.values,
     marker="+",
     # alpha= 0.1,
-    label="ART",
+    label="ATR",
     # cmap="jet"
 )
 
@@ -314,17 +323,18 @@ ax.scatter(
 )
 
 ax.legend()
-ax.set_title("ART locations fitting conditions and related dropsondes")
+ax.set_title("ATR locations fitting conditions and related drop sondes")
 fig.savefig(figure_dir / "art_sonde_locations_condition.png", dpi=300, transparent=False)
 
 # %%
+print("Plotting selected drop sondes and ATR locations")
 fig, ax = plt.subplots(figsize=(10, 2))
 ax.plot(
     time_values_of_constraint,
     time_values_of_constraint.astype(int) * 0 + 0.1,
     marker="+",
     linestyle="",
-    label=f"{len(time_values_of_constraint)} ART measurments",
+    label=f"{len(time_values_of_constraint)} ATR measurments",
 )
 
 ax.plot(
@@ -332,7 +342,7 @@ ax.plot(
     drop_sondes_time_constraint.astype(int) * 0,
     marker="x",
     linestyle="",
-    label=f"{len(drop_sondes_time_constraint)} dropsondes",
+    label=f"{len(drop_sondes_time_constraint)} drop sondes",
 )
 # ax.legend(ncol=2, loc="upper center")
 ax.set_ylim(-0.05, 0.15)
@@ -342,13 +352,13 @@ ax.set_yticks(
         0,
     ],
     [
-        f"ART\n#{len(time_values_of_constraint)}",
+        f"ATR\n#{len(time_values_of_constraint)}",
         f"Dropsondes\n#{len(drop_sondes_time_constraint)}",
     ],
 )
 # ax.set_xticks(rotation=-45, ha="left")
 ax.set_title(
-    "Measurement times of ART fitting the conditions.\nAnd temporal 'nearest' dropsondes in the selcted area."
+    "Measurement times of ATR fitting the conditions.\nAnd temporal 'nearest' drop sondes in the selcted area."
 )
 fig.tight_layout()
 fig.savefig(figure_dir / "conditions_art_sonde_times.png", dpi=300, transparent=False)
@@ -362,7 +372,7 @@ ax.plot(
     time_values_of_constraint.astype(int) * 0 + 0.1,
     marker="+",
     linestyle="",
-    label=f"{len(time_values_of_constraint)} ART",
+    label=f"{len(time_values_of_constraint)} ATR",
 )
 
 ax.plot(
@@ -384,7 +394,7 @@ ax.plot(
     cloud_time_values.astype(int) * 0 + 0.2,
     marker="+",
     linestyle="",
-    label=f"{len(cloud_time_values)} ART cloud",
+    label=f"{len(cloud_time_values)} ATR cloud",
 )
 
 ax.plot(
@@ -392,7 +402,7 @@ ax.plot(
     drizzle_time_values.astype(int) * 0 + 0.3,
     marker="+",
     linestyle="",
-    label=f"{len(drizzle_time_values)} ART drizzle",
+    label=f"{len(drizzle_time_values)} ATR drizzle",
 )
 
 ax.plot(
@@ -400,7 +410,7 @@ ax.plot(
     rain_time_values.astype(int) * 0 + 0.4,
     marker="+",
     linestyle="",
-    label=f"{len(rain_time_values)} ART rain",
+    label=f"{len(rain_time_values)} ATR rain",
 )
 
 
@@ -413,29 +423,159 @@ ax.set_ylim(-0.05, 0.45)
 ax.set_yticks(
     [0.1, 0, 0.2, 0.3, 0.4],
     [
-        f"ART\n#{len(time_values_of_constraint)}",
+        f"ATR\n#{len(time_values_of_constraint)}",
         f"Dropsondes\n#{len(drop_sondes_time_constraint)}",
-        f"ART cloud\n#{len(cloud_time_values)}",
-        f"ART drizzle\n#{len(drizzle_time_values)}",
-        f"ART rain\n#{len(rain_time_values)}",
+        f"ATR cloud\n#{len(cloud_time_values)}",
+        f"ATR drizzle\n#{len(drizzle_time_values)}",
+        f"ATR rain\n#{len(rain_time_values)}",
     ],
 )
 # ax.set_xticks(rotation=-45, ha="left")
 ax.set_title(
-    "Measurement times of ART fitting the conditions.\nAnd temporal 'nearest' dropsondes in the selcted area."
+    "Measurement times of ATR fitting the conditions.\nAnd temporal 'nearest' drop sondes in the selcted area."
 )
 # ax.legend(bbox_to_anchor=(1.04, 0.5))
 fig.tight_layout()
 fig.savefig(figure_dir / "conditions_art_sonde_times_masks.png", dpi=300, transparent=False)
 
 # %% [markdown]
-# ### ART data: PSD and MSD
+# ===========================
+# Dropsonde data
+# ===========================
+
+# %%
+n, a = ds_constraint.theta.shape
+# Create a color dict with individual colors for each day of the year which is present in the data set
+color_func = lambda ds: ds.time.dt.date
+
+color_n = np.unique([color_func(ds_constraint)]).astype(str)
+color_list = gen_color("Set3", n=color_n.size)
+plot_colors(color_list)
+color_dict = dict(zip(color_n, color_list))
+
+xx = np.tile(ds_constraint.alt, (n, 1))
+cc = np.tile(ds_constraint.time.dt.day, (a, 1)).T
+
+inner_times = ds_constraint.time.where(
+    rectangle_spatial_mask(
+        ds=ds_constraint,
+        area=area_cloud_composite,
+        lat_name="flight_lat",
+        lon_name="flight_lon",
+    )
+)
+
+outer_times = ds_constraint.time.where(
+    rectangle_spatial_mask(
+        ds=ds_constraint,
+        area=area_drop_sondes,
+        lat_name="flight_lat",
+        lon_name="flight_lon",
+    )
+)
+
+# Plot the temperature profiles for the selected sondes and color them by their day of the year value
+style = dict(linewidth=0.8, linestyle="-", alpha=0.8)
+
+print("Plotting selected drop sondes")
+fig, axs = plt.subplots(nrows=1, ncols=2, figsize=(15, 7.5), sharey=True)
+
+axs_theta = axs[0]
+axs_q = axs[1]
+# ds_constraint.theta.shape
+old_day = None
+for i, t in enumerate(ds_constraint.time):
+    day = str(color_func(t).values)
+    color = color_dict[day]
+    if old_day != day:
+        axs_theta.plot(
+            ds_constraint.theta.sel(time=t), ds_constraint.alt, color=color, label=f"{day}", **style
+        )
+        axs_q.plot(ds_constraint.q.sel(time=t), ds_constraint.alt, color=color, label=f"{day}", **style)
+    else:
+        axs_theta.plot(ds_constraint.theta.sel(time=t), ds_constraint.alt, color=color, **style)
+        axs_q.plot(ds_constraint.q.sel(time=t), ds_constraint.alt, color=color, **style)
+
+    old_day = day
+
+for ax in axs.flatten():
+    ax.legend(loc="lower right")
+    ax.set_ylim(0, 2000)
+    ax.set_ylabel("Altitude [m]")
+
+axs[0].set_xlim(297, 305)
+axs[0].set_xlabel("Potential Temperature [K]")
+axs[1].set_xlim(0, 0.025)
+axs[1].set_xlabel("Relative humidity in [kg / kg]")
+
+axs[0].set_title("Potential temperature")
+axs[1].set_title("Relative humidity")
+fig.suptitle("Profiles of realted drop sondes | colored by date")
+fig.savefig(figure_dir / "art_sonde_temperature_profiles.png", dpi=300, transparent=False)
+
+
+## difference between inner box and outer box
+# %%
+inner_style = dict(linewidth=0.8, linestyle="-", alpha=0.8)
+outer_style = dict(linewidth=0.8, linestyle="--", alpha=0.8)
+
+print("Plotting selected drop sondes | Inner and Outer box")
+fig, axs = plt.subplots(nrows=1, ncols=2, figsize=(15, 7.5), sharey=True)
+
+axs_theta = axs[0]
+axs_q = axs[1]
+# ds_constraint.theta.shape
+
+old_day = None
+for i, t in enumerate(ds_constraint.time):
+    day = str(color_func(t).values)
+    color = color_dict[day]
+    if np.isin(t.values, inner_times.values):
+        style = inner_style
+    elif np.isin(t.values, outer_times.values):
+        style = outer_style
+    else:
+        print(t.values)
+        raise ValueError("Something went wrong with the inner outer mask")
+    if old_day != day:
+        axs_theta.plot(
+            ds_constraint.theta.sel(time=t), ds_constraint.alt, color=color, label=f"{day}", **style
+        )
+        axs_q.plot(ds_constraint.q.sel(time=t), ds_constraint.alt, color=color, label=f"{day}", **style)
+    else:
+        axs_theta.plot(ds_constraint.theta.sel(time=t), ds_constraint.alt, color=color, **style)
+        axs_q.plot(ds_constraint.q.sel(time=t), ds_constraint.alt, color=color, **style)
+
+    old_day = day
+
+for ax in axs.flatten():
+    ax.legend(loc="lower right")
+    ax.set_ylim(0, 2000)
+    ax.set_ylabel("Altitude [m]")
+
+axs[0].set_xlim(297, 305)
+axs[0].set_xlabel("Potential Temperature [K]")
+axs[1].set_xlim(0, 0.025)
+axs[1].set_xlabel("Relative humidity in [kg / kg]")
+
+axs[0].set_title("Potential temperature")
+axs[1].set_title("Relative humidity")
+fig.suptitle(
+    "Profiles of realted drop sondes | colored by date\nSolid for sondes in small box | Dashed for sondes in bigger box"
+)
+fig.savefig(figure_dir / "art_sonde_temperature_profiles_boxes.png", dpi=300, transparent=False)
+
+
+# %% [markdown]
+### ATR data: PSD and MSD
 # Stuff
 
 # %%
+print("Plotting selected ATR measurments")
 fig, axs = plt.subplots(figsize=(15, 7.5), ncols=2, sharex=True)
 
 #  Plot the particle_size_distribution for all and for the selected sondes
+axs[0].set_xscale("log")
 
 axs[0].plot(
     cc_constraint.diameter,
@@ -447,16 +587,31 @@ axs[0].plot(
     # label = f'individual measurements {q*100:.0f}ths percentile based on LWC'
 )
 
-axs[0].set_xscale("log")
 axs[0].plot(
-    cloud_composite.diameter,
-    cloud_composite.particle_size_distribution.where(cloud_composite.particle_size_distribution != 0).mean(dim="time", skipna=True),
+    cc_constraint.diameter,
+    cc_constraint.particle_size_distribution.where(cc_constraint.particle_size_distribution != 0).median(
+        dim="time", skipna=True
+    ),
     color="r",
     alpha=1,
     linewidth=2,
     # marker = '.',
     label=f"Median",
 )
+
+axs[0].plot(
+    cc_constraint.diameter,
+    cc_constraint.particle_size_distribution.where(cc_constraint.particle_size_distribution != 0).mean(
+        dim="time", skipna=True
+    ),
+    color="r",
+    alpha=1,
+    linewidth=2,
+    linestyle="--",
+    # marker = '.',
+    label=f"Mean",
+)
+
 
 axs[0].set_xlabel("Particle diameter [µm]")
 axs[0].set_ylabel("Particle size distribution [#/L]")
@@ -475,12 +630,25 @@ axs[1].plot(
 
 axs[1].set_xscale("log")
 axs[1].plot(
-    cloud_composite.diameter,
-    cloud_composite.mass_size_distribution.where(cloud_composite.mass_size_distribution != 0).mean(dim="time", skipna=True),
+    cc_constraint.diameter,
+    cc_constraint.mass_size_distribution.where(cc_constraint.mass_size_distribution != 0).median(
+        dim="time", skipna=True
+    ),
     color="r",
     alpha=1,
     linewidth=2,
     label=f"Median",
+)
+axs[1].plot(
+    cc_constraint.diameter,
+    cc_constraint.mass_size_distribution.where(cc_constraint.mass_size_distribution != 0).mean(
+        dim="time", skipna=True
+    ),
+    color="r",
+    alpha=1,
+    linewidth=2,
+    linestyle="--",
+    label=f"Mean",
 )
 
 axs[1].set_xlabel("Particle diameter [µm]")
@@ -491,54 +659,74 @@ for ax in axs.flatten():
     ax.legend()
     ax.set_yscale("log")
 
-fig.suptitle(f"Particle size distribution and mass size distribution from ART measurements.")
+fig.suptitle(f"Particle size distribution and mass size distribution from ATR measurements.")
 fig.savefig(figure_dir / "art_sonde_psd_msd_all.png", dpi=300, transparent=False)
 
 
 # %%
-fig = plt.figure(figsize=(15, 10))
-subfigs = fig.subfigures(1, 2, wspace=0.07)
+print("Plotting selected ATR measurments | Masks impact")
+fig = plt.figure(figsize=(20, 15), layout="constrained")
+subfigs = fig.subfigures(1, 2, wspace=0.1)
 
-axs_left = subfigs[0].subplots(ncols = 1, nrows = 4, sharey=True)
-axs_right = subfigs[1].subplots(ncols = 1, nrows = 4, sharey=True)
+axs_left = subfigs[0].subplots(ncols=1, nrows=4, sharey=True)
+axs_right = subfigs[1].subplots(ncols=1, nrows=4, sharey=True)
 
 masks = [None, "cloud_mask", "drizzle_mask", "rain_mask"]
 
 # on the left axes plot the PSD
 # on the right axes plot the MSD
 
-for idx in np.arange(4):
-    mask = masks[idx]
-    if mask is None:
-        psd_all = cc_constraint["particle_size_distribution"]# * 1e9
-        msd_all = cc_constraint["mass_size_distribution"] #* 1e12
-        mask = ""
-        psd = psd_all.where(psd_all != 0, drop=True)	
-        msd = msd_all.where(msd_all != 0, drop=True)
-        linthresh_psd = 10 ** np.floor(np.log10(np.abs(psd.min())))
-        linthresh_msd = 10 ** np.floor(np.log10(np.abs(msd.min())))
-    else :
-        psd_all = cc_constraint["particle_size_distribution"].where(cc_constraint[mask] == 1, drop=True) #* 1e9
-        msd_all = cc_constraint["mass_size_distribution"].where(cc_constraint[mask] == 1, drop=True) #* 1e12
-        psd = psd_all.where(psd_all != 0, drop=True)	
-        msd = msd_all.where(msd_all != 0, drop=True)
+psd = cc_constraint["particle_size_distribution"].where(
+    cc_constraint["particle_size_distribution"] != 0, drop=True
+)
+msd = cc_constraint["mass_size_distribution"].where(
+    cc_constraint["mass_size_distribution"] != 0, drop=True
+)
 
+linthresh_psd = 10 ** np.floor(np.log10(np.abs(psd.min().values)))
+linthresh_msd = 10 ** np.floor(np.log10(np.abs(msd.min().values)))
+
+for idx in np.arange(4):
     axs_left[idx].set_xscale("log")
-    symlog_psd = mpl.scale.SymmetricalLogScale(axs_left[idx], base=10, linthresh=linthresh_psd, subs=None, linscale=0.1)
+    symlog_psd = mpl.scale.SymmetricalLogScale(
+        axs_left[idx], base=10, linthresh=linthresh_psd, subs=None, linscale=0.1
+    )
     axs_left[idx].set_yscale(symlog_psd)
     axs_right[idx].set_xscale("log")
-    symlog_msd = mpl.scale.SymmetricalLogScale(axs_right[idx], base=10, linthresh=linthresh_msd, subs=None, linscale=0.1)
+    symlog_msd = mpl.scale.SymmetricalLogScale(
+        axs_right[idx], base=10, linthresh=linthresh_msd, subs=None, linscale=0.1
+    )
     axs_right[idx].set_yscale(symlog_msd)
 
 
+for idx in np.arange(4):
+    mask = masks[idx]
+    if mask is None:
+        psd_all = cc_constraint["particle_size_distribution"]  # * 1e9
+        msd_all = cc_constraint["mass_size_distribution"]  # * 1e12
+        psd = psd_all.where(psd_all != 0, drop=True)
+        msd = msd_all.where(msd_all != 0, drop=True)
+        mask = ""
+    else:
+        try:
+            psd_all = cc_constraint["particle_size_distribution"].where(
+                cc_constraint[mask] == 1, drop=True
+            )  # * 1e9
+            msd_all = cc_constraint["mass_size_distribution"].where(
+                cc_constraint[mask] == 1, drop=True
+            )  # * 1e12
+            psd = psd_all.where(psd_all != 0, drop=True)
+            msd = msd_all.where(msd_all != 0, drop=True)
+        except TypeError as e:
+            print(f"TypeError: in {mask}")
 
     # Plot PSD
-    q66 = psd.quantile(0.66, dim = "time")
-    q33 = psd.quantile(0.33, dim = "time")
-    q10 = psd.quantile(0.1, dim = "time")
-    q90 = psd.quantile(0.9, dim = "time")
+    q66 = psd.quantile(0.66, dim="time")
+    q33 = psd.quantile(0.33, dim="time")
+    q10 = psd.quantile(0.1, dim="time")
+    q90 = psd.quantile(0.9, dim="time")
 
-    # plot 
+    # plot
     axs_left[idx].fill_between(
         psd["diameter"],
         q66,
@@ -546,7 +734,7 @@ for idx in np.arange(4):
         color=colors[idx],
         alpha=0.5,
         label=r"33-66% omiting 0s",
-        zorder = 3,
+        zorder=3,
     )
     axs_left[idx].fill_between(
         psd["diameter"],
@@ -555,7 +743,7 @@ for idx in np.arange(4):
         color=colors[idx],
         alpha=0.2,
         label=r"10-90% omiting 0s",
-        zorder = 4,
+        zorder=4,
     )
 
     axs_left[idx].plot(
@@ -565,23 +753,19 @@ for idx in np.arange(4):
         alpha=0.8,
         linewidth=2,
         label="Median omiting 0s",
-        zorder = 5,
-
+        zorder=5,
         # marker=".",
     )
 
     axs_left[idx].plot(
         psd_all["diameter"],
         psd_all,
-        color=adjust_lightness(
-            colors[idx],
-            0.8
-            ),
+        color=adjust_lightness(colors[idx], 0.8),
         alpha=0.01,
         linewidth=0,
         marker=".",
-        label = f'Measurements',
-        zorder = 1,
+        # label = f'Measurements',
+        zorder=1,
     )
 
     axs_left[idx].set_title(f"PSD {mask}")
@@ -597,13 +781,13 @@ for idx in np.arange(4):
     # axs_right[idx].set_title(f"MSD {mask}")
 
     # Plot MSD
-   # Plot PSD
-    q66 = msd.quantile(0.66, dim = "time")
-    q33 = msd.quantile(0.33, dim = "time")
-    q10 = msd.quantile(0.1, dim = "time")
-    q90 = msd.quantile(0.9, dim = "time")
+    # Plot PSD
+    q66 = msd.quantile(0.66, dim="time")
+    q33 = msd.quantile(0.33, dim="time")
+    q10 = msd.quantile(0.1, dim="time")
+    q90 = msd.quantile(0.9, dim="time")
 
-    # plot 
+    # plot
     axs_right[idx].fill_between(
         msd["diameter"],
         q66,
@@ -611,8 +795,7 @@ for idx in np.arange(4):
         color=colors[idx],
         alpha=0.5,
         label=r"33-66% omiting 0s",
-        zorder = 3,
-
+        zorder=3,
     )
     axs_right[idx].fill_between(
         msd["diameter"],
@@ -621,7 +804,7 @@ for idx in np.arange(4):
         color=colors[idx],
         alpha=0.2,
         label=r"10-90% omiting 0s",
-        zorder = 4,
+        zorder=4,
     )
 
     axs_right[idx].plot(
@@ -631,23 +814,19 @@ for idx in np.arange(4):
         alpha=0.8,
         linewidth=2,
         label="Median omiting 0s",
-        zorder = 5,
-
+        zorder=5,
         # marker=".",
     )
 
     axs_right[idx].plot(
         msd_all["diameter"],
         msd_all,
-        color=adjust_lightness(
-            colors[idx],
-            0.8
-            ),
+        color=adjust_lightness(colors[idx], 0.8),
         alpha=0.01,
         linewidth=0,
         marker=".",
-        label = f'Measurements',
-        zorder = 1,
+        # label = f'Measurements',
+        zorder=1,
     )
 
     axs_right[idx].set_title(f"MSD {mask}")
@@ -657,98 +836,15 @@ axs_right[-1].set_xlabel("Particle diameter [µm]")
 
 for ax in axs_left.flatten():
     ax.set_ylabel("[#/L]")
+    ax.legend()
 for ax in axs_right.flatten():
     ax.set_ylabel("[g/L/µm]")
+    ax.legend()
 
-subfigs[0].suptitle(f"Particle size distribution from ART measurements.")
-subfigs[1].suptitle(f"Mass size distribution from ART measurements.")
-fig.tight_layout()
+subfigs[0].suptitle(f"Particle size distribution from ATR measurements.")
+subfigs[1].suptitle(f"Mass size distribution from ATR measurements.")
+# fig.tight_layout()
 fig.savefig(figure_dir / "art_sonde_psd_msd_masks.png", dpi=300, transparent=False)
-# %% [markdown]
-# ===========================
-# Dropsonde data
-# ===========================
-
-# %%
-n, a = ds_constraint.theta.shape
-# Create a color dict with individual colors for each day of the year which is present in the data set
-color_n = np.unique([ds_constraint.time.dt.date]).astype(str)
-color_list = gen_color("tab10", n=color_n.size)
-plot_colors(color_list)
-color_dict = dict(zip(color_n, color_list))
-
-# %%
-# Set style
-style = dict(linewidth=1, marker=".", s=1, linestyle="-", alpha=1, cmap="Set2")
-
-
-# Plot the temperature profiles for the selected sondes and color them by their day of the year value
-fig, axs = plt.subplots(1, 1, figsize=(7.5, 7.5))
-
-xx = np.tile(ds_constraint.alt, (n, 1))
-cc = np.tile(ds_constraint.time.dt.day, (a, 1)).T
-# ds_constraint.theta.shape
-
-old_day = None
-for i, t in enumerate(ds_constraint.time):
-    day = str(t.dt.date.values)
-    color = color_dict[day]
-    if old_day != day:
-        axs.plot(
-            ds_constraint.theta.sel(time=t),
-            ds_constraint.alt,
-            color=color,
-            label=f"{day}",
-        )
-    else:
-        axs.plot(
-            ds_constraint.theta.sel(time=t),
-            ds_constraint.alt,
-            color=color,
-        )
-    old_day = day
-axs.legend(loc="lower right")
-
-axs.set_ylim(0, 2000)
-axs.set_xlim(297, 305)
-axs.set_xlabel("Potential Temperature [K]")
-axs.set_ylabel("Altitude [m]")
-axs.set_title("Temperature profiles of realted dropsondes\nColored by date")
-fig.savefig(figure_dir / "art_sonde_temperature_profiles.png", dpi=300, transparent=False)
-
-
-# Plot the temperature profiles for the selected sondes and color them by their day of the year value
-fig, axs = plt.subplots(1, 1, figsize=(7.5, 7.5))
-
-xx = np.tile(ds_constraint.alt, (n, 1))
-cc = np.tile(ds_constraint.time.dt.day, (a, 1)).T
-
-old_day = None
-for i, t in enumerate(ds_constraint.time):
-    day = str(t.dt.date.values)
-    color = color_dict[day]
-    if old_day != day:
-        axs.plot(
-            ds_constraint.q.sel(time=t),
-            ds_constraint.alt,
-            color=color,
-            label=f"{day}",
-        )
-    else:
-        axs.plot(
-            ds_constraint.q.sel(time=t),
-            ds_constraint.alt,
-            color=color,
-        )
-    old_day = day
-axs.legend(loc="lower right")
-
-axs.set_ylim(0, 2000)
-axs.set_xlim(0, 0.025)
-axs.set_xlabel("Relative Humidity [%]")
-axs.set_ylabel("Altitude [m]")
-axs.set_title("Relative humidity profiles of realted dropsondes\nColored by date")
-fig.savefig(figure_dir / "art_sonde_relative_humidity_profiles.png", dpi=300, transparent=False)
 
 
 # # %%
@@ -819,3 +915,5 @@ fig.savefig(figure_dir / "art_sonde_relative_humidity_profiles.png", dpi=300, tr
 
 
 # # %%
+
+# %%
