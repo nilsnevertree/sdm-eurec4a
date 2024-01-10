@@ -4,26 +4,13 @@ import os
 from pathlib import Path
 
 import cartopy.crs as ccrs
-import cartopy.feature as cfeature
 import matplotlib as mpl
 import matplotlib.dates as mdates
 import matplotlib.pyplot as plt
 import numpy as np
 import xarray as xr
 
-from matplotlib.dates import DateFormatter, DayLocator, HourLocator
-from sdm_eurec4a.reductions import (
-    latlon_dict_to_polygon,
-    polygon2mask,
-    rectangle_spatial_mask,
-)
-from sdm_eurec4a.visulization import (
-    adjust_lightness,
-    gen_color,
-    plot_colors,
-    set_custom_rcParams,
-)
-from shapely.geometry import Polygon
+from sdm_eurec4a.visulization import set_custom_rcParams
 
 
 # %%
@@ -42,6 +29,11 @@ fig_path = REPOSITORY_ROOT / Path("results/individual_clouds/")
 fig_path.mkdir(parents=True, exist_ok=True)
 
 # %%
+
+# -------
+# Load data
+# -------
+
 identified_clouds = xr.open_dataset(
     REPOSITORY_ROOT / Path("data/observation/cloud_composite/processed/identified_clouds_more.nc")
 )
@@ -70,6 +62,10 @@ drop_sondes = drop_sondes.sortby("time")
 drop_sondes = drop_sondes.chunk({"time": -1})
 # %%
 
+# -----
+# Plotting relation of duration and LWC of clouds
+# -----
+
 plt.scatter(
     identified_clouds.duration.dt.seconds.astype(int),
     identified_clouds.liquid_water_content,
@@ -92,6 +88,10 @@ time_slice = np.concatenate(time_slices, axis=0)
 cloud_selection = cloud_composite.sel(time=time_slice, drop=True)
 
 # %%
+
+# -----
+# Plot map of selected clouds and realted ATR measurements and dropsondes
+# -----
 
 fig, axs = plt.subplots(
     nrows=1,
@@ -146,6 +146,9 @@ fig.savefig(fig_path / Path("identified_clouds_longest_duration.svg"), dpi=300, 
 
 # %%
 
+# -----
+# Plot map of identified cloud and realted ATR measurements and dropsondes
+
 fig, axs = plt.subplots(
     nrows=1,
     ncols=2,
@@ -199,28 +202,36 @@ fig.suptitle(f"{head_number} identified clouds with longest duration", fontsize=
 fig.savefig(fig_path / Path("identified_clouds_longest_duration_mean.svg"), dpi=300, bbox_inches="tight")
 
 # %%
+# -----
+# Chosing and individual cloud
+# -----
 
-# lets take one cloud
 chosen_id = 1421
 
+# extract the cloud
 single_cloud = identified_clouds.sel(time=identified_clouds.cloud_id == chosen_id)
-# choose the closest dropsondes
+# realted ATR measurements
 chosen_cloud_composite = cloud_composite.sel(
     time=slice(single_cloud.start[0], single_cloud.end[0]), drop=True
 )
 
+# Identify dropsondes which are close to the cloud
+
+# get distance look up table for this cloud
 single_distances = distance_IC_DS.sel(time_identified_clouds=single_cloud.time.data)
 
-
+# set the maximum distance for the dropsondes
 max_spatial_distance = 100  # km
 max_temporal_distance = np.timedelta64(1, "h")
+
+# select the time of the dropsondes which are close to the cloud
 allowed_dropsonde_times = single_distances.where(
     (np.abs(single_distances.temporal_distance) <= max_temporal_distance)
     & (single_distances.spatial_distance <= max_spatial_distance),
     drop=True,
 ).time_drop_sondes
-allowed_dropsonde_times
 
+# select the dropsondes which are close to the cloud
 chosen_dropsondes = drop_sondes.sel(time=allowed_dropsonde_times.data, drop=True)
 
 # lets store the example input for the model
@@ -229,6 +240,11 @@ chosen_cloud_composite.to_netcdf(output_dir / Path(f"cloud_composite_{chosen_id}
 
 
 # %%
+
+# -----
+# Plot map of identified cloud and realted ATR measurements and dropsondes
+# -----
+
 fig = plt.figure(figsize=(6, 6))
 ax = plt.axes(projection=ccrs.PlateCarree())
 ax.gridlines(draw_labels=True)
@@ -273,7 +289,10 @@ fig.savefig(fig_path / Path(f"selected_cloud_dropsondes_{chosen_id}.svg"), bbox_
 fig.savefig(fig_path / Path(f"selected_cloud_dropsondes_{chosen_id}.png"), dpi=300, bbox_inches="tight")
 
 # %%
+# -----
 # Plot the temperature profiles for the selected sondes and color them by their day of the year value
+# -----
+
 style = dict(linewidth=0.8, linestyle="-", alpha=0.8)
 
 print("Plotting selected drop sondes")
@@ -311,6 +330,10 @@ fig.savefig(
 )
 
 # %%
+
+# -----
+# Plot the temperature profiles for the selected sondes and color them by their day of the year value
+# -----
 
 print("Plotting selected ATR measurments")
 fig, axs = plt.subplots(figsize=(10, 6), ncols=2, sharex=True)

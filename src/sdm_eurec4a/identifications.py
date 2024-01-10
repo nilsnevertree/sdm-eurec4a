@@ -11,9 +11,8 @@ def consecutive_events_xr(
     axis: str = "time",
 ) -> xr.DataArray:
     """
-    This function calculates the mask of consecutive events with a duration
-    of at least ´´min_duration´´(default 1) It runs full on xarray and
-    numpy.
+    This function calculates the mask of consecutive events with a duration of
+    at least ´´min_duration´´(default 1) It runs full on xarray and numpy.
 
     Input
     -----
@@ -113,8 +112,8 @@ def consecutive_events_np(
     axis: int = 0,
 ) -> np.ndarray:
     """
-    This function calculates the mask of consecutive events with a duration
-    of at least ´´min_duration´´(default 1) It runs full on numpy.
+    This function calculates the mask of consecutive events with a duration of
+    at least ´´min_duration´´(default 1) It runs full on numpy.
 
     Note
     ----
