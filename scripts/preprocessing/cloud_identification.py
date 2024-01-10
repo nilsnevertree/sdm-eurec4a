@@ -75,8 +75,10 @@ input("Press Enter to continue...")
 # %%
 with ProgressBar():
     cloud_diff = cloud_composite.cloud_mask.fillna(0).astype(int).diff(dim="time")
+    cloud_diff = cloud_diff.compute()
     cloud_start = cloud_diff.time.where(cloud_diff == 1, drop=True)
     cloud_end = cloud_diff.time.where(cloud_diff == -1, drop=True)
+    
     print(f"{cloud_start.shape} number of clouds were identified")
 
     # %%
@@ -182,3 +184,5 @@ clouds["lon"].attrs = {
 print("Save new dataset to disk.")
 with ProgressBar():
     clouds.to_netcdf(output_path / Path("identified_clouds_more.nc"))
+
+# %%
