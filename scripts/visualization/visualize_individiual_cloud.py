@@ -4,6 +4,7 @@ import os
 from pathlib import Path
 
 import cartopy.crs as ccrs
+import cartopy.feature as cfeature
 import matplotlib as mpl
 import matplotlib.dates as mdates
 import matplotlib.pyplot as plt
@@ -14,7 +15,9 @@ from sdm_eurec4a.visulization import set_custom_rcParams
 
 
 # %%
+plt.style.use("default")
 default_colors = set_custom_rcParams()
+
 # Example dataset
 script_path = os.path.abspath(__file__)
 print(script_path)
@@ -25,17 +28,21 @@ print(REPOSITORY_ROOT)
 output_dir = REPOSITORY_ROOT / Path("data/model/input_examples/")
 output_dir.mkdir(parents=True, exist_ok=True)
 
-fig_path = REPOSITORY_ROOT / Path("results/individual_clouds/")
+fig_path = REPOSITORY_ROOT / Path("results/individual_clouds_rain_mask/")
 fig_path.mkdir(parents=True, exist_ok=True)
 
 # %%
 
-# -------
+
 # Load data
-# -------
+
+mask_name = "cloud_mask"
 
 identified_clouds = xr.open_dataset(
-    REPOSITORY_ROOT / Path("data/observation/cloud_composite/processed/identified_clouds_more.nc")
+    REPOSITORY_ROOT
+    / Path(
+        f"data/observation/cloud_composite/processed/identified_clouds/identified_clouds_{mask_name}.nc"
+    )
 )
 # select only clouds which are between 800 and 1100 m
 identified_clouds = identified_clouds.where(
@@ -61,19 +68,6 @@ drop_sondes = drop_sondes.swap_dims({"sonde_id": "time"})
 drop_sondes = drop_sondes.sortby("time")
 drop_sondes = drop_sondes.chunk({"time": -1})
 # %%
-
-# -----
-# Plotting relation of duration and LWC of clouds
-# -----
-
-plt.scatter(
-    identified_clouds.duration.dt.seconds.astype(int),
-    identified_clouds.liquid_water_content,
-)
-plt.xlabel("Duration in s")
-plt.ylabel("LWC in g/m3")
-plt.title("LWC vs duration of all cloud events")
-# %%
 head_number = 20
 cloud_times = identified_clouds.time.sortby(identified_clouds.duration)[-head_number - 1 :]
 time_slices = [
@@ -89,9 +83,27 @@ cloud_selection = cloud_composite.sel(time=time_slice, drop=True)
 
 # %%
 
-# -----
+
+# Plotting relation of duration and LWC of clouds
+
+
+plt.scatter(
+    identified_clouds.duration.dt.seconds.astype(int),
+    identified_clouds.liquid_water_content,
+)
+plt.scatter(
+    identified_clouds.duration.dt.seconds.astype(int),
+    identified_clouds.liquid_water_content,
+)
+plt.xlabel("Duration in s")
+plt.ylabel("LWC in g/m3")
+plt.title("LWC vs duration of all cloud events")
+
+# %%
+
+
 # Plot map of selected clouds and realted ATR measurements and dropsondes
-# -----
+
 
 fig, axs = plt.subplots(
     nrows=1,
@@ -146,7 +158,7 @@ fig.savefig(fig_path / Path("identified_clouds_longest_duration.svg"), dpi=300, 
 
 # %%
 
-# -----
+
 # Plot map of identified cloud and realted ATR measurements and dropsondes
 
 fig, axs = plt.subplots(
@@ -202,9 +214,9 @@ fig.suptitle(f"{head_number} identified clouds with longest duration", fontsize=
 fig.savefig(fig_path / Path("identified_clouds_longest_duration_mean.svg"), dpi=300, bbox_inches="tight")
 
 # %%
-# -----
+
 # Chosing and individual cloud
-# -----
+
 
 chosen_id = 1421
 
@@ -218,7 +230,7 @@ chosen_cloud_composite = cloud_composite.sel(
 # Identify dropsondes which are close to the cloud
 
 # get distance look up table for this cloud
-single_distances = distance_IC_DS.sel(time_identified_clouds=single_cloud.time.data)
+single_distances = distance_IC_DS.sel(time_identified_clouds=single_cloud.time.data).compute()
 
 # set the maximum distance for the dropsondes
 max_spatial_distance = 100  # km
@@ -229,27 +241,50 @@ allowed_dropsonde_times = single_distances.where(
     (np.abs(single_distances.temporal_distance) <= max_temporal_distance)
     & (single_distances.spatial_distance <= max_spatial_distance),
     drop=True,
-).time_drop_sondes
+).time_drop_sondes.compute()
 
 # select the dropsondes which are close to the cloud
 chosen_dropsondes = drop_sondes.sel(time=allowed_dropsonde_times.data, drop=True)
 
 # lets store the example input for the model
-chosen_dropsondes.to_netcdf(output_dir / Path(f"dropsondes_{chosen_id}.nc"))
-chosen_cloud_composite.to_netcdf(output_dir / Path(f"cloud_composite_{chosen_id}.nc"))
+# chosen_dropsondes.to_netcdf(output_dir / Path(f"dropsondes_{chosen_id}.nc"))
+# chosen_cloud_composite.to_netcdf(output_dir / Path(f"cloud_composite_{chosen_id}.nc"))
+
+# %%
+
+
+# Plotting relation of duration and LWC of clouds
+
+
+plt.scatter(
+    identified_clouds.duration.dt.seconds.astype(int),
+    identified_clouds.liquid_water_content,
+)
+plt.scatter(
+    single_cloud.duration.dt.seconds.astype(int),
+    single_cloud.liquid_water_content,
+    marker="o",
+    color="k",
+)
+plt.xlabel("Duration in s")
+plt.ylabel("LWC in g/m3")
+plt.title("LWC vs duration of all cloud events")
 
 
 # %%
 
-# -----
+
 # Plot map of identified cloud and realted ATR measurements and dropsondes
-# -----
+
 
 fig = plt.figure(figsize=(6, 6))
 ax = plt.axes(projection=ccrs.PlateCarree())
-ax.gridlines(draw_labels=True)
+ax.gridlines(draw_labels=True, linestyle="--")
 ax.set_extent([-60, -56, 12, 15])
-cm = plt.cm.get_cmap("RdYlBu")
+# Put a background image on for nice sea rendering.
+# ax.add_feature(cfeature.LAND, facecolor="w", edgecolor="k")
+ax.add_feature(cfeature.COASTLINE, edgecolor="k")
+ax.add_feature(cfeature.LAND)
 
 ax.scatter(
     single_cloud.lon,
@@ -289,11 +324,11 @@ fig.savefig(fig_path / Path(f"selected_cloud_dropsondes_{chosen_id}.svg"), bbox_
 fig.savefig(fig_path / Path(f"selected_cloud_dropsondes_{chosen_id}.png"), dpi=300, bbox_inches="tight")
 
 # %%
-# -----
-# Plot the temperature profiles for the selected sondes and color them by their day of the year value
-# -----
 
-style = dict(linewidth=0.8, linestyle="-", alpha=0.8)
+# Plot the temperature profiles for the selected sondes and color them by their day of the year value
+
+
+style = dict(linewidth=1.3, linestyle="-", alpha=1)
 
 print("Plotting selected drop sondes")
 fig, axs = plt.subplots(nrows=1, ncols=2, figsize=(15, 7.5), sharey=True)
@@ -303,8 +338,10 @@ axs_q = axs[1]
 # ds_constraint.theta.shape
 old_day = None
 for i, t in enumerate(chosen_dropsondes.time):
-    axs_theta.plot(chosen_dropsondes.theta.sel(time=t), chosen_dropsondes.alt, color="r", **style)
-    axs_q.plot(chosen_dropsondes.q.sel(time=t), chosen_dropsondes.alt, color="b", **style)
+    axs_theta.plot(
+        chosen_dropsondes.theta.sel(time=t), chosen_dropsondes.alt, color=default_colors[0], **style
+    )
+    axs_q.plot(chosen_dropsondes.q.sel(time=t), chosen_dropsondes.alt, color=default_colors[1], **style)
 
 
 for ax in axs.flatten():
@@ -331,9 +368,9 @@ fig.savefig(
 
 # %%
 
-# -----
+
 # Plot the temperature profiles for the selected sondes and color them by their day of the year value
-# -----
+
 
 print("Plotting selected ATR measurments")
 fig, axs = plt.subplots(figsize=(10, 6), ncols=2, sharex=True)
@@ -347,12 +384,10 @@ axs[0].set_title("Particle size distribution")
 
 
 psd = chosen_cloud_composite["particle_size_distribution"].where(
-    (chosen_cloud_composite["particle_size_distribution"] != 0).compute(),
-    drop=True
+    (chosen_cloud_composite["particle_size_distribution"] != 0).compute(), drop=True
 )
 msd = chosen_cloud_composite["mass_size_distribution"].where(
-    (chosen_cloud_composite["mass_size_distribution"] != 0).compute(),
-    drop=True
+    (chosen_cloud_composite["mass_size_distribution"] != 0).compute(), drop=True
 )
 
 linthresh_psd = 10 ** (np.floor(np.log10(np.abs(psd.min().values))) - 1)
@@ -406,6 +441,74 @@ fig.savefig(fig_path / Path(f"selected_cloud_ATR_{chosen_id}.svg"), bbox_inches=
 fig.savefig(fig_path / Path(f"selected_cloud_ATR_{chosen_id}.png"), dpi=300, bbox_inches="tight")
 
 
+# %%
+
+psds = chosen_cloud_composite["particle_size_distribution"].compute()
+
+
+# Plot the particle size distribution
+
+
+print("Plotting selected ATR measurments")
+fig, ax = plt.subplots(figsize=(5, 6), ncols=1)
+
+#  Plot the particle_size_distribution for all and for the selected sondes
+ax.set_xscale("log")
+ax.set_xlabel("Particle diameter [µm]")
+ax.set_ylabel("Count [#/L]")
+ax.set_title("Particle size distribution")
+#  Plot the particle_size_distribution for all and for the selected sondes
+
+
+psd = psds.where((psds != 0).compute(), drop=True)
+
+linthresh_psd = 10 ** (np.floor(np.log10(np.abs(psd.min().values))) - 1)
+
+ax.set_xscale("log")
+symlog_psd = mpl.scale.SymmetricalLogScale(ax, base=10, linthresh=linthresh_psd, subs=None, linscale=0.2)
+ax.set_yscale(symlog_psd)
+
+
+ax.plot(
+    psds.diameter,
+    psds,
+    alpha=0.15,
+    linewidth=0.2,
+    linestyle="none",
+    marker=".",
+)
+
+ax.plot(
+    psds.diameter,
+    psds.median(dim="time"),
+    alpha=0.75,
+    linewidth=0.7,
+    marker=".",
+    color="b",
+    label="median"
+    # label = f'individual measurements {q*100:.0f}th percentile based on LWC'
+)
+
+ax.plot(
+    psds.diameter,
+    psds.mean(dim="time"),
+    alpha=0.75,
+    linewidth=0.7,
+    marker=".",
+    color="r",
+    label="mean"
+    # label = f'individual measurements {q*100:.0f}th percentile based on LWC'
+)
+
+
+ax.set_ylim(0, None)
+
+ax.legend()
+
+fig.suptitle(
+    f"Cloud {chosen_id} ({single_cloud.time.dt.strftime('%Y/%m/%d %H:%M:%S')[0].data})\nPSD of ATR\n"
+)
+fig.savefig(fig_path / Path(f"selected_cloud_ATR_psd_{chosen_id}.svg"), bbox_inches="tight")
 # %% More ideas on how to identify clouds
 # # %%
 # # print((ds.cloud_mask == True).sum().compute())
