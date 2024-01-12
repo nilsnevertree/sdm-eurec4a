@@ -3,7 +3,7 @@ from typing import Union
 import numpy as np
 import xarray as xr
 
-from shapely.geometry import MultiPolygon, Point, Polygon
+from shapely.geometry import Point, Polygon
 
 
 def polygon2mask(lon, lat, pg, lat_name="lat", lon_name="lon"):
