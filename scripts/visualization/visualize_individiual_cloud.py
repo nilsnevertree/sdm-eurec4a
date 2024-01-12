@@ -341,16 +341,18 @@ fig, axs = plt.subplots(figsize=(10, 6), ncols=2, sharex=True)
 #  Plot the particle_size_distribution for all and for the selected sondes
 axs[0].set_xscale("log")
 axs[0].set_xlabel("Particle diameter [µm]")
-axs[0].set_ylabel("Particle size distribution [#/L]")
+axs[0].set_ylabel("Count [#/L]")
 axs[0].set_title("Particle size distribution")
 #  Plot the particle_size_distribution for all and for the selected sondes
 
 
 psd = chosen_cloud_composite["particle_size_distribution"].where(
-    chosen_cloud_composite["particle_size_distribution"] != 0, drop=True
+    (chosen_cloud_composite["particle_size_distribution"] != 0).compute(),
+    drop=True
 )
 msd = chosen_cloud_composite["mass_size_distribution"].where(
-    chosen_cloud_composite["mass_size_distribution"] != 0, drop=True
+    (chosen_cloud_composite["mass_size_distribution"] != 0).compute(),
+    drop=True
 )
 
 linthresh_psd = 10 ** (np.floor(np.log10(np.abs(psd.min().values))) - 1)
@@ -388,7 +390,7 @@ axs[1].plot(
 )
 
 axs[1].set_xlabel("Particle diameter [µm]")
-axs[1].set_ylabel("Mass size distribution [g/L/µm]")
+axs[1].set_ylabel("Mass [g/L/µm]")
 axs[1].set_title("Mass size distribution")
 
 for ax in axs.flatten():
