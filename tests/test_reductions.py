@@ -1,9 +1,10 @@
 # %%
 import numpy as np
 import pandas as pd
+import pytest
 import xarray as xr
 
-from sdm_eurec4a.reductions import rectangle_spatial_mask
+from sdm_eurec4a.reductions import rectangle_spatial_mask, x_y_flatten
 
 
 def test_rectangle_spatial_mask():
@@ -137,3 +138,33 @@ def test_rectangle_spatial_mask_lat_lon_nodims():
 
 
 # %%
+def test_x_y_flatten_DataArray():
+    """Tests for the x_y_flatten function usage with a DataArray."""
+    da = xr.DataArray(
+        np.arange(2 * 4).reshape(2, 4),
+        dims=("dim_0", "dim_1"),
+        coords={
+            "dim_0": np.arange(2),
+            "dim_1": np.arange(4),
+        },
+    )
+    x, y = x_y_flatten(da, "dim_0")
+
+    np.testing.assert_array_equal(x, np.array([0, 0, 0, 0, 1, 1, 1, 1]))
+    np.testing.assert_array_equal(y, np.array([0, 1, 2, 3, 4, 5, 6, 7]))
+
+
+def test_x_y_flatten_DataArray_3D():
+    da = xr.DataArray(
+        np.arange(24).reshape(4, 3, 2),
+        dims=("lon", "lat", "time"),
+        coords={
+            "time": np.arange(2),
+            "lat": np.arange(3),
+            "lon": np.arange(4),
+        },
+    )
+    with pytest.raises(Exception) as e_info:
+        x_y_flatten(da, axis="time")
+
+    assert str(e_info.value) == "The data array must have max. 2 dimensions but has 3."

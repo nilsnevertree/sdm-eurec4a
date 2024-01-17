@@ -171,3 +171,74 @@ def latlon_dict_to_polygon(area):
             (area["lon_max"], area["lat_min"]),
         ]
     )
+
+
+def x_y_flatten(da: xr.DataArray, axis: str):
+    """
+    Flatten a 2D data array along the specified axis. The data array is
+    flattened in Fortran order after the DataArray is transposed properly.
+
+    Note
+    ----
+    It returns two arrays: x and y.
+    x contains the flattened values of the data array along the specified axis.
+    y contains the values of ``axis`` corresponding to the values of y .
+
+    Parameters
+    ----------
+    da : xr.DataArray
+        The data array to be flattened.
+        Only 2D data arrays are supported!
+    axis : str
+        The axis along which the data array is flattened.
+
+    Returns
+    -------
+    np.ndarray
+        The flattened data array along the specified axis.
+    np.ndarray
+        The values of ``axis`` corresponding to the values of y .
+
+    Raises
+    ------
+    ValueError
+        If the data array is > 2D.
+
+
+    Examples
+    --------
+    >>> import numpy as np
+    >>> import xarray as xr
+
+    >>> da = xr.DataArray(
+        np.arange(24).reshape(2, 3, 4),
+        dims=("time", "lat", "lon"),
+        coords={
+            "time": np.arange(2),
+            "lat": np.arange(3),
+            "lon": np.arange(4),
+        },
+
+    >>> x, y = x_y_flatten(da, "time")
+    >>> print(x.shape)
+    (24,)
+    >>> print(y.shape)
+    (24,)
+    >>> print(x)
+    [ 0  1  2  3  4  5  6  7  8  9 10 11]
+    >>> print(y)
+    [0 0 0 0 1 1 1 1 2 2 2 2]
+    """
+
+    if da.ndim > 2:
+        raise ValueError(f"The data array must have max. 2 dimensions but has {da.ndim}.")
+
+    da.transpose(axis, ...)
+    y = da.data
+    x = da[axis].data
+    x = np.tile(x, da.shape[-1])
+    y = y.flatten(order="F")  # very important
+    idx = x.argsort()
+    x = x[idx]
+    y = y[idx]
+    return x, y
