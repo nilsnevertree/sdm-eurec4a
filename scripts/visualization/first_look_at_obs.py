@@ -136,10 +136,7 @@ drop_sondes = drop_sondes.sortby("time")
 #
 
 # %%
-#  constraints
-"""
-CONSTRAINTS ON THE DATASETS
-"""
+# CONSTRAINTS ON THE DATASETS
 print("Applying constraints on the datasets")
 # %%
 area_cloud_composite = dict(
