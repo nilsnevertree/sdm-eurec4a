@@ -4,9 +4,11 @@ from colorsys import hls_to_rgb, rgb_to_hls
 from typing import Tuple, Union
 from warnings import warn
 
+import matplotlib as mpl
 import matplotlib.colors as colors
 import matplotlib.pyplot as plt
 import numpy as np
+import xarray as xr
 
 from matplotlib.axes import Axes
 from matplotlib.collections import PathCollection
@@ -341,18 +343,6 @@ def symmetrize_axis(axes: Axes, axis: Union[int, str]) -> None:
         axes.set_ylim(ymin=-maxi, ymax=maxi)
 
 
-"""
-Example Concept:
-cmap = plt.cm.get_cmap('bwr') #select a cmap
-
-rgba = cmap(0.9) # you now have values between 0 and 1 for the given cmap to generage rgba color code
-print(rgba)
-clr=colors.rgb2hex(rgba) #convert the rgba to hex
-print(clr)
-https://github.com/binodbhttr/mycolorpy
-"""
-
-
 def gen_color(cmap, n, reverse=False):
     """
     From https://github.com/binodbhttr/mycolorpy.
@@ -461,3 +451,67 @@ def gen_color_normalized(cmap, data_arr, reverse=False, vmin=0, vmax=0):
     else:
         colorlist_normalized = colorlist_normalized[:-2]
         return colorlist_normalized
+
+
+def symlog_from_array(
+    a: np.ndarray,
+    axes: mpl.axes.Axes = mpl.axes.Axes,
+    base: int = 10,
+    linthresh: int = None,
+    subs: int = None,
+    linscale: int = 0.2,
+    offset: int = -1,
+):
+    """
+    Create a symlog scale for the given data array. The scale is based on the
+    minimum value of the data array. Round to next power of ten as the lowest
+    value in the logaritmic part of the scale. The base of the scale is 10.
+
+    Parameters
+    ----------
+    a : np.ndarray
+        The data array for which the scale is created.
+    axes : mpl.Axes
+        The axes for which the scale is created. Default is mpl.Axes.
+    base : int, optional
+        The base of the scale. Default is 10.
+    linthresh : int, optional
+        The threshold at which the scale switches from linear to logarithmic. Default is None.
+        If None, the threshold is set to the next power of ten of the minimum value of the data array.
+    subs : int, optional
+        The number of subdivisions of the scale. Default is None.
+    linscale : int, optional
+        The scale of the linear part of the scale. Default is 0.2.
+    offset : int, optional
+        The offset of the scale. Default is -1.
+
+    Returns
+    -------
+    mpl.scale.SymmetricalLogScale
+        The symlog scale for the given data array.
+
+    Examples
+    --------
+    >>> import numpy as np
+    >>> import matplotlib.pyplot as plt
+    >>> import matplotlib as mpl
+
+    >>> fig, ax = plt.subplots()
+    >>> a = np.linspace(-100, 100, 1000)
+    >>> ax.plot(a)
+    >>> ax.set_yscale(symlog_from_array(a, ax))
+    >>> plt.show()
+    """
+
+    if isinstance(a, xr.DataArray):
+        a = a.data
+
+    if linthresh is None:
+        # remove zeros
+        a = a[a != 0]
+        # round to next power of ten as the lowest value in the logaritmic part of the scale
+        linthresh = 10 ** (np.floor(np.log10(np.abs(np.min(a)))) + offset)
+
+    return mpl.scale.SymmetricalLogScale(
+        axes, base=base, linthresh=linthresh, subs=subs, linscale=linscale
+    )
