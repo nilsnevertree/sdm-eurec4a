@@ -1,152 +1,229 @@
+import warnings
+
 import numpy as np
 import xarray as xr
 
 
-def psd2msd(
+def vsd_from_psd(
     ds: xr.Dataset,
-    psd_dim: str = "particle_size_distribution",
-    diameter_dim: str = "diameter",
-    diameter_scale: float = 1e-6,
-    rho_water: float = 1000,
+    psd_name: str = "particle_size_distribution",
+    psd_factor: float = 1e-3,
+    scale_name: str = "diameter",
+    scale_factor: float = 1e-6,
+    radius_given: bool = False,
 ) -> xr.DataArray:
     """
-    Converts the particle size distribution (PSD) to the mass size distribution
-    (MSD). this follows the formular.
+    Calculate the volume size distribution from the particle size distribution.
 
-    .. math::
-        MSD = rho_{water} \\cdot PSD \\cdot \\frac{4}{3} \\pi \\cdot (d/2 \cdot scale)^2
+    VSD = PSD * 4/3 * pi * r^3
+
+    Note
+    ----
+    - If the diameter is given, set radius to False.
+    - Make sure, the units are correct.
+    - If PSD is normalized by bin width (given in .../µm), the VSD is normalized by bin width (given in .../µm).
+    - For instance given are:
+        - PSD in #/l (#/(1e3m^3))
+        - Diameter in µm (1e-6m)
+    - Then set:
+        - psd_factor to 1e-3
+        - scale_factor to 1e-6
+        - radius_given = False
 
     Parameters
     ----------
-    ds : xarray.Dataset
-        input dataset
-    psd_dim : str, optional
-        name of the PSD dimension, by default "particle_size_distribution"
-        assumed to be in [#/L]
-    diameter_dim : str, optional
-        name of the diameter dimension, by default "diameter"
-    diameter_scale : float, optional
-        scale factor of the diameter, by default micrometer 1e-6
-    rho_water : float, optional
-        density of water, by default 1000
+    ds : xr.Dataset
+        Dataset containing the particle size distribution (``psd_name``) and the diameter or radius (``scale_name``).
+    psd_name : str, optional
+        The name of the particle size distribution. Default is "particle_size_distribution".
+        Assumed to have units of 1/m^3.
+    scale_name : str, optional
+        The name of the scale. Default is "diameter".
+    scale_factor : float, optional
+        The scale factor. Default is 1e-6.
+    radius_given : bool, optional
+        If set to True, it is assumed, that under ``scale_name`` the radius is stored.
+        If set to False, it is assumed, that under ``scale_name`` the diameter is stored.
+        Default is False.
 
     Returns
     -------
-    xarray.DataArray
-        dataset with MSD
-        MSD in [kg m^-3]
+    xr.DataArray
+        The volume size distribution.
+        Make sure to check the units and otherwise set the value!
+    """
+    psd = ds[psd_name] * psd_factor
+
+    if radius_given == True:
+        radius = ds[scale_name] * scale_factor
+    else:
+        radius = 0.5 * ds[scale_name] * scale_factor
+
+    vsd = psd * 4 / 3 * np.pi * radius**3
+    vsd.attrs = dict(
+        units="m^3/m^3",
+        long_name="Volume size distribution",
+        description="Volume size distribution calculated from the particle size distribution. VSD = PSD * 4/3 * pi * radius^3",
+    )
+    vsd.name = "volume_size_distribution"
+    warnings.warn("units is set to m^3/m^3. Make sure to check the units and otherwise set the value!")
+    return vsd
+
+
+def msd_from_psd(
+    ds: xr.Dataset,
+    psd_name: str = "particle_size_distribution",
+    psd_factor: float = 1e-3,
+    scale_name: str = "diameter",
+    scale_factor: float = 1e-6,
+    rho_water: float = 1000,
+    radius_given: bool = False,
+) -> xr.DataArray:
+    """
+    Calculate the mass size distribution from the particle size distribution.
+    A constant density of water droplets is assumed to be rho_water = 1000 kg/m^3.
+    Spherical droplets are assumed.
+
+    MSD = rho_water * PSD * 4/3 * pi * r^3
+        = rho_water * VSD
+
+    It uses the vsd_from_psd function.
+
+    Note
+    ----
+    - If the diameter is given, set radius to False. (default)
+    - Make sure, the units are correct!!!
+        If PSD is normalized by bin width (given in .../µm),
+        the MSD is normalized by bin width (given in .../µm).
+    - For instance given are:
+        - PSD in #/l (#/(1e3m^3))
+        - Diameter in µm (1e-6m)
+    - Then set:
+        - psd_factor to 1e-3
+        - scale_factor to 1e-6
+        - radius_given = False
+
+    Parameters
+    ----------
+    ds : xr.Dataset
+        Dataset containing the particle size distribution (``psd_name``) and the diameter or radius (``scale_name``).
+    psd_name : str, optional
+        The name of the particle size distribution. Default is "particle_size_distribution".
+        Assumed to have units of 1/m^3.
+    scale_name : str, optional
+        The name of the scale. Default is "diameter".
+    scale_factor : float, optional
+        The scale factor. Default is 1e-6.
+    rho_water : float, optional
+        density of water, by default 1000 kg/m^3
+    radius_given : bool, optional
+        If set to True, it is assumed, that under ``scale_name`` the radius is stored.
+        If set to False, it is assumed, that under ``scale_name`` the diameter is stored.
+        Default is False.
+
+    Returns
+    -------
+    xr.DataArray
+        The mass size distribution in kg/m^3.
+        Make sure to check the units and otherwise set the value!
     """
 
-    msd = ds[psd_dim] * rho_water * 4 / 3 * np.pi * (ds[diameter_dim] / 2 * diameter_scale) ** 3
+    vsd = vsd_from_psd(
+        ds=ds,
+        psd_name=psd_name,
+        psd_factor=psd_factor,
+        scale_name=scale_name,
+        scale_factor=scale_factor,
+        radius_given=radius_given,
+    )
+    msd = rho_water * vsd
+    msd.attrs = dict(
+        units="kg/m^3",
+        long_name="Mass size distribution",
+        description="Mass size distribution calculated from the particle size distribution. MSD = rho_water * PSD * 4/3 * pi * radius^3",
+    )
+    msd.name = "mass_size_distribution"
+    warnings.warn("units is set to kg/m^3. Make sure to check the units and otherwise set the value!")
     return msd
 
 
-def msd2lwc(
+def lwc_from_psd(
     ds: xr.Dataset,
-    msd_dim: str = "mass_size_distribution",
-    diameter_dim: str = "diameter",
-    diameter_scale: float = 1e-6,
+    sum_dim: str = "time",
+    psd_name: str = "particle_size_distribution",
+    psd_factor: float = 1e-3,
+    scale_name: str = "diameter",
+    scale_factor: float = 1e-6,
     rho_water: float = 1000,
+    radius_given: bool = False,
 ) -> xr.DataArray:
     """
-    Converts the mass size distribution (MSD) to the liquid water content
-    (LWC). this follows the formular.
+    Calculate the liquid water content from the particle size distribution.
+    A constant density of water droplets is assumed to be rho_water = 1000 kg/m^3.
+    Spherical droplets are assumed.
 
-    .. math::
-        LWC = \\sum{MSD}
+    LWC = sum over all diameters of (rho_water * PSD * 4/3 * pi * r^3)
+        = sum over all diameters of * MSD
+
+    It uses the msd_from_psd function.
+
+    Note
+    ----
+    - If the diameter is given, set radius to False. (default)
+    - Make sure, the units are correct!!!
+        If PSD is normalized by bin width (given in .../µm),
+        the LWC is not correct!!!
+    - For instance given are:
+        - PSD in #/l (#/(1e-3m^3))
+        - Diameter in µm (1e-6m)
+    - Then set:
+        - psd_factor to 1e-3
+        - scale_factor to 1e-6
+        - radius_given = False
 
     Parameters
     ----------
-    ds : xarray.Dataset
-        input dataset
-    msd_dim : str, optional
-        name of the MSD dimension, by default "mass_size_distribution"
-        assumed to be in [kg m^-3]
-    diameter_dim : str, optional
-        name of the diameter dimension, by default "diameter"
-    diameter_scale : float, optional
-        scale factor of the diameter, by default micrometer 1e-6
+    ds : xr.Dataset
+        Dataset containing the particle size distribution (``psd_name``) and the diameter or radius (``scale_name``).
+    sum_dim : str, optional
+        The dimension to sum over. Default is "diameter".
+        This allows to sum over all diameters to get the liquid water content.
+    psd_name : str, optional
+        The name of the particle size distribution. Default is "particle_size_distribution".
+        Assumed to have units of 1/m^3.
+    scale_name : str, optional
+        The name of the scale. Default is "diameter".
+    scale_factor : float, optional
+        The scale factor. Default is 1e-6.
     rho_water : float, optional
-        density of water, by default 1000
+        density of water, by default 1000 kg/m^3
+    radius_given : bool, optional
+        If set to True, it is assumed, that under ``scale_name`` the radius is stored.
+        If set to False, it is assumed, that under ``scale_name`` the diameter is stored.
+        Default is False.
 
     Returns
     -------
-    xarray.DataArray
-        dataset with LWC
-        LWC in [kg m^-3]
+    xr.DataArray
+        The total liquid water content in kg/m^3.
+        Make sure to check the units and otherwise set the value!
     """
 
-    lwc = ds[msd_dim].sum(dim=diameter_dim)
-
-    return lwc
-
-
-def psd2lwc(
-    ds: xr.Dataset,
-    psd_dim: str = "particle_size_distribution",
-    diameter_dim: str = "diameter",
-    diameter_scale: float = 1e-6,
-    rho_water: float = 1000,
-) -> xr.DataArray:
-    """
-    Converts the particle size distribution (PSD) to the liquid water content
-    (LWC). this follows the formular.
-
-    .. math::
-        To be added
-
-    Parameters
-    ----------
-    ds : xarray.Dataset
-        input dataset
-    psd_dim : str, optional
-        name of the PSD dimension, by default "particle_size_distribution"
-        assumed to be in [#/L]
-    diameter_dim : str, optional
-        name of the diameter dimension, by default "diameter"
-    diameter_scale : float, optional
-        scale factor of the diameter, by default micrometer 1e-6
-    rho_water : float, optional
-        density of water, by default 1000
-
-    Returns
-    -------
-    xarray.DataArray
-        dataset with LWC
-        LWC in [kg m^-3]
-    """
-
-    msd = psd2msd(
+    msd = msd_from_psd(
         ds=ds,
-        psd_dim=psd_dim,
-        diameter_dim=diameter_dim,
-        diameter_scale=diameter_scale,
+        psd_name=psd_name,
+        psd_factor=psd_factor,
+        scale_name=scale_name,
+        scale_factor=scale_factor,
+        radius_given=radius_given,
         rho_water=rho_water,
     )
-    ds_msd = xr.Dataset(data_vars=dict(mass_size_distribution=msd))
-    lwc = msd2lwc(
-        ds=ds_msd,
-        msd_dim="mass_size_distribution",
-        diameter_dim=diameter_dim,
-        diameter_scale=diameter_scale,
-        rho_water=rho_water,
+    lwc = msd.sum(dim=sum_dim)
+    lwc.attrs = dict(
+        units="kg/m^3",
+        long_name="Liquid water content",
+        description="Liquid water content calculated from the particle size distribution. LWC = sum over all diameters of (rho_water * PSD * 4/3 * pi * radius^3)",
     )
-
+    lwc.name = "liquid_water_content"
+    warnings.warn("units is set to kg/m^3. Make sure to check the units and otherwise set the value!")
     return lwc
-
-
-msd = psd2msd(
-    ds=cloud_composite,
-    psd_dim="particle_size_distribution",
-    diameter_dim="diameter",
-    diameter_scale=1e-6,
-    rho_water=1000,
-)
-
-lwc = psd2lwc(
-    ds=cloud_composite,
-    psd_dim="particle_size_distribution",
-    diameter_dim="diameter",
-    diameter_scale=1e-6,
-    rho_water=1000,
-)
