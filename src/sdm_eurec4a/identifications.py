@@ -310,3 +310,35 @@ def match_clouds_and_dropsondes(
     else:
         return ds_sonde.sel(time=allowed_dropsonde_times, drop=True)
 
+
+def match_clouds_and_cloudcomposite(
+    ds_cloud: xr.DataArray,
+    ds_cloudcomposite: xr.Dataset,
+    dask_compute: bool = True,
+):
+    """
+    Returns the subdataset of the cloud composite dataset which is part of the
+    individual cloud. The selection is performed purely based on the start and
+    end time of the individual cloud.
+
+    Parameters
+    ----------
+    ds_cloud : xr.DataArray
+        Dataset containing data for a single cloud from the individual cloud dataset.
+        It is indexed by 'time'.
+    ds_cloudcomposite : xr.Dataset
+        Dataset containing cloud composite data. It is indexed by 'time'.
+    dask_compute : bool, optional
+        If True, the output dataset is computed. Default is True.
+        Dask will not be used if compute is False and then be lazy.
+
+    Returns
+    -------
+    xr.Dataset
+        A subset of the cloud composite dataset that matches which is part of the individual cloud.
+        The selection is performed purely based on the start and end time of the individual cloud.
+    """
+
+    if dask_compute is True:
+        return ds_cloudcomposite.sel(time=slice(ds_cloud["start"][0], ds_cloud["end"][0])).compute()
+    return ds_cloudcomposite.sel(time=slice(ds_cloud["start"][0], ds_cloud["end"][0]))
