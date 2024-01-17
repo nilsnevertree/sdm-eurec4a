@@ -36,7 +36,7 @@ fig_path.mkdir(parents=True, exist_ok=True)
 
 # Load data
 
-mask_name = "cloud_mask"
+mask_name = "rain_mask"
 
 identified_clouds = xr.open_dataset(
     REPOSITORY_ROOT
@@ -50,7 +50,8 @@ identified_clouds = identified_clouds.where(
 )
 
 distance_IC_DS = xr.open_dataset(
-    REPOSITORY_ROOT / Path("data/observation/combined/distance/distances_IC_DS.nc")
+    REPOSITORY_ROOT
+    / Path(f"data/observation/combined/distance/distance_dropsondes_clouds_{mask_name}.nc")
 )
 
 cloud_composite = xr.open_dataset(
@@ -218,7 +219,7 @@ fig.savefig(fig_path / Path("identified_clouds_longest_duration_mean.svg"), dpi=
 # Chosing and individual cloud
 
 
-chosen_id = 1421
+chosen_id = 77
 
 # extract the cloud
 single_cloud = identified_clouds.sel(time=identified_clouds.cloud_id == chosen_id)
@@ -372,6 +373,50 @@ fig.savefig(
 # Plot the temperature profiles for the selected sondes and color them by their day of the year value
 
 
+# style = dict(linewidth=1.3, linestyle="-", alpha=1)
+
+# print("Plotting selected drop sondes")
+# fig, axs = plt.subplots(nrows=1, ncols=2, figsize=(15, 7.5), sharey=True)
+
+# axs_theta = axs[0]
+# axs_q = axs[1]
+# # ds_constraint.theta.shape
+# old_day = None
+# for i, t in enumerate(chosen_dropsondes.time):
+#     axs_theta.plot(
+#         chosen_dropsondes.wspd.sel(time=t), chosen_dropsondes.alt, color=default_colors[0], **style
+#     )
+#     axs_q.plot(chosen_dropsondes.q.sel(time=t), chosen_dropsondes.alt, color=default_colors[1], **style)
+
+
+# for ax in axs.flatten():
+#     ax.axhline(single_cloud.alt, color="k", linestyle="--", label="Cloud altitude")
+#     ax.legend(loc="lower right")
+#     ax.set_ylim(0, 2000)
+#     ax.set_ylabel("Altitude [m]")
+
+# # axs[0].set_xlim(297, 305)
+# # axs[0].set_xlabel("Potential Temperature [K]")
+# axs[1].set_xlim(0, 0.025)
+# axs[1].set_xlabel("Specific humidity in [kg / kg]")
+
+# axs[0].set_title("Potential temperature")
+# axs[1].set_title("Specific humidity")
+
+# # fig.suptitle(
+# #     f"Cloud {chosen_id} ({single_cloud.time.dt.strftime('%Y/%m/%d %H:%M:%S')[0].data})\nMeasurements of related dropsonde which are close to the clouds by dx<{max_spatial_distance}km dt<{max_temporal_distance}"
+# # )
+# # fig.savefig(fig_path / Path(f"selected_cloud_dropsondes_profiles_{chosen_id}.svg"), bbox_inches="tight")
+# # fig.savefig(
+# #     fig_path / Path(f"selected_cloud_dropsondes_profiles_{chosen_id}.png"), dpi=300, bbox_inches="tight"
+# # )
+
+# %%
+
+
+# Plot the temperature profiles for the selected sondes and color them by their day of the year value
+
+
 print("Plotting selected ATR measurments")
 fig, axs = plt.subplots(figsize=(10, 6), ncols=2, sharex=True)
 
@@ -476,6 +521,7 @@ ax.plot(
     linewidth=0.2,
     linestyle="none",
     marker=".",
+    color="k",
 )
 
 ax.plot(
@@ -503,10 +549,13 @@ ax.plot(
 
 ax.set_ylim(0, None)
 
+# ax.set_xlim(1e2, 2e3)
+# ax.set_ylim(6e-3, 1.5e-2)
+
 ax.legend()
 
 fig.suptitle(
-    f"Cloud {chosen_id} ({single_cloud.time.dt.strftime('%Y/%m/%d %H:%M:%S')[0].data})\nPSD of ATR\n"
+    f"Cloud {chosen_id} ({single_cloud.time.dt.strftime('%Y/%m/%d %H:%M:%S')[0].data}) | PSD of ATR"
 )
 fig.savefig(fig_path / Path(f"selected_cloud_ATR_psd_{chosen_id}.svg"), bbox_inches="tight")
 # %% More ideas on how to identify clouds
@@ -686,3 +735,5 @@ fig.savefig(fig_path / Path(f"selected_cloud_ATR_psd_{chosen_id}.svg"), bbox_inc
 
 # fig.tight_layout()
 # # %%
+
+# %%
