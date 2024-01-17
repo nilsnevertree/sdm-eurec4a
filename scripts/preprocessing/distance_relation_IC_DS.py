@@ -11,8 +11,6 @@ The dropsondes dataset path is hardcoded in the script.
 
 import datetime
 import logging
-
-# %%
 import os
 import sys
 
