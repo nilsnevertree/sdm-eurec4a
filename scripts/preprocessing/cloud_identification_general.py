@@ -41,15 +41,15 @@ github_username: nilsnevertree
 """
 # %%
 
+import datetime
+import logging
 import os
 import sys
-import logging
 
 from pathlib import Path
 
 import numpy as np
 import xarray as xr
-import datetime
 
 from dask.diagnostics import ProgressBar
 
@@ -99,12 +99,16 @@ console_handler.setFormatter(formatter)
 logger.addHandler(handler)
 logger.addHandler(console_handler)
 
+
 def handle_exception(exc_type, exc_value, exc_traceback):
     if issubclass(exc_type, KeyboardInterrupt):
         sys.__excepthook__(exc_type, exc_value, exc_traceback)
         return
 
-    logger.critical("Execution terminated due to an Exception", exc_info=(exc_type, exc_value, exc_traceback))
+    logger.critical(
+        "Execution terminated due to an Exception", exc_info=(exc_type, exc_value, exc_traceback)
+    )
+
 
 sys.excepthook = handle_exception
 
@@ -121,16 +125,15 @@ logging.info("Mask name: %s", mask_name)
 
 def main():
     cloud_composite = xr.open_dataset(INPUT_FILEPATH, chunks={"time": 1000})
-    
+
     with ProgressBar():
-        
         logging.info("Identify clouds using xr.diff")
         cloud_diff = cloud_composite[mask_name].fillna(0).astype(int).diff(dim="time")
         cloud_diff = cloud_diff.compute()
         cloud_start = cloud_diff.time.where(cloud_diff == 1, drop=True)
         cloud_end = cloud_diff.time.where(cloud_diff == -1, drop=True)
         logging.info(f"{cloud_start.shape} number of clouds were identified")
-        
+
         logging.info("Create cloud identification dataset")
         clouds = xr.Dataset(
             coords={"cloud_id": np.arange(0, cloud_start.size)},
@@ -170,7 +173,6 @@ def main():
         clouds = clouds.swap_dims({"cloud_id": "time"})
         logging.info("Store cloud identification dataset")
         clouds.to_netcdf(OUTPUT_DIR / "temporary.nc")
-
 
     clouds = xr.open_dataset(OUTPUT_DIR / "temporary.nc")
 
