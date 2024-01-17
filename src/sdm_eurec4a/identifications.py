@@ -238,3 +238,75 @@ def select_individual_cloud(
     """
 
     return ds_clouds.sel(time=ds_clouds["cloud_id"] == chosen_id)
+
+
+def match_clouds_and_dropsondes(
+    ds_cloud: xr.Dataset,
+    ds_sonde: xr.Dataset,
+    ds_distance: xr.Dataset,
+    index_ds_cloud: str = "time_identified_clouds",
+    index_ds_dropsonde: str = "time_drop_sondes",
+    max_temporal_distance: np.timedelta64 = np.timedelta64(1, "h"),
+    max_spatial_distance: float = 100,
+    dask_compute: bool = True,
+):
+    """
+    Returns the Subdataset of dropsondes based on their spatial and temporal
+    distances to the individual cloud. The data for the individual cloud can be
+    extracted from the individual cloud dataset. The dropsonde dataset is the
+    Level 3 dropsonde dataset.
+
+    Parameters
+    ----------
+    ds_cloud : xr.Dataset
+        Dataset containing data for a single cloud from the individual cloud dataset.
+        It is indexed by 'time'.
+    ds_sonde : xr.Dataset
+        Dataset containing dropsonde data. It is indexed by 'time_drop_sondes'.
+    ds_distance : xr.Dataset
+        Dataset containing distance data between clouds and dropsondes.
+    index_ds_cloud : str, optional
+        Index of the cloud dataset. Default is 'time'.
+    index_ds_dropsonde : str, optional
+        Index of the dropsonde dataset. Default is 'time_drop_sondes'.
+    max_temporal_distance : np.timedelta64, optional
+        Maximum allowed temporal distance between a cloud and a dropsonde for them to be considered a match.
+        Default is 1 hour.
+    max_spatial_distance : float, optional
+        Units are in kilometers.
+        Maximum allowed spatial distance (in the same units as ds_distance) between a cloud and a dropsonde for them to be considered a match.
+        Default is 100.
+    dask_compute : bool, optional
+        If True, the output dataset is computed. Default is True.
+        Dask will not be used if compute is False and then be lazy.
+
+    Returns
+    -------
+    xr.Dataset
+        A subset of the dropsonde dataset that matches with the cloud dataset based on the specified spatial and temporal distances.
+        The dataset contains the same variables as the input dropsonde dataset.
+    """
+
+    if ds_cloud["time"].shape != (1,):
+        raise IndexError(
+            f"The cloud dataset must contain only one cloud. Thus the shape of the time dimension must be (1,).\nBut it is {ds_cloud['time'].shape}"
+        )
+
+    # Extract the distance of a single cloud
+    single_distances = ds_distance.sel({index_ds_cloud: ds_cloud["time"].data}).compute()
+
+    # select the time of the dropsondes which are close to the cloud
+    allowed_dropsonde_times = single_distances.where(
+        # temporal distance
+        (np.abs(single_distances["temporal_distance"]) <= max_temporal_distance)
+        # spatial distance
+        & (single_distances["spatial_distance"] <= max_spatial_distance),
+        drop=True,
+    )[index_ds_dropsonde].compute()
+
+    # select the dropsondes which are close to the cloud
+    if dask_compute is True:
+        return ds_sonde.sel(time=allowed_dropsonde_times.data, drop=True).compute()
+    else:
+        return ds_sonde.sel(time=allowed_dropsonde_times, drop=True)
+
