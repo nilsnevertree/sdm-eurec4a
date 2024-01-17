@@ -214,34 +214,27 @@ def consecutive_events_np(
     return result
 
 
-# test_consecutive_events_np()
+def select_individual_cloud(
+    ds_clouds: xr.Dataset,
+    chosen_id: int,
+):
+    """
+    Select an individual cloud from the individual cloud dataset based on its ``cloud_id``
+    The data for the individual cloud is extracted from the clouds dataset ``ds_clouds``.
 
-# example_mask  = np.array([
-#                         [1,0,1,1,1,0,0,1,1,1,1,0],
-#                         [1,1,1,0,0,0,0,1,1,1,1,0],
-#                         [0,0,0,1,1,0,0,0,0,1,1,1],
-#                         ], dtype=bool)
+    Parameters
+    ----------
+    ds_clouds : xr.Dataset
+        Dataset containing data for all clouds from the individual cloud dataset.
+        It is indexed by 'time'.
+    chosen_id : int
+        The id of the cloud to be selected.
 
-# plt.imshow(example_mask, alpha=0.5, cmap='Greys')
-# plt.imshow(
-#        consecutive_events_np(example_mask, min_duration = 3, axis = 1),
-#         alpha=0.5, cmap='Reds',
-# )
-# %% DataArray Example
-# example_mask = xr.DataArray([
-#                         [1,0,1,1,1,0,0,1,1,1,1,0],
-#                         [1,1,1,0,0,0,0,1,1,1,1,0],
-#                         [0,0,0,1,1,0,0,0,0,1,1,1],
-#                         ],
-# )
+    Returns
+    -------
+    xr.Dataset
+        A subset of the individual cloud dataset that contains only the data for the specified cloud.
+        The dataset contains the same variables as the input individual cloud dataset.
+    """
 
-# np.random.seed(0)
-# example_mask = xr.DataArray(
-#        np.random.choice([0, 1], size=(100,100,100), p=[1./3, 2./3])
-# )
-
-# result = consecutive_events_xr(example_mask, axis = 'dim_1', min_duration = 3)
-
-# plt.imshow(example_mask, alpha=0.5, cmap='Greys')
-# plt.imshow(result, alpha=0.5, cmap='Reds',)
-# %%
+    return ds_clouds.sel(time=ds_clouds["cloud_id"] == chosen_id)
