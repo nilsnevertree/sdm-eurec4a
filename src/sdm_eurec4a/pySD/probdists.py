@@ -21,8 +21,11 @@ assuming bins are evenly spaced in log10(r)
 """
 
 import numpy as np
+from numpy.typing import ArrayLike
+from typing import Tuple
 
 from scipy import special
+from scipy.optimize import curve_fit
 
 
 class CombinedRadiiProbDistribs:
@@ -38,8 +41,8 @@ class CombinedRadiiProbDistribs:
             raise ValueError(errmsg)
 
     def __call__(self, radii):
-        """Returns distribution for radii given by the sum of the distributions in
-        probdistribs list."""
+        """Returns distribution for radii given by the sum of the distributions
+        in probdistribs list."""
 
         probs = np.zeros(radii.shape)
         for distrib, sf in zip(self.probdistribs, self.scalefacs):
@@ -49,16 +52,16 @@ class CombinedRadiiProbDistribs:
 
 
 class DiracDelta:
-    """Probability of radius nonzero if it is closest value in sample of radii to
-    r0."""
+    """Probability of radius nonzero if it is closest value in sample of radii
+    to r0."""
 
     def __init__(self, r0):
         self.r0 = r0
 
     def __call__(self, radii):
         """
-        Returns probability of radius in radii sample for discrete version of dirac
-        delta function centred on value of r in radii closest to r0.
+        Returns probability of radius in radii sample for discrete version of
+        dirac delta function centred on value of r in radii closest to r0.
 
         For each radius in radii,
         probability of that radius = 0 if it's not the closest value
@@ -79,8 +82,8 @@ class DiracDelta:
 
 class VolExponential:
     """
-    probability of radius given by exponential in volume distribution as defined
-    by Shima et al.
+    probability of radius given by exponential in volume distribution as
+    defined by Shima et al.
 
     (2009)
     """
@@ -92,8 +95,8 @@ class VolExponential:
     def __call__(self, radii):
         """
         Returns probability of eaach radius in radii according to distribution
-        where probability of volume is exponential and bins for radii are evently
-        spaced in ln(r).
+        where probability of volume is exponential and bins for radii are
+        evently spaced in ln(r).
 
         typical parameter values:
         radius0 = 30.531e-6 # [m]
@@ -122,7 +125,7 @@ class LnNormal:
     numconc = 1e9 # [m^-3]
     """
 
-    def __init__(self, geomeans, geosigs, scalefacs):
+    def __init__(self, geomeans : ArrayLike, geosigs : ArrayLike, scalefacs : ArrayLike):
         nmodes = len(geomeans)
         if nmodes != len(geosigs) or nmodes != len(scalefacs):
             errmsg = "parameters for number of lognormal modes is not consistent"
@@ -134,8 +137,8 @@ class LnNormal:
             self.scalefacs = scalefacs
 
     def __call__(self, radii):
-        """Returns probability of each radius in radii derived from superposition
-        of Logarithmic (in e) Normal Distributions."""
+        """Returns probability of each radius in radii derived from
+        superposition of Logarithmic (in e) Normal Distributions."""
 
         probs = np.zeros(radii.shape)
         for n in range(self.nmodes):
@@ -143,10 +146,47 @@ class LnNormal:
 
         return probs / np.sum(probs)  # normalise so sum(prob) = 1
 
-    def lnnormaldist(self, radii, scalefac, geomean, geosig):
-        """Calculate probability of radii given the paramters of a lognormal
-        dsitribution accordin to equation 5.8 of "An Introduction to clouds from
-        the Microscale to Climate" by Lohmann, Luond and Mahrt."""
+    def lnnormaldist(
+            self, 
+            radii : ArrayLike, 
+            scalefac : float, 
+            geomean : float, 
+            geosig : float
+        ) -> ArrayLike:
+        """
+        Calculate probability of radii given the paramters of a lognormal
+        distribution according to equation 5.8 of "An Introduction to clouds
+        from the Microscale to Climate" by Lohmann, Luond and Mahrt.
+        
+        Note
+        ----
+        The parameters geomean and geosig are the geometric mean and geometric
+        standard deviation of the distribution, not the arithmetic mean and
+        standard deviation.
+        The scale in which radii is given, is the same as the scale in which
+        geomean and geosig needs to be given.
+        The scalefac is the total number of particles N_a in the distribution
+        [#/m^3]
+
+        Parameters
+        ----------
+        radii : array_like
+            radii [m] to calculate probability for
+        scalefac : float
+            scale factor for distribution (see eq. 5.2)
+            It is the total number particles N_a in the distribution [#/m^3]
+        geomean : float
+            geometric mean of distribution (see eq. 5.5)
+        geosig : float
+            geometric standard deviation of distribution (see eq. 5.6)
+
+        Returns
+        -------
+        dn_dlnr : array_like
+            probability of each radius in radii [m^-1]
+
+        
+        """
 
         sigtilda = np.log(geosig)
         mutilda = np.log(geomean)
@@ -157,6 +197,63 @@ class LnNormal:
         dn_dlnr = norm * np.exp(exponent)  # eq.5.8 [lohmann intro 2 clouds]
 
         return dn_dlnr
+    
+    def get_parameters(self):
+        return self.geomeans, self.geosigs, self.scalefacs
+    
+    def set_parameters(self, geomeans : ArrayLike, geosigs : ArrayLike, scalefacs : ArrayLike):
+        nmodes = len(geomeans)
+        if nmodes != len(geosigs) or nmodes != len(scalefacs):
+            errmsg = "parameters for number of lognormal modes is not consistent"
+            raise ValueError(errmsg)
+        else:
+            self.nmodes = nmodes
+            self.geomeans = geomeans
+            self.geosigs = geosigs
+            self.scalefacs = scalefacs
+
+    def __curve_fit__(self, xdata : ArrayLike, ydata : ArrayLike, **kwargs):
+        popt, pcov = curve_fit(
+            f=self.lnnormaldist, 
+            xdata=xdata, 
+            ydata=ydata, 
+            **kwargs
+            )
+        return popt, pcov
+
+    def fit_parameters(self, xdata : np.ndarray, ydata : np.ndarray, **kwargs) -> Tuple:
+        popt, pcov = self.__curve_fit__(xdata=xdata, ydata=ydata, **kwargs)
+    
+        self.set_parameters(
+            geomeans=[popt[1]], 
+            geosigs=[popt[2]], 
+            scalefacs=[popt[0]],
+        )
+        self.pcov = pcov
+        return self
+    
+    def __add__(self, other):
+        geomeans = np.concatenate((self.geomeans, other.geomeans))
+        geosigs = np.concatenate((self.geosigs, other.geosigs))
+        scalefacs = np.concatenate((self.scalefacs, other.scalefacs))
+        return LnNormal(geomeans, geosigs, scalefacs)
+
+    def __str__(self) :
+        nmodes = f"nmodes = {self.nmodes:.2e}"
+        
+        geomeans = ""
+        geosigs = "" 
+        scalefacs = ""
+        for i in range(self.nmodes):
+            geomeans += f"{self.geomeans[i]:.2e}, "
+            geosigs += f"{self.geosigs[i]:.2e}, "
+            scalefacs += f"{self.scalefacs[i]:.2e}, "
+        
+        geomeans = f"geomeans = [{geomeans}]"
+        geosigs = f"geosigs = [{geosigs}]"
+        scalefacs = f"scalefacs = [{scalefacs}]"
+        numconc = f"numconc = {np.sum(self.scalefacs):.2e}"
+        return "\n".join([nmodes, geomeans, geosigs, scalefacs, numconc])        
 
 
 class ClouddropsHansenGamma:
@@ -209,8 +306,8 @@ class RaindropsGeoffroyGamma:
 
     def __call__(self, radii):
         """
-        returns probability of each radius according to a gamma distribution for
-        rain droplets using parameters from Geoffroy et al.
+        returns probability of each radius according to a gamma distribution
+        for rain droplets using parameters from Geoffroy et al.
 
         2014 for precipitating shallow
         cumuli RICO (see figure 3 and equations 2,3 and 5).
