@@ -20,10 +20,11 @@ of radii for various probability distributions
 assuming bins are evenly spaced in log10(r)
 """
 
-import numpy as np
-from numpy.typing import ArrayLike
 from typing import Tuple
 
+import numpy as np
+
+from numpy.typing import ArrayLike
 from scipy import special
 from scipy.optimize import curve_fit
 
@@ -125,7 +126,7 @@ class LnNormal:
     numconc = 1e9 # [m^-3]
     """
 
-    def __init__(self, geomeans : ArrayLike, geosigs : ArrayLike, scalefacs : ArrayLike):
+    def __init__(self, geomeans: ArrayLike, geosigs: ArrayLike, scalefacs: ArrayLike):
         nmodes = len(geomeans)
         if nmodes != len(geosigs) or nmodes != len(scalefacs):
             errmsg = "parameters for number of lognormal modes is not consistent"
@@ -147,17 +148,13 @@ class LnNormal:
         return probs / np.sum(probs)  # normalise so sum(prob) = 1
 
     def lnnormaldist(
-            self, 
-            radii : ArrayLike, 
-            scalefac : float, 
-            geomean : float, 
-            geosig : float
-        ) -> ArrayLike:
+        self, radii: ArrayLike, scalefac: float, geomean: float, geosig: float
+    ) -> ArrayLike:
         """
         Calculate probability of radii given the paramters of a lognormal
         distribution according to equation 5.8 of "An Introduction to clouds
         from the Microscale to Climate" by Lohmann, Luond and Mahrt.
-        
+
         Note
         ----
         The parameters geomean and geosig are the geometric mean and geometric
@@ -184,8 +181,6 @@ class LnNormal:
         -------
         dn_dlnr : array_like
             probability of each radius in radii [m^-1]
-
-        
         """
 
         sigtilda = np.log(geosig)
@@ -197,11 +192,11 @@ class LnNormal:
         dn_dlnr = norm * np.exp(exponent)  # eq.5.8 [lohmann intro 2 clouds]
 
         return dn_dlnr
-    
+
     def get_parameters(self):
         return self.geomeans, self.geosigs, self.scalefacs
-    
-    def set_parameters(self, geomeans : ArrayLike, geosigs : ArrayLike, scalefacs : ArrayLike):
+
+    def set_parameters(self, geomeans: ArrayLike, geosigs: ArrayLike, scalefacs: ArrayLike):
         nmodes = len(geomeans)
         if nmodes != len(geosigs) or nmodes != len(scalefacs):
             errmsg = "parameters for number of lognormal modes is not consistent"
@@ -212,48 +207,43 @@ class LnNormal:
             self.geosigs = geosigs
             self.scalefacs = scalefacs
 
-    def __curve_fit__(self, xdata : ArrayLike, ydata : ArrayLike, **kwargs):
-        popt, pcov = curve_fit(
-            f=self.lnnormaldist, 
-            xdata=xdata, 
-            ydata=ydata, 
-            **kwargs
-            )
+    def __curve_fit__(self, xdata: ArrayLike, ydata: ArrayLike, **kwargs):
+        popt, pcov = curve_fit(f=self.lnnormaldist, xdata=xdata, ydata=ydata, **kwargs)
         return popt, pcov
 
-    def fit_parameters(self, xdata : np.ndarray, ydata : np.ndarray, **kwargs) -> Tuple:
+    def fit_parameters(self, xdata: np.ndarray, ydata: np.ndarray, **kwargs) -> Tuple:
         popt, pcov = self.__curve_fit__(xdata=xdata, ydata=ydata, **kwargs)
-    
+
         self.set_parameters(
-            geomeans=[popt[1]], 
-            geosigs=[popt[2]], 
+            geomeans=[popt[1]],
+            geosigs=[popt[2]],
             scalefacs=[popt[0]],
         )
         self.pcov = pcov
         return self
-    
+
     def __add__(self, other):
         geomeans = np.concatenate((self.geomeans, other.geomeans))
         geosigs = np.concatenate((self.geosigs, other.geosigs))
         scalefacs = np.concatenate((self.scalefacs, other.scalefacs))
         return LnNormal(geomeans, geosigs, scalefacs)
 
-    def __str__(self) :
+    def __str__(self):
         nmodes = f"nmodes = {self.nmodes:.2e}"
-        
+
         geomeans = ""
-        geosigs = "" 
+        geosigs = ""
         scalefacs = ""
         for i in range(self.nmodes):
             geomeans += f"{self.geomeans[i]:.2e}, "
             geosigs += f"{self.geosigs[i]:.2e}, "
             scalefacs += f"{self.scalefacs[i]:.2e}, "
-        
+
         geomeans = f"geomeans = [{geomeans}]"
         geosigs = f"geosigs = [{geosigs}]"
         scalefacs = f"scalefacs = [{scalefacs}]"
         numconc = f"numconc = {np.sum(self.scalefacs):.2e}"
-        return "\n".join([nmodes, geomeans, geosigs, scalefacs, numconc])        
+        return "\n".join([nmodes, geomeans, geosigs, scalefacs, numconc])
 
 
 class ClouddropsHansenGamma:
