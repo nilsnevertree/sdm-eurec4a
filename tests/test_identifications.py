@@ -194,3 +194,137 @@ def test_consecutive_events_np(mask, min_duration, axis, expected):
     result = consecutive_events_np(mask, min_duration=min_duration, axis=axis)
     np.testing.assert_array_equal(result, expected)
 
+
+def test_consecutive_events_xr():
+    """Tests the consecutive_events_xr function
+    It handles the following cases:
+    1. min_duration = 1
+    2. min_duration = 3, axis = "space"
+    3. min_duration = 3, axis = "time"
+    4. min_duration = 0
+
+    The original mask has the following shape: (3,12)
+    has cosecutive events of length 3 in
+    - the middle of the array
+    - both ends of the array
+
+    """
+    # Set up example array
+    mask_np = np.array(
+        [
+            [1, 0, 1, 1, 1, 0, 0, 1, 1, 1, 1, 0],
+            [1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 0],
+            [0, 0, 0, 1, 1, 0, 0, 0, 0, 1, 1, 1],
+        ],
+        dtype=bool,
+    )
+    mask = xr.DataArray(
+        mask_np,
+        dims=("time", "space"),
+        coords={"time": np.arange(0, 3), "space": np.arange(0, 12)},
+    )
+
+    # --------------
+    # Test 1
+    # Check for min_duration = 1
+
+    expected_result_1 = xr.DataArray(
+        mask_np,
+        dims=("time", "space"),
+        coords={"time": np.arange(0, 3), "space": np.arange(0, 12)},
+    )
+
+    # Dimension time
+    result_1a = consecutive_events_xr(
+        da_mask=mask,
+        min_duration=1,
+        axis="time",
+    )
+    np.testing.assert_array_equal(result_1a, expected_result_1)
+    xr.testing.assert_identical(result_1a, expected_result_1)
+
+    # Dimension space
+    result_1b = consecutive_events_xr(
+        da_mask=mask,
+        min_duration=1,
+        axis="space",
+    )
+    np.testing.assert_array_equal(result_1b, expected_result_1)
+    xr.testing.assert_identical(result_1b, expected_result_1)
+
+    # --------------
+    # Test 2
+    # min_duration = 3
+    # Axis = "space"
+
+    result_2 = consecutive_events_xr(
+        da_mask=mask,
+        min_duration=3,
+        axis="space",
+    )
+    expected_result_2 = xr.DataArray(
+        np.array(
+            [
+                [0, 0, 1, 1, 1, 0, 0, 1, 1, 1, 1, 0],
+                [1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 0],
+                [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1],
+            ],
+            dtype=bool,
+        ),
+        dims=("time", "space"),
+        coords={"time": np.arange(0, 3), "space": np.arange(0, 12)},
+    )
+    np.testing.assert_array_equal(result_2, expected_result_2)
+    xr.testing.assert_identical(result_2, expected_result_2)
+
+    # --------------
+    # Test 3
+    # min_duration = 3
+    # Axis = time which is the shorter one in the arrays
+
+    result_3 = consecutive_events_xr(
+        da_mask=mask,
+        min_duration=3,
+        axis="time",
+    )
+
+    expected_result_3 = xr.DataArray(
+        np.array(
+            [
+                [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0],
+                [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0],
+                [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0],
+            ],
+            dtype=bool,
+        ),
+        dims=("time", "space"),
+        coords={"time": np.arange(0, 3), "space": np.arange(0, 12)},
+    )
+    np.testing.assert_array_equal(result_3, expected_result_3)
+    xr.testing.assert_identical(result_3, expected_result_3)
+
+    # Test 4
+    # ----------------
+    # min_duration = 0
+
+    result_4a = consecutive_events_xr(
+        da_mask=mask,
+        min_duration=0,
+        axis="time",
+    )
+
+    result_4b = consecutive_events_xr(
+        da_mask=mask,
+        min_duration=0,
+        axis="space",
+    )
+
+    expected_result_4 = xr.DataArray(
+        np.zeros_like(mask_np),
+        dims=("time", "space"),
+        coords={"time": np.arange(0, 3), "space": np.arange(0, 12)},
+    )
+    np.testing.assert_array_equal(result_4a, expected_result_4)
+    np.testing.assert_array_equal(result_4b, expected_result_4)
+    xr.testing.assert_identical(result_4a, expected_result_4)
+    xr.testing.assert_identical(result_4b, expected_result_4)
