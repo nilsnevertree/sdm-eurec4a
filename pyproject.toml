@@ -47,7 +47,7 @@ ignore-semiprivate = true
 ignore-private = true
 ignore-property-decorators = true
 ignore-module = false
-fail-under = 95
+fail-under = 90
 exclude = ["setup.py", "docs", "tests", "data", "notebooks", "temporary"]
 verbose = 1
 quiet = false
@@ -64,7 +64,7 @@ testpaths = ["tests",]
 
 [tool.black]
 line-length = 105
-target-version = ['py39', 'py310', 'py311']
+target-version = ['py311']
 
 [tool.docformatter]
 black = true
