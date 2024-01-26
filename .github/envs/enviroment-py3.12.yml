@@ -1,5 +1,6 @@
 name: sdm_eurec4a_ci
 channels:
+  - defaults
   - conda-forge
 dependencies:
   - python = 3.12
