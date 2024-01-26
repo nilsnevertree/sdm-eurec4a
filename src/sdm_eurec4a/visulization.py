@@ -341,18 +341,6 @@ def symmetrize_axis(axes: Axes, axis: Union[int, str]) -> None:
         axes.set_ylim(ymin=-maxi, ymax=maxi)
 
 
-"""
-Example Concept:
-cmap = plt.cm.get_cmap('bwr') #select a cmap
-
-rgba = cmap(0.9) # you now have values between 0 and 1 for the given cmap to generage rgba color code
-print(rgba)
-clr=colors.rgb2hex(rgba) #convert the rgba to hex
-print(clr)
-https://github.com/binodbhttr/mycolorpy
-"""
-
-
 def gen_color(cmap, n, reverse=False):
     """
     From https://github.com/binodbhttr/mycolorpy.
