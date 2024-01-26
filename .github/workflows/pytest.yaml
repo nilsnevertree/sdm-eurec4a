@@ -28,7 +28,7 @@ jobs:
         with:
           path: ~/conda_pkgs_dir
           key: ${{ runner.os }}-conda-${{ env.CACHE_NUMBER }}-${{ hashFiles('.github/envs/enviroment-py${{ matrix.python-version }}.yml') }}
-      - uses: conda-incubator/setup-miniconda@v2
+      - uses: conda-incubator/setup-miniconda@v3
         with:
           # mamba-version: "*" # activate this to build with mamba.
           # channels: conda-forge, defaults # These need to be specified to use mamba
@@ -36,7 +36,7 @@ jobs:
           environment-file: .github/envs/enviroment-py${{ matrix.python-version }}.yml
 
           activate-environment: sdm_eurec4a_ci
-          use-only-tar-bz2: true # IMPORTANT: This needs to be set for caching to work properly!
+          use-only-tar-bz2: false # IMPORTANT: This needs to be set for caching to work properly!
       - name: Set up conda environment
         shell: bash -l {0}
         run: |
