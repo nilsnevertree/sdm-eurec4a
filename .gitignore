@@ -9,7 +9,6 @@ CODE_OF_CONDUCT.md
 .editorconfig
 .cookiecutter.json
 CONTRIBUTING.md
-.github/workflows
 # ----
 # PACKAGE-SPECIFIC IGNORES
 # ----
@@ -131,3 +130,9 @@ target/
 
 # Mypy cache
 .mypy_cache/
+
+# Figures, plots and images
+*.png
+*.jpg
+*.jpeg
+*.gif
