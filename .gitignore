@@ -131,3 +131,10 @@ target/
 
 # Mypy cache
 .mypy_cache/
+
+
+# figure, plots and images
+*.png
+*.jpg
+*.jpeg
+*.gif
