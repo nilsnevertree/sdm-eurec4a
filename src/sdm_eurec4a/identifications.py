@@ -285,6 +285,44 @@ def match_clouds_and_dropsondes(
     xr.Dataset
         A subset of the dropsonde dataset that matches with the cloud dataset based on the specified spatial and temporal distances.
         The dataset contains the same variables as the input dropsonde dataset.
+    
+    Example
+    -------
+    >>> ds_cloud = xr.Dataset(
+    ...     {
+    ...         "cloud_id": (("time",), [1, 2, 3]),
+    ...         "start": (("time",), pd.date_range("2020-01-01", periods=3)),
+    ...         "end": (("time",), pd.date_range("2020-01-03", periods=3)),
+    ...     },
+    ...     coords={
+    ...         "time": pd.date_range("2020-01-01", periods=3),
+    ...     },
+    ... )
+    >>> ds_sonde = xr.Dataset(
+    ...     {
+    ...         "time_drop_sondes": (("time",), pd.date_range("2020-01-01", periods=5)),
+    ...     },
+    ...     coords={
+    ...         "time_drop_sondes": pd.date_range("2020-01-01", periods=5),
+    ...     },
+    ... )
+    >>> ds_distance = xr.Dataset(
+    ...     {
+    ...         "temporal_distance": (("time_drop_sondes", "time_identified_clouds"), np.random.rand(5, 3)),
+    ...         "spatial_distance": (("time_drop_sondes", "time_identified_clouds"), np.random.rand(5, 3)),
+    ...     },
+    ...     coords={
+    ...         "time_drop_sondes": pd.date_range("2020-01-01", periods=5),
+    ...         "time_identified_clouds": pd.date_range("2020-01-01", periods=3),
+    ...     },
+    ... )
+    >>> match_clouds_and_dropsondes(ds_cloud, ds_sonde, ds_distance)
+    <xarray.Dataset>
+    Dimensions:          (time_drop_sondes: 5)
+    Coordinates:
+        time_drop_sondes  (time_drop_sondes) datetime64[ns] 2020-01-01 ... 2020-01-05
+    Data variables:
+        *empty*
     """
 
     if ds_cloud["time"].shape != (1,):
