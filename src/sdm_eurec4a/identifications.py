@@ -244,10 +244,14 @@ def match_clouds_and_dropsondes(
     ds_cloud: xr.Dataset,
     ds_sonde: xr.Dataset,
     ds_distance: xr.Dataset,
-    index_ds_cloud: str = "time_identified_clouds",
-    index_ds_dropsonde: str = "time_drop_sondes",
     max_temporal_distance: np.timedelta64 = np.timedelta64(1, "h"),
     max_spatial_distance: float = 100,
+    dim_in_cloud : str = "time",
+    dim_in_dropsondes : str = "time",
+    index_ds_cloud: str = "time_identified_clouds",
+    index_ds_dropsonde: str = "time_drop_sondes",
+    name_dt : str = "temporal_distance",
+    name_dx : str = "spatial_distance",
     dask_compute: bool = True,
 ):
     """
@@ -325,29 +329,36 @@ def match_clouds_and_dropsondes(
         *empty*
     """
 
-    if ds_cloud["time"].shape != (1,):
+    if ds_cloud[dim_in_cloud].shape != (1,):
         raise IndexError(
             f"The cloud dataset must contain only one cloud. Thus the shape of the time dimension must be (1,).\nBut it is {ds_cloud['time'].shape}"
         )
 
     # Extract the distance of a single cloud
-    single_distances = ds_distance.sel({index_ds_cloud: ds_cloud["time"].data}).compute()
+    single_distances = ds_distance.sel({index_ds_cloud: ds_cloud[dim_in_cloud].data}).compute()
 
     # select the time of the dropsondes which are close to the cloud
     allowed_dropsonde_times = single_distances.where(
         # temporal distance
-        (np.abs(single_distances["temporal_distance"]) <= max_temporal_distance)
+        (np.abs(single_distances[name_dt]) <= max_temporal_distance)
         # spatial distance
-        & (single_distances["spatial_distance"] <= max_spatial_distance),
+        & (single_distances[name_dx] <= max_spatial_distance),
         drop=True,
     )[index_ds_dropsonde].compute()
 
     # select the dropsondes which are close to the cloud
     if dask_compute is True:
-        return ds_sonde.sel(time=allowed_dropsonde_times.data, drop=True).compute()
+        return ds_sonde.sel({
+                dim_in_dropsondes : allowed_dropsonde_times.data
+            },
+                drop=True
+            ).compute()
     else:
-        return ds_sonde.sel(time=allowed_dropsonde_times, drop=True)
-
+        return ds_sonde.sel({
+                dim_in_dropsondes : allowed_dropsonde_times.data
+            },
+                drop=True
+            )
 
 def match_clouds_and_cloudcomposite(
     ds_clouds: xr.DataArray,
