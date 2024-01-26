@@ -70,7 +70,7 @@ INPUT_FILEPATH = REPO_PATH / Path("data/observation/cloud_composite/processed/cl
 print(f"Input file path is\n\t{INPUT_FILEPATH}")
 
 # specify the mask to use for cloud identification
-mask_name = "cloud_mask"
+mask_name = "rain_mask"
 print(f"Use mask '{mask_name}' to identify clouds")
 
 OUTPUT_FILE_NAME = f"identified_clouds_{mask_name}.nc"
@@ -240,3 +240,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+# %%
