@@ -22,3 +22,7 @@ dependencies:
   # Further dependencies for the analysis
   - pip:
     - pyshp >= 2.3.1 # necessary for cartopy to work on HPC (https://github.com/SciTools/cartopy/issues/2284)
+    # For code coverage analysis
+    - codecov
+    - pytest-cov
+    - coverage[toml]
