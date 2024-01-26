@@ -214,34 +214,187 @@ def consecutive_events_np(
     return result
 
 
-# test_consecutive_events_np()
+def select_individual_cloud_by_id(
+    ds_clouds: xr.Dataset,
+    chosen_id: int,
+):
+    """
+    Select an individual cloud from the individual cloud dataset based on its ``cloud_id``
+    The data for the individual cloud is extracted from the clouds dataset ``ds_clouds``.
 
-# example_mask  = np.array([
-#                         [1,0,1,1,1,0,0,1,1,1,1,0],
-#                         [1,1,1,0,0,0,0,1,1,1,1,0],
-#                         [0,0,0,1,1,0,0,0,0,1,1,1],
-#                         ], dtype=bool)
+    Parameters
+    ----------
+    ds_clouds : xr.Dataset
+        Dataset containing data for all clouds from the individual cloud dataset.
+        It is indexed by 'time'.
+    chosen_id : int
+        The id of the cloud to be selected.
 
-# plt.imshow(example_mask, alpha=0.5, cmap='Greys')
-# plt.imshow(
-#        consecutive_events_np(example_mask, min_duration = 3, axis = 1),
-#         alpha=0.5, cmap='Reds',
-# )
-# %% DataArray Example
-# example_mask = xr.DataArray([
-#                         [1,0,1,1,1,0,0,1,1,1,1,0],
-#                         [1,1,1,0,0,0,0,1,1,1,1,0],
-#                         [0,0,0,1,1,0,0,0,0,1,1,1],
-#                         ],
-# )
+    Returns
+    -------
+    xr.Dataset
+        A subset of the individual cloud dataset that contains only the data for the specified cloud.
+        The dataset contains the same variables as the input individual cloud dataset.
+    """
 
-# np.random.seed(0)
-# example_mask = xr.DataArray(
-#        np.random.choice([0, 1], size=(100,100,100), p=[1./3, 2./3])
-# )
+    return ds_clouds.sel(time=ds_clouds["cloud_id"] == chosen_id)
 
-# result = consecutive_events_xr(example_mask, axis = 'dim_1', min_duration = 3)
 
-# plt.imshow(example_mask, alpha=0.5, cmap='Greys')
-# plt.imshow(result, alpha=0.5, cmap='Reds',)
-# %%
+def match_clouds_and_dropsondes(
+    ds_cloud: xr.Dataset,
+    ds_sonde: xr.Dataset,
+    ds_distance: xr.Dataset,
+    index_ds_cloud: str = "time_identified_clouds",
+    index_ds_dropsonde: str = "time_drop_sondes",
+    max_temporal_distance: np.timedelta64 = np.timedelta64(1, "h"),
+    max_spatial_distance: float = 100,
+    dask_compute: bool = True,
+):
+    """
+    Returns the Subdataset of dropsondes based on their spatial and temporal
+    distances to the individual cloud. The data for the individual cloud can be
+    extracted from the individual cloud dataset. The dropsonde dataset is the
+    Level 3 dropsonde dataset.
+
+    Parameters
+    ----------
+    ds_cloud : xr.Dataset
+        Dataset containing data for a single cloud from the individual cloud dataset.
+        It is indexed by 'time'.
+    ds_sonde : xr.Dataset
+        Dataset containing dropsonde data. It is indexed by 'time_drop_sondes'.
+    ds_distance : xr.Dataset
+        Dataset containing distance data between clouds and dropsondes.
+    index_ds_cloud : str, optional
+        Index of the cloud dataset. Default is 'time'.
+    index_ds_dropsonde : str, optional
+        Index of the dropsonde dataset. Default is 'time_drop_sondes'.
+    max_temporal_distance : np.timedelta64, optional
+        Maximum allowed temporal distance between a cloud and a dropsonde for them to be considered a match.
+        Default is 1 hour.
+    max_spatial_distance : float, optional
+        Units are in kilometers.
+        Maximum allowed spatial distance (in the same units as ds_distance) between a cloud and a dropsonde for them to be considered a match.
+        Default is 100.
+    dask_compute : bool, optional
+        If True, the output dataset is computed. Default is True.
+        Dask will not be used if compute is False and then be lazy.
+
+    Returns
+    -------
+    xr.Dataset
+        A subset of the dropsonde dataset that matches with the cloud dataset based on the specified spatial and temporal distances.
+        The dataset contains the same variables as the input dropsonde dataset.
+    """
+
+    if ds_cloud["time"].shape != (1,):
+        raise IndexError(
+            f"The cloud dataset must contain only one cloud. Thus the shape of the time dimension must be (1,).\nBut it is {ds_cloud['time'].shape}"
+        )
+
+    # Extract the distance of a single cloud
+    single_distances = ds_distance.sel({index_ds_cloud: ds_cloud["time"].data}).compute()
+
+    # select the time of the dropsondes which are close to the cloud
+    allowed_dropsonde_times = single_distances.where(
+        # temporal distance
+        (np.abs(single_distances["temporal_distance"]) <= max_temporal_distance)
+        # spatial distance
+        & (single_distances["spatial_distance"] <= max_spatial_distance),
+        drop=True,
+    )[index_ds_dropsonde].compute()
+
+    # select the dropsondes which are close to the cloud
+    if dask_compute is True:
+        return ds_sonde.sel(time=allowed_dropsonde_times.data, drop=True).compute()
+    else:
+        return ds_sonde.sel(time=allowed_dropsonde_times, drop=True)
+
+
+def match_clouds_and_cloudcomposite(
+    ds_clouds: xr.DataArray,
+    ds_cloudcomposite: xr.Dataset,
+    dim: str = "time",
+    var_name_start: str = "start",
+    var_name_end: str = "end",
+    dask_compute: bool = True,
+):
+    """
+    Returns the subdataset of the cloud composite dataset which is part of
+    multiple individual cloud. The selection is performed purely based on the
+    start and end time of the individual cloud.
+
+    Parameters
+    ----------
+    ds_cloud : xr.DataArray
+        Dataset containing data for multiple clouds from the individual cloud dataset.
+        It is indexed by 'time'.
+    ds_cloudcomposite : xr.Dataset
+        Dataset containing cloud composite data. It is indexed by ``dim``.
+    dim : str, optional
+        Name of the dimension along which the cloud composite dataset is indexed.
+        Default is 'time'.
+    var_name_start : str, optional
+        Name of the variable in the cloud dataset that contains the start time of the individual cloud.
+        Default is 'start'.
+    var_name_end : str, optional
+        Name of the variable in the cloud dataset that contains the end time of the individual cloud.
+        Default is 'end'.
+    dask_compute : bool, optional
+        If True, the output dataset is computed. Default is True.
+        Dask will not be used if compute is False and then be lazy.
+
+    Returns
+    -------
+    xr.Dataset
+        A subset of the cloud composite dataset that matches which is part of the individual cloud.
+        The selection is performed purely based on the start and end time of the individual cloud.
+
+    Example:
+    --------
+    >>> ds_cloudcomposite = xr.Dataset(
+    ...     {
+    ...         "cloud_composite": (("time", "lat", "lon"), np.random.rand(5, 5, 5)),
+    ...     },
+    ...     coords={
+    ...         "time": pd.date_range("2020-01-01", periods=5),
+    ...         "lat": np.arange(5),
+    ...         "lon": np.arange(5),
+    ...     },
+    ... )
+    >>> ds_clouds = xr.Dataset(
+    ...     {
+    ...         "start": (("time",), pd.date_range("2020-01-01", periods=3)),
+    ...         "end": (("time",), pd.date_range("2020-01-03", periods=3)),
+    ...     },
+    ...     coords={
+    ...         "time": pd.date_range("2020-01-01", periods=3),
+    ...     },
+    ... )
+    >>> match_multiple_clouds_and_cloudcomposite(ds_clouds, ds_cloudcomposite)
+    <xarray.Dataset>
+    Dimensions:          (lat: 5, lon: 5, time: 3)
+    Coordinates:
+        * time             (time) datetime64[ns] 2020-01-01 2020-01-02 2020-01-03
+        * lat              (lat) int64 0 1 2 3 4
+        * lon              (lon) int64 0 1 2 3 4
+    Data variables:
+        cloud_composite  (time, lat, lon) float64 0.548 0.592 0.046 0.607 ... 0.236 0.604 0.959 0.22
+    """
+
+    # create a list of time arrays for each cloud
+    time_list = []
+    for start_time, end_time in zip(
+        ds_clouds[var_name_start],
+        ds_clouds[var_name_end],
+    ):
+        time_list.append(ds_cloudcomposite.sel({dim: slice(start_time, end_time)})[dim])
+
+    # concatenate the list of time arrays and sort them
+    time_array = xr.concat(time_list, dim=dim)
+    time_array = time_array.sortby(dim)
+
+    if dask_compute is True:
+        return ds_cloudcomposite.sel({dim: time_array}).compute()
+    else:
+        return ds_cloudcomposite.sel({dim: time_array})
