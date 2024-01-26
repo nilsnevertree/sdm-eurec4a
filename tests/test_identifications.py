@@ -1,9 +1,17 @@
 import numpy as np
+import pandas as pd
+import pytest
+import xarray as xr
 
-from sdm_eurec4a.identifications import consecutive_events_np
+from sdm_eurec4a.identifications import (
+    consecutive_events_np,
+    consecutive_events_xr,
+    match_clouds_and_cloudcomposite,
+    match_clouds_and_dropsondes,
+)
 
 
-def test_consecutive_events_np():
+def test_consecutive_events_np_old():
     """Tests the consecutive_events_np function
     It handles the following cases:
     1. min_duration = 1
@@ -28,31 +36,38 @@ def test_consecutive_events_np():
         dtype=bool,
     )
 
+    # --------------
     # Test 1
-    # Check for min_duration = 1
-    result = consecutive_events_np(
+    # min_duration = 1
+    expected_result_1 = mask
+
+    # Axis = 1
+    result_1a = consecutive_events_np(
         mask=mask,
         min_duration=1,
         axis=1,
     )
-    expected_result_2 = mask
-    np.testing.assert_array_equal(result, expected_result_2)
-    # Same for axis = 0
-    result = consecutive_events_np(
+    np.testing.assert_array_equal(result_1a, expected_result_1)
+    # Axis = 0
+    result_1b = consecutive_events_np(
         mask=mask,
         min_duration=1,
         axis=0,
     )
-    expected_result_2 = mask
-    np.testing.assert_array_equal(result, expected_result_2)
+    np.testing.assert_array_equal(result_1a, expected_result_1)
+    np.testing.assert_array_equal(result_1b, expected_result_1)
 
-    # Test 2 Check along axis 1 which is the longer one in the arrays
-    result = consecutive_events_np(
+    # --------------
+    # Test 2
+    # min_duration = 3
+    # Axis = 1
+
+    result_2 = consecutive_events_np(
         mask=mask,
         min_duration=3,
         axis=1,
     )
-    expected_result_1 = np.array(
+    expected_result_2 = np.array(
         [
             [0, 0, 1, 1, 1, 0, 0, 1, 1, 1, 1, 0],
             [1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 0],
@@ -60,12 +75,14 @@ def test_consecutive_events_np():
         ],
         dtype=bool,
     )
-    np.testing.assert_array_equal(result, expected_result_1)
+    np.testing.assert_array_equal(result_2, expected_result_2)
 
-    # Test 3 Check along axis 0 which is the shorter one in the arrays
-    min_duration = 3
-    axis = 0
-    result = consecutive_events_np(
+    # --------------
+    # Test 3
+    # min_duration = 3
+    # Axis = 0 which is the shorter one in the arrays
+
+    result_3 = consecutive_events_np(
         mask=mask,
         min_duration=3,
         axis=0,
@@ -78,12 +95,102 @@ def test_consecutive_events_np():
         ],
         dtype=bool,
     )
-    np.testing.assert_array_equal(result, expected_result_3)
+    np.testing.assert_array_equal(result_3, expected_result_3)
+
     # Test 4
-    # same as test 1 but with axis = 0 and tranpsosed mask
-    result = consecutive_events_np(mask=mask.T, min_duration=3, axis=0)
-    np.testing.assert_array_equal(result, expected_result_1.T)
+    # Same as Test 2 but with axis = 0 and tranpsosed mask
+    result_4 = consecutive_events_np(mask=mask.T, min_duration=3, axis=0)
+    np.testing.assert_array_equal(result_4, expected_result_2.T)
 
     # Test 5
-    result = consecutive_events_np(mask=mask, min_duration=0, axis=0)
-    np.testing.assert_array_equal(result, np.zeros_like(mask))
+    result_5 = consecutive_events_np(mask=mask, min_duration=0, axis=0)
+    np.testing.assert_array_equal(result_5, np.zeros_like(mask))
+
+
+@pytest.fixture
+def mask():
+    return np.array(
+        [
+            [1, 0, 1, 1, 1, 0, 0, 1, 1, 1, 1, 0],
+            [1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 0],
+            [0, 0, 0, 1, 1, 0, 0, 0, 0, 1, 1, 1],
+        ],
+        dtype=bool,
+    )
+
+
+@pytest.mark.parametrize(
+    "min_duration, axis, expected",
+    [
+        # Test 1
+        # min_duration = 1
+        #  a)
+        # axis = 1, which is the longer one in the arrays
+        (
+            1,
+            1,
+            np.array(
+                [
+                    [1, 0, 1, 1, 1, 0, 0, 1, 1, 1, 1, 0],
+                    [1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 0],
+                    [0, 0, 0, 1, 1, 0, 0, 0, 0, 1, 1, 1],
+                ],
+                dtype=bool,
+            ),
+        ),
+        #  b)
+        # axis = 0, which is the shorter one in the arrays
+        (
+            1,
+            0,
+            np.array(
+                [
+                    [1, 0, 1, 1, 1, 0, 0, 1, 1, 1, 1, 0],
+                    [1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 0],
+                    [0, 0, 0, 1, 1, 0, 0, 0, 0, 1, 1, 1],
+                ],
+                dtype=bool,
+            ),
+        ),
+        # Test 2
+        # min_duration = 3
+        # axis = 1
+        (
+            3,
+            1,
+            np.array(
+                [
+                    [0, 0, 1, 1, 1, 0, 0, 1, 1, 1, 1, 0],
+                    [1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 0],
+                    [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1],
+                ],
+                dtype=bool,
+            ),
+        ),
+        # Test 3
+        # min_duration = 3
+        # axis = 0
+        (
+            3,
+            0,
+            np.array(
+                [
+                    [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0],
+                    [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0],
+                    [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0],
+                ],
+                dtype=bool,
+            ),
+        ),
+        # Test 4
+        # min_duration = 0
+        # results should be zeros
+        (0, 0, np.zeros_like(mask)),
+        (0, 1, np.zeros_like(mask)),
+    ],
+)
+def test_consecutive_events_np(mask, min_duration, axis, expected):
+    print(mask, min_duration, axis, expected)
+    result = consecutive_events_np(mask, min_duration=min_duration, axis=axis)
+    np.testing.assert_array_equal(result, expected)
+
