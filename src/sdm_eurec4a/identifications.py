@@ -246,12 +246,12 @@ def match_clouds_and_dropsondes(
     ds_distance: xr.Dataset,
     max_temporal_distance: np.timedelta64 = np.timedelta64(1, "h"),
     max_spatial_distance: float = 100,
-    dim_in_cloud : str = "time",
-    dim_in_dropsondes : str = "time",
+    dim_in_cloud: str = "time",
+    dim_in_dropsondes: str = "time",
     index_ds_cloud: str = "time_identified_clouds",
     index_ds_dropsonde: str = "time_drop_sondes",
-    name_dt : str = "temporal_distance",
-    name_dx : str = "spatial_distance",
+    name_dt: str = "temporal_distance",
+    name_dx: str = "spatial_distance",
     dask_compute: bool = True,
 ):
     """
@@ -289,7 +289,7 @@ def match_clouds_and_dropsondes(
     xr.Dataset
         A subset of the dropsonde dataset that matches with the cloud dataset based on the specified spatial and temporal distances.
         The dataset contains the same variables as the input dropsonde dataset.
-    
+
     Example
     -------
     >>> ds_cloud = xr.Dataset(
@@ -348,17 +348,10 @@ def match_clouds_and_dropsondes(
 
     # select the dropsondes which are close to the cloud
     if dask_compute is True:
-        return ds_sonde.sel({
-                dim_in_dropsondes : allowed_dropsonde_times.data
-            },
-                drop=True
-            ).compute()
+        return ds_sonde.sel({dim_in_dropsondes: allowed_dropsonde_times.data}, drop=True).compute()
     else:
-        return ds_sonde.sel({
-                dim_in_dropsondes : allowed_dropsonde_times.data
-            },
-                drop=True
-            )
+        return ds_sonde.sel({dim_in_dropsondes: allowed_dropsonde_times.data}, drop=True)
+
 
 def match_clouds_and_cloudcomposite(
     ds_clouds: xr.DataArray,
