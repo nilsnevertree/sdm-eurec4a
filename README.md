@@ -4,6 +4,7 @@ Using Super Droplet Model and EUREC4A data to simulate rain evaporation.
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 [![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit&logoColor=white)][pre-commit]
 [![Black](https://img.shields.io/badge/code%20style-black-000000.svg)][black]
+[![codecov](https://codecov.io/gh/nilsnevertree/sdm-eurec4a/branch/main/graph/badge.svg)](https://codecov.io/gh/nilsnevertree/sdm-eurec4a)
 
 <!-- [![PyPI](https://img.shields.io/pypi/v/sdm-euerc4a.svg)][pypi status]
 [![Status](https://img.shields.io/pypi/status/sdm-euerc4a.svg)][pypi status]
