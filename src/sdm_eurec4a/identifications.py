@@ -238,15 +238,84 @@ def select_individual_cloud_by_id(
     return ds_clouds.sel(time=ds_clouds["cloud_id"] == chosen_id)
 
 
+def __select_allowed_dropsonde_by_time__(
+    ds_distance: xr.Dataset,
+    cloud_time: np.datetime64,
+    max_temporal_distance: np.timedelta64,
+    max_spatial_distance: float,
+    index_ds_clouds: str,
+    index_ds_dropsonde: str,
+    name_dt: str,
+    name_dx: str,
+) -> xr.DataArray:
+    """
+    Returns the allowed times of the dropsondes for a given cloud time. The
+    allowed times are the times of the dropsondes that are within the maximum
+    temporal and spatial distance of the cloud.
+
+    Parameters
+    ----------
+    ds_distance : xr.Dataset
+        Dataset containing distance data between clouds and dropsondes.
+        It is a 2D look up table which constains the temporal and spatial distances between clouds and dropsondes.
+        It choords are:
+        - ``index_ds_clouds``: time of the clouds
+        - ``index_ds_dropsonde``: time of the dropsondes
+        Its data variables are:
+        - ``name_dt``: (index_ds_clouds, index_ds_dropsonde)
+            temporal distance between clouds and dropsondes
+        - ``name_dx``: (index_ds_clouds, index_ds_dropsonde)
+            spatial distance between clouds and dropsondes
+    cloud_time : np.datetime64
+        Time of the cloud.
+    max_temporal_distance : np.timedelta64
+        Maximum allowed temporal distance between a clouds and a dropsonde for them to be considered a match.
+    max_spatial_distance : float
+        Units are in kilometers.
+        Maximum allowed spatial distance (in the same units as ds_distance) between a cloud and a dropsonde for them to be considered a match.
+    index_ds_clouds : str
+        Index of the clouds dataset.
+    index_ds_dropsonde : str
+        Index of the dropsonde dataset.
+    name_dt : str
+        Name of the temporal distance data variable in the distance dataset ``ds_distance``.
+    name_dx : str
+        Name of the spatial distance data variable in the distance dataset ``ds_distance``.
+
+    Returns
+    -------
+    xr.DataArray
+        Allowed times of the dropsondes for a given cloud time.
+        The allowed times are the times of the dropsondes that are within the
+        maximum temporal and spatial distance of the cloud.
+
+    Examples
+    --------
+    """
+
+    distance_selection = ds_distance.sel(
+        {
+            index_ds_clouds: cloud_time,
+        }
+    )
+    return distance_selection[index_ds_dropsonde].where(
+        # temporal distance
+        (np.abs(distance_selection[name_dt].data) <= max_temporal_distance)
+        # spatial distance
+        & (distance_selection[name_dx] <= max_spatial_distance),
+        drop=True,
+    )
+
+
 def match_clouds_and_dropsondes(
-    ds_cloud: xr.Dataset,
+    ds_clouds: xr.Dataset,
     ds_sonde: xr.Dataset,
     ds_distance: xr.Dataset,
     max_temporal_distance: np.timedelta64 = np.timedelta64(1, "h"),
     max_spatial_distance: float = 100,
-    dim_in_cloud: str = "time",
+    dim_in_clouds: str = "time",
     dim_in_dropsondes: str = "time",
-    index_ds_cloud: str = "time_identified_clouds",
+    index_ds_clouds: str = "time_identified_clouds",
     index_ds_dropsonde: str = "time_drop_sondes",
     name_dt: str = "temporal_distance",
     name_dx: str = "spatial_distance",
@@ -254,30 +323,53 @@ def match_clouds_and_dropsondes(
 ):
     """
     Returns the Subdataset of dropsondes based on their spatial and temporal
-    distances to the individual cloud. The data for the individual cloud can be
-    extracted from the individual cloud dataset. The dropsonde dataset is the
-    Level 3 dropsonde dataset.
+    distances to the individual cloud. The data for the individual clouds can
+    be extracted from the individual clouds dataset. The dropsonde dataset is
+    the Level 3 dropsonde dataset.
+
+    Note
+    ----
+        - This function uses a simple for loop to loop over the clouds in the clouds dataset.
+        - Therefore it is not very efficient for many clouds.
+        - If the values of ``dim_in_clouds`` from the clouds dataset are not ALL in the ``index_ds_clouds`` from the distance dataset.
+        - If the values of ``dim_in_clouds`` from the clouds dataset and ``index_ds_clouds`` from the distance dataset are not equal.
 
     Parameters
     ----------
-    ds_cloud : xr.Dataset
-        Dataset containing data for a single cloud from the individual cloud dataset.
-        It is indexed by 'time'.
+    ds_clouds : xr.Dataset
+        Dataset containing data for multiple clouds from the individual clouds dataset.
+        It is indexed by ``dim_in_clouds``. Default is 'time'.
     ds_sonde : xr.Dataset
-        Dataset containing dropsonde data. It is indexed by 'time_drop_sondes'.
+        Dataset containing dropsonde data.
+        It is indexed by ``dim_in_dropsondes``. Default is 'time'.
     ds_distance : xr.Dataset
         Dataset containing distance data between clouds and dropsondes.
-    index_ds_cloud : str, optional
-        Index of the cloud dataset. Default is 'time'.
-    index_ds_dropsonde : str, optional
-        Index of the dropsonde dataset. Default is 'time_drop_sondes'.
+        It is a 2D look up table which constains the temporal and spatial distances between clouds and dropsondes.
+        It choords are:
+            ``index_ds_clouds``: time of the clouds
+            ``index_ds_dropsonde``: time of the dropsondes
+        Its data variables are:
+            ``name_dt``: (index_ds_clouds, index_ds_dropsonde)
+            temporal distance between clouds and dropsondes
+            ``name_dx``: (index_ds_clouds, index_ds_dropsonde)
+            spatial distance between clouds and dropsondes
     max_temporal_distance : np.timedelta64, optional
-        Maximum allowed temporal distance between a cloud and a dropsonde for them to be considered a match.
+        Maximum allowed temporal distance between a clouds and a dropsonde for them to be considered a match.
         Default is 1 hour.
     max_spatial_distance : float, optional
         Units are in kilometers.
         Maximum allowed spatial distance (in the same units as ds_distance) between a cloud and a dropsonde for them to be considered a match.
-        Default is 100.
+        Default is 100 (km).
+    index_ds_clouds : str, optional
+        Index of the clouds dataset. Default is 'time'.
+    index_ds_dropsonde : str, optional
+        Index of the dropsonde dataset. Default is 'time_drop_sondes'.
+    name_dt : str, optional
+        Name of the temporal distance data variable in the distance dataset ``ds_distance``.
+        Default is 'temporal_distance'.
+    name_dx : str, optional
+        Name of the spatial distance data variable in the distance dataset ``ds_distance``.
+        Default is 'spatial_distance'.
     dask_compute : bool, optional
         If True, the output dataset is computed. Default is True.
         Dask will not be used if compute is False and then be lazy.
@@ -285,70 +377,156 @@ def match_clouds_and_dropsondes(
     Returns
     -------
     xr.Dataset
-        A subset of the dropsonde dataset that matches with the cloud dataset based on the specified spatial and temporal distances.
+        A subset of the dropsonde dataset that matches with the clouds dataset based on the specified spatial and temporal distances.
         The dataset contains the same variables as the input dropsonde dataset.
 
-    Example
-    -------
-    >>> ds_cloud = xr.Dataset(
-    ...     {
-    ...         "cloud_id": (("time",), [1, 2, 3]),
-    ...         "start": (("time",), pd.date_range("2020-01-01", periods=3)),
-    ...         "end": (("time",), pd.date_range("2020-01-03", periods=3)),
-    ...     },
-    ...     coords={
-    ...         "time": pd.date_range("2020-01-01", periods=3),
-    ...     },
-    ... )
-    >>> ds_sonde = xr.Dataset(
-    ...     {
-    ...         "time_drop_sondes": (("time",), pd.date_range("2020-01-01", periods=5)),
-    ...     },
-    ...     coords={
-    ...         "time_drop_sondes": pd.date_range("2020-01-01", periods=5),
-    ...     },
-    ... )
-    >>> ds_distance = xr.Dataset(
-    ...     {
-    ...         "temporal_distance": (("time_drop_sondes", "time_identified_clouds"), np.random.rand(5, 3)),
-    ...         "spatial_distance": (("time_drop_sondes", "time_identified_clouds"), np.random.rand(5, 3)),
-    ...     },
-    ...     coords={
-    ...         "time_drop_sondes": pd.date_range("2020-01-01", periods=5),
-    ...         "time_identified_clouds": pd.date_range("2020-01-01", periods=3),
-    ...     },
-    ... )
-    >>> match_clouds_and_dropsondes(ds_cloud, ds_sonde, ds_distance)
-    <xarray.Dataset>
-    Dimensions:          (time_drop_sondes: 5)
-    Coordinates:
-        time_drop_sondes  (time_drop_sondes) datetime64[ns] 2020-01-01 ... 2020-01-05
-    Data variables:
-        *empty*
+    Raises
+    ------
+    ValueError
+        If the values of ``dim_in_clouds`` from the clouds dataset are not ALL in the ``index_ds_clouds`` from the distance dataset.
+        If the values of ``dim_in_clouds`` from the clouds dataset and ``index_ds_clouds`` from the distance dataset are not equal.
+
+    Examples
+    --------
+        Example visualisation
+        >>> # Example setup
+        ... # For a max dt = 5 hours
+        ... # For a max dh = 3 km
+        ... # The datasets below can be summarized visually as follows:
+        ...
+        ... # 0    5    10   15   20  |1    6    11   # Time in hours
+        ... # ---S--M--E--------------|--S--M--E----  # Cloud start, middle, end time
+        ... # D----D----D----D----D---|D----D----D--  # Dropsonde
+        ... # 1----1----3----3----5---|3----1----8--  # Distance dropsonde to clouds in km (same for both clouds)
+        ...
+        ... # 0    5    10   15   20  |1    6    11   # Time in hours
+        ... # F----T----T----F----F---|T----T----F--  # Dropsondes close to cloud T for true F for false
+        ... # F----T----T----F----F---|F----F----F--  # Dropsondes close to cloud 0
+        ... # F----T----T----F----F---|T----T----F--  # Dropsondes close to cloud 1
+
+        Example datasets
+        >>> ds_clouds = xr.Dataset(
+        ...     {
+        ...         "cloud_id": (("time",), [0, 1]),
+        ...         "start": (("time",), pd.date_range("2020-01-01 3:00", periods=2, freq="D")),
+        ...         "end": (("time",), pd.date_range("2020-01-01 9:00", periods=2, freq="D")),
+        ...     },
+        ...     coords={
+        ...         "time": pd.date_range("2020-01-01 6:00", periods=2, freq="D"),
+        ...     },
+        ... )
+        ...
+        >>> ds_sonde = xr.Dataset(
+        ...     {
+        ...         "temp": (("time",), np.arange(8)),
+        ...     },
+        ...     coords={
+        ...         "time": pd.date_range("2020-01-01 0:00", periods=8, freq="5H"),
+        ...     },
+        ... )
+        ...
+        >>> ds_distance = xr.Dataset(
+        ...     {
+        ...         "spatial_distance": (
+        ...             ("time_identified_clouds", "time_drop_sondes"),
+        ...             np.array([
+        ...                 [1, 1, 3, 3, 5, 3, 1, 8],
+        ...                 [1, 1, 3, 3, 5, 3, 1, 8],
+        ...             ], dtype="int"),
+        ...         ),
+        ...         "temporal_distance": (
+        ...             ("time_identified_clouds", "time_drop_sondes"),
+        ...             np.array([
+        ...                     [  6,   1,  -4,  -9, -14, -19, -24, -29],
+        ...                     [ 30,  25,  20,  15,  10,   5,   0, -5]
+        ...                 ], dtype="timedelta64[h]"),
+        ...         ),
+        ...     },
+        ...     coords={
+        ...         "time_drop_sondes": ds_sonde.time.data,
+        ...         "time_identified_clouds": ds_clouds.time.data,
+        ...     },
+        ... )
+        ...
+        >>> result = match_clouds_and_dropsondes(
+        ...     ds_clouds = ds_clouds,
+        ...     ds_sonde = ds_sonde,
+        ...     ds_distance = ds_distance,
+        ...     dim_in_dropsondes = "time",
+        ...     index_ds_dropsonde = "time_drop_sondes",
+        ...     index_ds_clouds = "time_identified_clouds",
+        ...     max_temporal_distance = np.timedelta64(5, "h"),
+        ...     max_spatial_distance = 3,
+        ... )
+        >>> print(result)
+        <xarray.Dataset>
+        Dimensions:  (time: 4)
+        Coordinates:
+        * time     (time) datetime64[ns] 2020-01-01T05:00:00 ... 2020-01-02T06:00:00
+        Data variables:
+            temp     (time) int64 1 2 5 6
     """
 
-    if ds_cloud[dim_in_cloud].shape != (1,):
-        raise IndexError(
-            f"The cloud dataset must contain only one cloud. Thus the shape of the time dimension must be (1,).\nBut it is {ds_cloud['time'].shape}"
+    # make sure that all values of the clouds dataset are in the distance dataset
+    if False == np.all(
+        np.isin(
+            ds_clouds[dim_in_clouds].data,
+            ds_distance[index_ds_clouds].data,
         )
+    ):
+        assert_message = "All 'dim_in_clouds' values from the Clouds dataset must be in the 'index_ds_clouds' from the distance dataset!"
+        raise ValueError(assert_message)
+    # make sure that all values of the dropsonde dataset are in the distance dataset
+    try:
+        np.testing.assert_equal(ds_distance[index_ds_dropsonde].data, ds_sonde[dim_in_dropsondes].data)
+    except AssertionError as e:
+        assert_message = "The values of 'dim_in_dropsondes' from dropsonde dataset and 'index_ds_dropsonde' from distance dataset must be equal!"
+        raise ValueError(assert_message)
 
-    # Extract the distance of a single cloud
-    single_distances = ds_distance.sel({index_ds_cloud: ds_cloud[dim_in_cloud].data}).compute()
+    # create a list of time arrays for each cloud
+    time_list = []
 
-    # select the time of the dropsondes which are close to the cloud
-    allowed_dropsonde_times = single_distances.where(
-        # temporal distance
-        (np.abs(single_distances[name_dt]) <= max_temporal_distance)
-        # spatial distance
-        & (single_distances[name_dx] <= max_spatial_distance),
-        drop=True,
-    )[index_ds_dropsonde].compute()
-
-    # select the dropsondes which are close to the cloud
-    if dask_compute is True:
-        return ds_sonde.sel({dim_in_dropsondes: allowed_dropsonde_times.data}, drop=True).compute()
+    # If the clouds dataset has multiple clouds, we need to loop over them
+    # this also works for one cloud, as long as the dim_in_clouds is not dimension less (ndim = 0)
+    if ds_clouds[dim_in_clouds].ndim != 0:
+        for cloud_time in ds_clouds[dim_in_clouds].data:
+            allowed_dropsonde_times = __select_allowed_dropsonde_by_time__(
+                ds_distance=ds_distance,
+                cloud_time=cloud_time,
+                max_temporal_distance=max_temporal_distance,
+                max_spatial_distance=max_spatial_distance,
+                index_ds_clouds=index_ds_clouds,
+                index_ds_dropsonde=index_ds_dropsonde,
+                name_dt=name_dt,
+                name_dx=name_dx,
+            )
+            time_list.append(allowed_dropsonde_times)
     else:
-        return ds_sonde.sel({dim_in_dropsondes: allowed_dropsonde_times.data}, drop=True)
+        # There is an issue when selecting a single cloud based on its time.
+        # This leads to the fact that the time dimension is kinda dropped.
+        # Thus if ndim is 0, we need to hand the __select_allowed_dropsonde_times__ function a single time value.
+        allowed_dropsonde_times = __select_allowed_dropsonde_by_time__(
+            ds_distance=ds_distance,
+            cloud_time=ds_clouds[dim_in_clouds].data,
+            max_temporal_distance=max_temporal_distance,
+            max_spatial_distance=max_spatial_distance,
+            index_ds_clouds=index_ds_clouds,
+            index_ds_dropsonde=index_ds_dropsonde,
+            name_dt=name_dt,
+            name_dx=name_dx,
+        )
+        time_list.append(allowed_dropsonde_times)
+
+    # concatenate the list of time arrays and sort them
+    time_array = xr.concat(time_list, dim=index_ds_dropsonde)
+    time_array = time_array.sortby(index_ds_dropsonde)
+    time_array = time_array.rename({index_ds_dropsonde: dim_in_dropsondes})
+    time_array = time_array.drop_vars(index_ds_clouds)
+
+    if dask_compute is True:
+        return ds_sonde.sel({dim_in_dropsondes: time_array.data}, drop=True).compute()
+    else:
+        return ds_sonde.sel({dim_in_dropsondes: time_array.data}, drop=True)
 
 
 def match_clouds_and_cloudcomposite(
