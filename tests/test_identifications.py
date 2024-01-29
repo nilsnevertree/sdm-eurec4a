@@ -11,8 +11,110 @@ from sdm_eurec4a.identifications import (
 )
 
 
-def test_consecutive_events_np_old():
-    """Tests the consecutive_events_np function
+def mask_np():
+    return np.array(
+        [
+            [1, 0, 1, 1, 1, 0, 0, 1, 1, 1, 1, 0],
+            [1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 0],
+            [0, 0, 0, 1, 1, 0, 0, 0, 0, 1, 1, 1],
+        ],
+        dtype=bool,
+    )
+
+
+def da_mask():
+    return xr.DataArray(
+        mask_np(),
+        dims=("time", "space"),
+        coords={"time": np.arange(0, 3), "space": np.arange(0, 12)},
+    )
+
+
+def expected_result_1():
+    return mask_np()
+
+
+def da_expected_result_1():
+    return xr.DataArray(
+        expected_result_1(),
+        dims=("time", "space"),
+        coords={"time": np.arange(0, 3), "space": np.arange(0, 12)},
+    )
+
+
+def expected_result_2():
+    return np.array(
+        [
+            [0, 0, 1, 1, 1, 0, 0, 1, 1, 1, 1, 0],
+            [1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1],
+        ],
+        dtype=bool,
+    )
+
+
+def da_expected_result_2():
+    return xr.DataArray(
+        expected_result_2(),
+        dims=("time", "space"),
+        coords={"time": np.arange(0, 3), "space": np.arange(0, 12)},
+    )
+
+
+def expected_result_3():
+    return np.array(
+        [
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0],
+        ],
+        dtype=bool,
+    )
+
+
+def da_expected_result_3():
+    return xr.DataArray(
+        expected_result_3(),
+        dims=("time", "space"),
+        coords={"time": np.arange(0, 3), "space": np.arange(0, 12)},
+    )
+
+
+def expected_result_4():
+    return np.zeros_like(mask_np())
+
+
+def da_expected_result_4():
+    return xr.DataArray(
+        expected_result_4(),
+        dims=("time", "space"),
+        coords={"time": np.arange(0, 3), "space": np.arange(0, 12)},
+    )
+
+
+@pytest.fixture
+def mask():
+    return mask_np()
+
+
+@pytest.fixture
+def mask_fail():
+    return np.ones((12, 3), dtype=bool)
+
+
+@pytest.mark.parametrize(
+    "min_duration, axis, expected",
+    [
+        (1, 1, expected_result_1()),
+        (1, 0, expected_result_1()),
+        (3, 1, expected_result_2()),
+        (3, 0, expected_result_3()),
+        (0, 0, expected_result_4()),
+        (0, 1, expected_result_4()),
+    ],
+)
+def test_consecutive_events_np(mask, min_duration, axis, expected):
+    """
     It handles the following cases:
     1. min_duration = 1
     2. min_duration = 3, axis = 1
@@ -24,179 +126,58 @@ def test_consecutive_events_np_old():
     has cosecutive events of length 3 in
     - the middle of the array
     - both ends of the array
-
     """
-    # Set up example array
-    mask = np.array(
-        [
-            [1, 0, 1, 1, 1, 0, 0, 1, 1, 1, 1, 0],
-            [1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 0],
-            [0, 0, 0, 1, 1, 0, 0, 0, 0, 1, 1, 1],
-        ],
-        dtype=bool,
-    )
+    result = consecutive_events_np(mask, min_duration=min_duration, axis=axis)
+    np.testing.assert_array_equal(result, expected)
 
-    # --------------
+
+def test_consecutive_events_np_boolfail():
+    """Checks for correct fails with ValueError."""
     # Test 1
-    # min_duration = 1
-    expected_result_1 = mask
+    # not convertiable to bool
+    mask_convertable = np.array([np.nan, 0, 3])
+    consecutive_events_np(mask_convertable, min_duration=1, axis=0)
+    mask_non_convertable = np.array([np.nan, 0, "something"])
+    with pytest.raises(ValueError):
+        consecutive_events_np(mask_non_convertable, min_duration=1, axis=0)
 
-    # Axis = 1
-    result_1a = consecutive_events_np(
-        mask=mask,
-        min_duration=1,
-        axis=1,
-    )
-    np.testing.assert_array_equal(result_1a, expected_result_1)
-    # Axis = 0
-    result_1b = consecutive_events_np(
-        mask=mask,
-        min_duration=1,
-        axis=0,
-    )
-    np.testing.assert_array_equal(result_1a, expected_result_1)
-    np.testing.assert_array_equal(result_1b, expected_result_1)
 
-    # --------------
+@pytest.mark.parametrize(
+    "min_duration, axis, fails",
+    [
+        (12, 0, False),
+        (13, 0, True),
+        (3, 1, False),
+        (12, 1, True),
+        (13, 1, True),
+    ],
+)
+def test_consecutive_events_np_exceed_max_duration(mask_fail, min_duration, axis, fails):
+    """Checks for correct fails with ValueError."""
+
     # Test 2
-    # min_duration = 3
-    # Axis = 1
-
-    result_2 = consecutive_events_np(
-        mask=mask,
-        min_duration=3,
-        axis=1,
-    )
-    expected_result_2 = np.array(
-        [
-            [0, 0, 1, 1, 1, 0, 0, 1, 1, 1, 1, 0],
-            [1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 0],
-            [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1],
-        ],
-        dtype=bool,
-    )
-    np.testing.assert_array_equal(result_2, expected_result_2)
-
-    # --------------
-    # Test 3
-    # min_duration = 3
-    # Axis = 0 which is the shorter one in the arrays
-
-    result_3 = consecutive_events_np(
-        mask=mask,
-        min_duration=3,
-        axis=0,
-    )
-    expected_result_3 = np.array(
-        [
-            [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0],
-            [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0],
-            [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0],
-        ],
-        dtype=bool,
-    )
-    np.testing.assert_array_equal(result_3, expected_result_3)
-
-    # Test 4
-    # Same as Test 2 but with axis = 0 and tranpsosed mask
-    result_4 = consecutive_events_np(mask=mask.T, min_duration=3, axis=0)
-    np.testing.assert_array_equal(result_4, expected_result_2.T)
-
-    # Test 5
-    result_5 = consecutive_events_np(mask=mask, min_duration=0, axis=0)
-    np.testing.assert_array_equal(result_5, np.zeros_like(mask))
-
-
-@pytest.fixture
-def mask():
-    return np.array(
-        [
-            [1, 0, 1, 1, 1, 0, 0, 1, 1, 1, 1, 0],
-            [1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 0],
-            [0, 0, 0, 1, 1, 0, 0, 0, 0, 1, 1, 1],
-        ],
-        dtype=bool,
-    )
+    if fails:
+        with pytest.raises(ValueError):
+            consecutive_events_np(mask_fail, min_duration=min_duration, axis=axis)
+    else:
+        consecutive_events_np(mask_fail, min_duration=min_duration, axis=axis)
 
 
 @pytest.mark.parametrize(
     "min_duration, axis, expected",
     [
-        # Test 1
-        # min_duration = 1
-        #  a)
-        # axis = 1, which is the longer one in the arrays
-        (
-            1,
-            1,
-            np.array(
-                [
-                    [1, 0, 1, 1, 1, 0, 0, 1, 1, 1, 1, 0],
-                    [1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 0],
-                    [0, 0, 0, 1, 1, 0, 0, 0, 0, 1, 1, 1],
-                ],
-                dtype=bool,
-            ),
-        ),
-        #  b)
-        # axis = 0, which is the shorter one in the arrays
-        (
-            1,
-            0,
-            np.array(
-                [
-                    [1, 0, 1, 1, 1, 0, 0, 1, 1, 1, 1, 0],
-                    [1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 0],
-                    [0, 0, 0, 1, 1, 0, 0, 0, 0, 1, 1, 1],
-                ],
-                dtype=bool,
-            ),
-        ),
-        # Test 2
-        # min_duration = 3
-        # axis = 1
-        (
-            3,
-            1,
-            np.array(
-                [
-                    [0, 0, 1, 1, 1, 0, 0, 1, 1, 1, 1, 0],
-                    [1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 0],
-                    [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1],
-                ],
-                dtype=bool,
-            ),
-        ),
-        # Test 3
-        # min_duration = 3
-        # axis = 0
-        (
-            3,
-            0,
-            np.array(
-                [
-                    [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0],
-                    [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0],
-                    [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0],
-                ],
-                dtype=bool,
-            ),
-        ),
-        # Test 4
-        # min_duration = 0
-        # results should be zeros
-        (0, 0, np.zeros_like(mask)),
-        (0, 1, np.zeros_like(mask)),
+        (1, "time", da_expected_result_1()),
+        (1, "space", da_expected_result_1()),
+        (3, "space", da_expected_result_2()),
+        (3, "time", da_expected_result_3()),
+        (0, "space", da_expected_result_4()),
+        (0, "time", da_expected_result_4()),
     ],
 )
-def test_consecutive_events_np(mask, min_duration, axis, expected):
-    print(mask, min_duration, axis, expected)
-    result = consecutive_events_np(mask, min_duration=min_duration, axis=axis)
-    np.testing.assert_array_equal(result, expected)
-
-
-def test_consecutive_events_xr():
-    """Tests the consecutive_events_xr function
+def test_consecutive_events_xr(min_duration, axis, expected, ds_mask=da_mask()):
+    """
+    Tests the consecutive_events_xr functiom
+    Tests the consecutive_events_xr function
     It handles the following cases:
     1. min_duration = 1
     2. min_duration = 3, axis = "space"
@@ -207,127 +188,9 @@ def test_consecutive_events_xr():
     has cosecutive events of length 3 in
     - the middle of the array
     - both ends of the array
-
     """
-    # Set up example array
-    mask_np = np.array(
-        [
-            [1, 0, 1, 1, 1, 0, 0, 1, 1, 1, 1, 0],
-            [1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 0],
-            [0, 0, 0, 1, 1, 0, 0, 0, 0, 1, 1, 1],
-        ],
-        dtype=bool,
-    )
-    mask = xr.DataArray(
-        mask_np,
-        dims=("time", "space"),
-        coords={"time": np.arange(0, 3), "space": np.arange(0, 12)},
-    )
-
-    # --------------
-    # Test 1
-    # Check for min_duration = 1
-
-    expected_result_1 = xr.DataArray(
-        mask_np,
-        dims=("time", "space"),
-        coords={"time": np.arange(0, 3), "space": np.arange(0, 12)},
-    )
-
-    # Dimension time
-    result_1a = consecutive_events_xr(
-        da_mask=mask,
-        min_duration=1,
-        axis="time",
-    )
-    np.testing.assert_array_equal(result_1a, expected_result_1)
-    xr.testing.assert_identical(result_1a, expected_result_1)
-
-    # Dimension space
-    result_1b = consecutive_events_xr(
-        da_mask=mask,
-        min_duration=1,
-        axis="space",
-    )
-    np.testing.assert_array_equal(result_1b, expected_result_1)
-    xr.testing.assert_identical(result_1b, expected_result_1)
-
-    # --------------
-    # Test 2
-    # min_duration = 3
-    # Axis = "space"
-
-    result_2 = consecutive_events_xr(
-        da_mask=mask,
-        min_duration=3,
-        axis="space",
-    )
-    expected_result_2 = xr.DataArray(
-        np.array(
-            [
-                [0, 0, 1, 1, 1, 0, 0, 1, 1, 1, 1, 0],
-                [1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 0],
-                [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1],
-            ],
-            dtype=bool,
-        ),
-        dims=("time", "space"),
-        coords={"time": np.arange(0, 3), "space": np.arange(0, 12)},
-    )
-    np.testing.assert_array_equal(result_2, expected_result_2)
-    xr.testing.assert_identical(result_2, expected_result_2)
-
-    # --------------
-    # Test 3
-    # min_duration = 3
-    # Axis = time which is the shorter one in the arrays
-
-    result_3 = consecutive_events_xr(
-        da_mask=mask,
-        min_duration=3,
-        axis="time",
-    )
-
-    expected_result_3 = xr.DataArray(
-        np.array(
-            [
-                [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0],
-                [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0],
-                [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0],
-            ],
-            dtype=bool,
-        ),
-        dims=("time", "space"),
-        coords={"time": np.arange(0, 3), "space": np.arange(0, 12)},
-    )
-    np.testing.assert_array_equal(result_3, expected_result_3)
-    xr.testing.assert_identical(result_3, expected_result_3)
-
-    # Test 4
-    # ----------------
-    # min_duration = 0
-
-    result_4a = consecutive_events_xr(
-        da_mask=mask,
-        min_duration=0,
-        axis="time",
-    )
-
-    result_4b = consecutive_events_xr(
-        da_mask=mask,
-        min_duration=0,
-        axis="space",
-    )
-
-    expected_result_4 = xr.DataArray(
-        np.zeros_like(mask_np),
-        dims=("time", "space"),
-        coords={"time": np.arange(0, 3), "space": np.arange(0, 12)},
-    )
-    np.testing.assert_array_equal(result_4a, expected_result_4)
-    np.testing.assert_array_equal(result_4b, expected_result_4)
-    xr.testing.assert_identical(result_4a, expected_result_4)
-    xr.testing.assert_identical(result_4b, expected_result_4)
+    result = consecutive_events_xr(da_mask=ds_mask, min_duration=min_duration, axis=axis)
+    xr.testing.assert_identical(result, expected)
 
 
 def test_match_clouds_and_cloudcomposite():
@@ -395,122 +258,227 @@ def test_match_clouds_and_cloudcomposite():
     xr.testing.assert_identical(result, expected_result)
 
 
-def test_match_clouds_and_dropsondes():
+def ds_clouds():
+    """Creates cloud dataset."""
+    return xr.Dataset(
+        {
+            "cloud_id": (("time",), [0, 1]),
+            "start": (("time",), pd.date_range("2020-01-01 3:00", periods=2, freq="D")),
+            "end": (("time",), pd.date_range("2020-01-01 9:00", periods=2, freq="D")),
+        },
+        coords={
+            "time": pd.date_range("2020-01-01 6:00", periods=2, freq="D"),
+        },
+    )
+
+
+def ds_sonde():
+    """Create a dropsonde dataset."""
+    return xr.Dataset(
+        {
+            "temp": (("time",), np.arange(8)),
+        },
+        coords={
+            "time": pd.date_range("2020-01-01 0:00", periods=8, freq="5H"),
+        },
+    )
+
+
+def ds_distance():
+    """Create a distance dataset."""
+    # temporal_distance = ds_cloud.time.rename({"time": "time_identified_clouds"}) - ds_sonde.time.rename({"time": "time_drop_sondes"})
+    # print(temporal_distance.data.astype("timedelta64[h]"))
+    return xr.Dataset(
+        {
+            # spatial distance in km
+            "spatial_distance": (
+                ("time_identified_clouds", "time_drop_sondes"),
+                np.array(
+                    [
+                        [1, 1, 3, 3, 5, 3, 1, 8],
+                        [1, 1, 3, 3, 5, 3, 1, 8],
+                    ],
+                    dtype="int",
+                ),
+            ),
+            # temporal distance in hours
+            "temporal_distance": (
+                ("time_identified_clouds", "time_drop_sondes"),
+                np.array(
+                    [[6, 1, -4, -9, -14, -19, -24, -29], [30, 25, 20, 15, 10, 5, 0, -5]],
+                    dtype="timedelta64[h]",
+                ).astype("timedelta64[ns]"),
+            ),
+        },
+        coords={
+            "time_drop_sondes": pd.date_range("2020-01-01 0:00", periods=8, freq="5H"),
+            "time_identified_clouds": pd.date_range("2020-01-01 6:00", periods=2, freq="D"),
+        },
+    )
+
+
+def selected_dropsondes_5h_3km():
+    """
+    Should result for
+    max_temporal_distance = 5 hours
+    max_spatial_distance = 3 km
+    """
+    return xr.Dataset(
+        {
+            "temp": (("time",), [1, 2, 5, 6]),
+        },
+        coords={
+            "time": [
+                pd.Timestamp("2020-01-01 05:00"),
+                pd.Timestamp("2020-01-01 10:00"),
+                pd.Timestamp("2020-01-02 01:00"),
+                pd.Timestamp("2020-01-02 06:00"),
+            ],
+        },
+    )
+
+
+def selected_dropsondes_1h_10km():
+    """
+    Should result for
+    max_temporal_distance = 5 hours
+    max_spatial_distance = 3 km
+    """
+    return xr.Dataset(
+        {
+            "temp": (("time",), [1, 6]),
+        },
+        coords={
+            "time": [
+                pd.Timestamp("2020-01-01 05:00"),
+                pd.Timestamp("2020-01-02 06:00"),
+            ],
+        },
+    )
+
+
+def selected_dropsondes_0h_0km():
+    """
+    Should result for
+    max_temporal_distance = 0 hours
+    max_spatial_distance = 0 km
+    """
+    return xr.Dataset(
+        {
+            "temp": (("time",), []),
+        },
+        coords={
+            "time": np.array([], dtype="datetime64[ns]"),
+        },
+    )
+
+
+@pytest.mark.parametrize(
+    "max_temporal_distance, max_spatial_distance, expected",
+    [
+        (5, 3, selected_dropsondes_5h_3km()),
+        (1, 10, selected_dropsondes_1h_10km()),
+        (0, 0, selected_dropsondes_0h_0km()),
+    ],
+)
+def test_match_clouds_and_dropsondes(max_temporal_distance, max_spatial_distance, expected):
     """
     Tests the match_clouds_and_dropsondes function. It uses a cloud dataset and
     a dropsonde dataset.
 
-    ds_cloud:
-        ```
-        <xarray.Dataset>
-        Dimensions:   (time: 1)
-        Coordinates:
-        * time      (time) datetime64[ns] 2020-01-02T06:00:00
-        Data variables:
-            cloud_id  (time) int64 1
-            start     (time) datetime64[ns] 2020-01-01T03:00:00
-            end       (time) datetime64[ns] 2020-01-01T09:00:00
-        ```
-
-    The dropsonde dataset has the following dates:
-        ```
-        <xarray.Dataset>
-        Dimensions:  (time: 5)
-        Coordinates:
-        * time     (time) datetime64[ns] 2020-01-01 2020-01-02 ... 2020-01-05
-        Data variables:
-            temp     (time) int64 0 1 2 3 4
-        ```
-
-    The distance dataset has the following distances:
-    - Temporal distances are by definition:
-        30 h, 6h, -18h, -42h, -66h
-    - Spatial distances are chosen:
-        100 km, 100 km, 90 km, 120 km, 120 km. ()
-
-    The distance dataset looks like this:
-        ```
-        <xarray.Dataset>
-        Dimensions:                 (time_identified_clouds: 1, time_drop_sondes: 5)
-        Coordinates:
-        * time_drop_sondes        (time_drop_sondes) datetime64[ns] 2020-01-01 ... ...
-        * time_identified_clouds  (time_identified_clouds) datetime64[ns] 2020-01-0...
-        Data variables:
-            spatial_distance        (time_identified_clouds, time_drop_sondes) int64 ...
-            temporal_distance       (time_identified_clouds, time_drop_sondes) timedelta64[ns] ...
-        ```
-
-    The expected result is a dropsonde dataset with the following dates:
-        ```
-        <xarray.Dataset>
-        Dimensions:  (time: 2)
-        Coordinates:
-        * time     (time) datetime64[ns] 2020-01-02 2020-01-03
-        Data variables:
-            temp     (time) int64 1 2
-        ```
+    Example visualisation
+        >>> # Example setup
+        ... # For a max dt = 5 hours
+        ... # For a max dh = 3 km
+        ... # The datasets below can be summarized visually as follows:
+        ... # ->    2020-01-01      <-|-> 2020-01-02
+        ... # ______________________________________
+        ... # 0    5    10   15   20  |1    6    11   # Time in hours
+        ... # ______________________________________
+        ... # ---S--M--E--------------|--S--M--E----  # Cloud start, middle, end time
+        ... # D----D----D----D----D---|D----D----D--  # Dropsonde
+        ... # 1----1----3----3----5---|3----1----8--  # Distance dropsonde to clouds in km (same for both clouds)
+        ... # ______________________________________
+        ... # F----T----T----F----F---|T----T----F--  # Dropsondes close to cloud T for true F for false
+        ... # F----T----T----F----F---|F----F----F--  # Dropsondes close to cloud 0
+        ... # F----T----T----F----F---|T----T----F--  # Dropsondes close to cloud 1
     """
-    # Create a cloud dataset
-    ds_cloud = xr.Dataset(
-        {
-            "cloud_id": (("time",), [1]),
-            "start": (("time",), [pd.Timestamp("2020-01-01 3:00")]),
-            "end": (("time",), [pd.Timestamp("2020-01-01 9:00")]),
-        },
-        coords={
-            "time": [pd.Timestamp("2020-01-02 6:00")],
-        },
-    )
-
-    # Create a dropsonde dataset
-    ds_sonde = xr.Dataset(
-        {
-            "temp": (("time",), np.arange(5)),
-        },
-        coords={
-            "time": pd.date_range("2020-01-01", periods=5),
-        },
-    )
-
-    # Create a distance dataset
-    ds_distance = xr.Dataset(
-        {
-            "spatial_distance": (
-                ("time_identified_clouds", "time_drop_sondes"),
-                np.array([[100, 100, 90, 120, 120]], dtype="int"),
-            ),
-            "temporal_distance": (
-                ("time_identified_clouds", "time_drop_sondes"),
-                np.array([[30, 6, -18, -42, -66]], dtype="timedelta64[h]"),
-            ),
-        },
-        coords={
-            "time_drop_sondes": ds_sonde.time.data,
-            "time_identified_clouds": ds_cloud.time.data,
-        },
-    )
-
+    max_temporal_distance = np.timedelta64(max_temporal_distance, "h")
     result = match_clouds_and_dropsondes(
-        ds_cloud,
-        ds_sonde,
-        ds_distance,
+        ds_clouds=ds_clouds(),
+        ds_sonde=ds_sonde(),
+        ds_distance=ds_distance(),
         dim_in_dropsondes="time",
+        dim_in_clouds="time",
         index_ds_dropsonde="time_drop_sondes",
-        index_ds_cloud="time_identified_clouds",
-        max_temporal_distance=np.timedelta64(18, "h"),
-        max_spatial_distance=100,
-    )
-    # the should results include the following dates:
-    # - 2020-01-02 with temp = 1
-    # - 2020-01-03 with temp = 2
-
-    should = xr.Dataset(
-        {
-            "temp": (("time",), [1, 2]),
-        },
-        coords={
-            "time": [pd.Timestamp("2020-01-02"), pd.Timestamp("2020-01-03")],
-        },
+        index_ds_clouds="time_identified_clouds",
+        max_temporal_distance=max_temporal_distance,
+        max_spatial_distance=max_spatial_distance,
+        dask_compute=False,
     )
     assert isinstance(result, xr.Dataset)
-    xr.testing.assert_identical(result, should)
+    xr.testing.assert_equal(result, expected)
+
+
+def test_match_clouds_and_dropsondes_fails():
+    """Checks for correct fails with ValueError is not all values from ds_cloud
+    are in ds_distance."""
+
+    # Test 1:
+    # Fails if values from ds_clouds arent in ds_distance
+
+    ds_distance_subset = ds_distance().isel({"time_identified_clouds": 0})
+    ds_clouds_subset = ds_clouds().isel({"time": 0})
+    ds_sonde_subset = ds_sonde().isel({"time": 0})
+    with pytest.raises(ValueError):
+        match_clouds_and_dropsondes(
+            ds_clouds=ds_clouds(),
+            ds_sonde=ds_sonde(),
+            ds_distance=ds_distance_subset,
+            dim_in_dropsondes="time",
+            dim_in_clouds="time",
+            index_ds_dropsonde="time_drop_sondes",
+            index_ds_clouds="time_identified_clouds",
+            max_temporal_distance=np.timedelta64(5, "h"),
+            max_spatial_distance=3,
+        )
+    # Test 2:
+    # Does not fail if values from ds_clouds arent in ds_distance
+    match_clouds_and_dropsondes(
+        ds_clouds=ds_clouds_subset,
+        ds_sonde=ds_sonde(),
+        ds_distance=ds_distance(),
+        dim_in_dropsondes="time",
+        dim_in_clouds="time",
+        index_ds_dropsonde="time_drop_sondes",
+        index_ds_clouds="time_identified_clouds",
+        max_temporal_distance=np.timedelta64(5, "h"),
+        max_spatial_distance=3,
+    )
+    # Test 3:
+    # Fails if values from ds_sonde arent in ds_distance and vice versa
+    with pytest.raises(ValueError):
+        match_clouds_and_dropsondes(
+            ds_clouds=ds_clouds(),
+            ds_sonde=ds_sonde(),
+            ds_distance=ds_distance_subset,
+            dim_in_dropsondes="time",
+            dim_in_clouds="time",
+            index_ds_dropsonde="time_drop_sondes",
+            index_ds_clouds="time_identified_clouds",
+            max_temporal_distance=np.timedelta64(5, "h"),
+            max_spatial_distance=3,
+        )
+    # Test 4:
+    with pytest.raises(ValueError):
+        match_clouds_and_dropsondes(
+            ds_clouds=ds_clouds(),
+            ds_sonde=ds_sonde_subset,
+            ds_distance=ds_distance(),
+            dim_in_dropsondes="time",
+            dim_in_clouds="time",
+            index_ds_dropsonde="time_drop_sondes",
+            index_ds_clouds="time_identified_clouds",
+            max_temporal_distance=np.timedelta64(5, "h"),
+            max_spatial_distance=3,
+        )
