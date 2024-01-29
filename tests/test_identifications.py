@@ -10,6 +10,7 @@ from sdm_eurec4a.identifications import (
     match_clouds_and_dropsondes,
 )
 
+
 def mask_np():
     return np.array(
         [
@@ -95,10 +96,10 @@ def da_expected_result_4():
 def mask():
     return mask_np()
 
+
 @pytest.fixture
 def mask_fail():
     return np.ones((12, 3), dtype=bool)
-
 
 
 @pytest.mark.parametrize(
@@ -139,7 +140,6 @@ def test_consecutive_events_np_boolfail():
     mask_non_convertable = np.array([np.nan, 0, "something"])
     with pytest.raises(ValueError):
         consecutive_events_np(mask_non_convertable, min_duration=1, axis=0)
-
 
 
 @pytest.mark.parametrize(
