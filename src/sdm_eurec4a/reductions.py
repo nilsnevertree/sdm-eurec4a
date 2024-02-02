@@ -1,5 +1,6 @@
 from typing import Union
 
+import dask
 import numpy as np
 import xarray as xr
 
@@ -233,8 +234,12 @@ def x_y_flatten(da: xr.DataArray, axis: str):
     if da.ndim > 2:
         raise ValueError(f"The data array must have max. 2 dimensions but has {da.ndim}.")
 
-    da.transpose(axis, ...)
+    da = da.transpose(axis, ...)
     y = da.data
+    if isinstance(y, dask.array.core.Array):
+        print("Loading the dask array into memory.")
+        y = y.compute()
+
     x = da[axis].data
     x = np.tile(x, da.shape[-1])
     y = y.flatten(order="F")  # very important
@@ -242,3 +247,72 @@ def x_y_flatten(da: xr.DataArray, axis: str):
     x = x[idx]
     y = y[idx]
     return x, y
+
+
+def shape_dim_as_dataarray(da, output_dim: str):
+    """
+    Reshapes the dimension ``output_dim`` to the same shape as the given DataArray ``da``.
+    Therefore the dimension ``output_dim`` is expanded to the same shape as the DataArray ``da``.
+
+    Parameters
+    ----------
+    da : xarray.DataArray
+        The input DataArray including the data with dimension ``output_dim`` in it.
+    output_coord : str
+        The name of the dimension in the DataArray to be returned with the same shape and dims as ``da``.
+
+    Returns
+    -------
+    xarray.DataArray
+        DataArray containing values of ``output_dim`` and with same dims and shape as ``da``.
+
+    Raises
+    ------
+    KeyError
+        If the specified dimension is not in the DataArray.
+
+    Example
+    -------
+    >>> import numpy as np
+    >>> import pandas as pd
+    >>> import xarray as xr
+
+    >>> da = xr.DataArray(
+    ...     np.random.rand(4, 3, 5, 2),
+    ...     dims=('x', 'y', 'z', 'time'),
+    ...     coords = {
+    ...         "x" : np.arange(0,4,1),
+    ...         "y" : np.arange(0,3,1),
+    ...         "z" : np.arange(0,5,1),
+    ...         "time" : pd.date_range("2000-01-01", periods=2, freq="D")}
+    ...     )
+
+    >>> res = shape_dim_as_dataarray(da, 'time')
+
+    >>> print(res)
+    ... <xarray.DataArray 'time' (x: 4, y: 3, z: 5, time: 2)>
+    ... array([[[['2000-01-01T00:00:00.000000000',
+    ...      '2000-01-02T00:00:00.000000000'],
+    ...  ...
+    ...      ['2000-01-01T00:00:00.000000000',
+    ...       '2000-01-02T00:00:00.000000000']]]], dtype='datetime64[ns]')
+    ... Coordinates:
+    ...   * x        (x) int64 0 1 2 3
+    ...   * y        (y) int64 0 1 2
+    ...   * z        (z) int64 0 1 2 3 4
+    ...   * time     (time) datetime64[ns] 2000-01-01 2000-01-02
+    """
+
+    if output_dim not in da.dims:
+        raise KeyError(f"The coordinate {output_dim} is not in the DataArray")
+
+    axis_list = list()
+    expand_dict = dict()
+    for dim in da.dims:
+        if dim == output_dim:
+            pass
+        else:
+            expand_dict[dim] = da[dim]
+            axis_list.append(da.dims.index(dim))
+
+    return da[output_dim].expand_dims(dim=expand_dict, axis=axis_list)

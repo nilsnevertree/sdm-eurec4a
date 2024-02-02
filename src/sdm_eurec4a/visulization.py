@@ -219,7 +219,42 @@ def adjust_lightness(color: str, amount: float = 0.75) -> str:
         c = hls_to_rgb(c[0], max(0, min(1, amount * c[1])), c[2])
         return to_hex(c)
     except ValueError:
+        warnings.warn(f"Color {color} not found in cnames. Returning original color.")
         return color  # Return the original color if conversion fails
+
+
+def adjust_lightness_array(colors: np.ndarray, amount=0.75) -> np.ndarray:
+    """
+    Adjusts the lightness of an array of colors by the specified amount.
+
+    This function takes an array of color names or hexadecimal color codes as input and adjusts their lightness
+    by the specified amount. The color names can be one of the predefined color names from the Matplotlib
+    `cnames` dictionary or a custom color name. If the input color is a hexadecimal color code, it will
+    be converted to the corresponding RGB values before adjusting the lightness.
+
+    The lightness adjustment is performed by converting the color to the HLS (Hue, Lightness, Saturation)
+    color space, modifying the lightness component by the specified amount, and then converting it back
+    to the RGB color space.
+
+    Parameters:
+        colors (np.ndarray): The array of color names or hexadecimal color codes to adjust the lightness of.
+        amount (float, optional): The amount by which to adjust the lightness.
+            Positive values increase the lightness, while negative values decrease it.
+            Default is 0.75.
+
+    Returns:
+        np.ndarray: The adjusted colors as a hexadecimal color codes.
+
+    Example:
+        >>> colors = np.array(["red", "blue", "green"])
+        >>> adjusted_colors = adjust_lightness_array(colors, 0.5)
+        >>> print(f"Adjusted colors: {adjusted_colors}")
+
+    References:
+        - Function created by Ian Hincks, available at:
+          https://stackoverflow.com/a/49601444/16372843
+    """
+    return np.array([adjust_lightness(color, amount) for color in colors])
 
 
 def __set_handler_alpha_to_1__(handle, orig):
