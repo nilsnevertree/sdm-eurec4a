@@ -602,12 +602,16 @@ def match_clouds_and_cloudcomposite(
 
     # create a list of time arrays for each cloud
     time_list = []
-    for start_time, end_time in zip(
-        ds_clouds[var_name_start],
-        ds_clouds[var_name_end],
-    ):
+    if ds_clouds[dim].ndim != 0:
+        for start_time, end_time in zip(
+            ds_clouds[var_name_start],
+            ds_clouds[var_name_end],
+        ):
+            time_list.append(ds_cloudcomposite.sel({dim: slice(start_time, end_time)})[dim])
+    else:
+        start_time = ds_clouds[var_name_start]
+        end_time = ds_clouds[var_name_end]
         time_list.append(ds_cloudcomposite.sel({dim: slice(start_time, end_time)})[dim])
-
     # concatenate the list of time arrays and sort them
     time_array = xr.concat(time_list, dim=dim)
     time_array = time_array.sortby(dim)
