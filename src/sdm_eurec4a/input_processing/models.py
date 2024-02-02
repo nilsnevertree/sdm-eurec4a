@@ -1,8 +1,10 @@
 import numpy as np
 
+
 def linear_func(x: np.ndarray, f_0: float = 2, slope: float = 1):
     """
-    Linear function
+    Linear function.
+
     :math:`y = slope * x + f_0`
     """
     return slope * x + f_0
@@ -12,8 +14,9 @@ def split_linear_func(
     x: np.ndarray, f_0: float = 2, slope_1: float = 1, slope_2: float = 2, x_split: float = 800
 ):
     """
-    Split the array x into two arrays at the point x_split. 
-    The function is the concatenation of two linear functions with different slopes.
+    Split the array x into two arrays at the point x_split. The function is the
+    concatenation of two linear functions with different slopes.
+
     :math:`y_1 = slope_1 * x + f_0` for x <= x_split
     :math:`y_2 = slope_2 * x + f_0 + (slope_1 - slope_2) * x_split` for x > x_split
 
@@ -40,8 +43,6 @@ def split_linear_func(
     >>> x = np.arange(0, 1000, 100)
     >>> split_linear(x, f_0=2, slope_1=1, slope_2=2, x_split=800)
     array([  2., 102., 202., 302., 402., 502., 602., 702., 802., 902.])
-
-
     """
     x_1 = np.where(x <= x_split, x, np.nan)
     x_2 = np.where(x > x_split, x, np.nan)
