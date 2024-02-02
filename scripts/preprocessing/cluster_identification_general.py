@@ -54,6 +54,7 @@ import xarray as xr
 from dask.diagnostics import ProgressBar
 from sdm_eurec4a.identifications import consecutive_events_xr
 
+
 # %%
 # Example dataset
 script_path = os.path.abspath(__file__)
@@ -127,7 +128,7 @@ logging.info("Mask name: %s", mask_name)
 logging.info("Minimum duration of cloud holes: %s", min_duration_cloud_holes)
 
 
-def main(mask_name = mask_name):
+def main(mask_name=mask_name):
     cloud_composite = xr.open_dataset(INPUT_FILEPATH, chunks={"time": 1000})
 
     with ProgressBar():
@@ -135,7 +136,7 @@ def main(mask_name = mask_name):
         # The cluster mask is created by inverting the mask
         # using the consecutive_events_xr function, one can remove small cloud holes.
 
-        inverted_mask = np.logical_not(cloud_composite[mask_name].fillna(0)).chunk({"time" : -1})
+        inverted_mask = np.logical_not(cloud_composite[mask_name].fillna(0)).chunk({"time": -1})
         cloud_hole_mask = consecutive_events_xr(
             inverted_mask,
             min_duration=min_duration_cloud_holes,
@@ -261,5 +262,5 @@ def main(mask_name = mask_name):
 
 
 if __name__ == "__main__":
-    main(mask_name = mask_name)
+    main(mask_name=mask_name)
 # %%
