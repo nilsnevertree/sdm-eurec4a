@@ -6,7 +6,7 @@ import xarray as xr
 
 from sdm_eurec4a.reductions import (
     rectangle_spatial_mask,
-    shape_choord_as_dataarray,
+    shape_dim_as_dataarray,
     x_y_flatten,
 )
 
@@ -174,7 +174,7 @@ def test_x_y_flatten_DataArray_3D():
     assert str(e_info.value) == "The data array must have max. 2 dimensions but has 3."
 
 
-def test_shape_choord_as_dataarray():
+def test_shape_dim_as_dataarray():
     da = xr.DataArray(
         np.random.rand(4, 3, 5, 2),
         dims=("x", "y", "z", "time"),
@@ -186,7 +186,7 @@ def test_shape_choord_as_dataarray():
         },
     )
 
-    res = shape_choord_as_dataarray(da, "time")
+    res = shape_dim_as_dataarray(da, "time")
 
     # Check that the output has the same dimensions and shape as the input
     assert da.dims == res.dims
@@ -205,4 +205,4 @@ def test_shape_choord_as_dataarray():
 
     # Check the KeyError
     with pytest.raises(KeyError) as e_info:
-        shape_choord_as_dataarray(da, "time2")
+        shape_dim_as_dataarray(da, "time2")

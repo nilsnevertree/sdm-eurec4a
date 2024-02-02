@@ -249,7 +249,7 @@ def x_y_flatten(da: xr.DataArray, axis: str):
     return x, y
 
 
-def shape_choord_as_dataarray(da, output_dim: str):
+def shape_dim_as_dataarray(da, output_dim: str):
     """
     Reshapes the dimension ``output_dim`` to the same shape as the given DataArray ``da``.
     Therefore the dimension ``output_dim`` is expanded to the same shape as the DataArray ``da``.
@@ -287,8 +287,7 @@ def shape_choord_as_dataarray(da, output_dim: str):
     ...         "time" : pd.date_range("2000-01-01", periods=2, freq="D")}
     ...     )
 
-    >>> shape_choord_as_dataarray(da, 'time')
-    >>> res = shape_choord_as_array(da, 'time')
+    >>> res = shape_dim_as_dataarray(da, 'time')
 
     >>> print(res)
     ... <xarray.DataArray 'time' (x: 4, y: 3, z: 5, time: 2)>
