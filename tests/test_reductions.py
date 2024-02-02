@@ -4,7 +4,11 @@ import pandas as pd
 import pytest
 import xarray as xr
 
-from sdm_eurec4a.reductions import rectangle_spatial_mask, x_y_flatten
+from sdm_eurec4a.reductions import (
+    rectangle_spatial_mask,
+    shape_choord_as_dataarray,
+    x_y_flatten,
+)
 
 
 def test_rectangle_spatial_mask():
@@ -168,3 +172,37 @@ def test_x_y_flatten_DataArray_3D():
         x_y_flatten(da, axis="time")
 
     assert str(e_info.value) == "The data array must have max. 2 dimensions but has 3."
+
+
+def test_shape_choord_as_dataarray():
+    da = xr.DataArray(
+        np.random.rand(4, 3, 5, 2),
+        dims=("x", "y", "z", "time"),
+        coords={
+            "x": np.arange(0, 4, 1),
+            "y": np.arange(0, 3, 1),
+            "z": np.arange(0, 5, 1),
+            "time": pd.date_range("2000-01-01", periods=2, freq="D"),
+        },
+    )
+
+    res = shape_choord_as_dataarray(da, "time")
+
+    # Check that the output has the same dimensions and shape as the input
+    assert da.dims == res.dims
+    assert da.shape == res.shape
+    # check that the choords and dims have the same values
+    xr.testing.assert_equal(
+        da.astype(float) * 0,
+        res.astype(float) * 0,
+    )
+
+    # check that along all other dimension, the values of the output_dim are the same as in the input da
+    for x in da["x"]:
+        for y in da["y"]:
+            for z in da["z"]:
+                np.testing.assert_array_equal(res.isel(x=x, y=y, z=z), da["time"])
+
+    # Check the KeyError
+    with pytest.raises(KeyError) as e_info:
+        shape_choord_as_dataarray(da, "time2")
