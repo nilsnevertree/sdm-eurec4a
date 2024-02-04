@@ -8,5 +8,5 @@
    :maxdepth: 2
    :caption: Contents:"
 
-   source/autosummary_index.rst
+   ./source/autosummary_index.rst
 ```

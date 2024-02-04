@@ -98,6 +98,7 @@ coverage.xml
 docs/_build/
 docs/_*
 docs/api/
+docs/source/_autosummary/
 
 # PyBuilder
 target/
