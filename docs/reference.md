@@ -3,6 +3,10 @@
 ## sdm_eurec4a
 
 ```{eval-rst}
-.. automodule:: sdm_eurec4a
-   :members:
+.. toctree::
+   :glob:
+   :maxdepth: 2
+   :caption: Contents:"
+
+   source/autosummary_index.rst
 ```
