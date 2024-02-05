@@ -1,4 +1,4 @@
-# sdm-euerc4a
+# SDM-EUREC4A
 Using Super Droplet Model and EUREC4A data to simulate rain evaporation.
 
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
