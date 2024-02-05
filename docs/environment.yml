@@ -24,3 +24,5 @@ dependencies:
     - pyshp >= 2.3.1 # necessary for cartopy to work on HPC (https://github.com/SciTools/cartopy/issues/2284)
     - sphinx-book-theme
     - myst_parser
+    # If fails, also install the package itself
+    - "git+https://github.com/nilsnevertree/sdm-eurec4a/tree/documentation"
