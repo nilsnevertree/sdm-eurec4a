@@ -12,7 +12,7 @@ project = "SDM-EUREC4A"
 author = "Nils Niebaum"
 copyright = "2023, Nils Niebaum"
 # Add your repository URL
-github_url = f"https://github.com/nilsnevertree/kalman-reconstruction-partially-observed-systems"
+github_url = f"https://github.com/nilsnevertree/sdm-eurec4a"
 extensions = [
     # "sphinx.ext.autodoc",
     "sphinx.ext.napoleon",
