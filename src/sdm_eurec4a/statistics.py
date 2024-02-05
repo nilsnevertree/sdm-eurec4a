@@ -239,7 +239,7 @@ def gaussian_kernel_1D(
 
     Parameters
     ----------
-    x: array
+    x: np.ndarray
         Array of dimension N with length l along provided axis.
     center_idx: int
         Index of the center of the gaussian kernel along provided axis.
@@ -250,13 +250,13 @@ def gaussian_kernel_1D(
         Default to 10
     same_output_shape : bool
         Sets if the output array should be of shape.
-        - Output array is 1D array if False.
-        - Output array of same shape as x if True.
-          Then the weights will be along the provided axis
+        Output array is 1D array if False.
+        Output array of same shape as x if True.
+        Then the weights will be along the provided axis
 
     Returns
     -------
-    array
+    np.ndarray
         Array containing the weights of the kernel.
         If output is 1-dimensional, along this axis.
         If output in N-dimensional, along provided axis.
