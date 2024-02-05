@@ -1,6 +1,7 @@
 from typing import Union
 
 import dask
+from dask import array as dask_array
 import numpy as np
 import xarray as xr
 
@@ -236,7 +237,7 @@ def x_y_flatten(da: xr.DataArray, axis: str):
 
     da = da.transpose(axis, ...)
     y = da.data
-    if isinstance(y, dask.array.core.Array):
+    if isinstance(y, dask_array.core.Array):
         print("Loading the dask array into memory.")
         y = y.compute()
 
