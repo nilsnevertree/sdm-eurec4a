@@ -25,4 +25,4 @@ dependencies:
     - sphinx-book-theme
     - myst_parser
     # If fails, also install the package itself
-    - "git+https://github.com/nilsnevertree/sdm-eurec4a/tree/documentation"
+    - "git+https://github.com/nilsnevertree/sdm-eurec4a.git"
