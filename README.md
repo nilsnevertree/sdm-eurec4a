@@ -73,7 +73,7 @@ This project was generated from [@cjolowicz]'s [Hypermodern Python Cookiecutter]
 [@cjolowicz]: https://github.com/cjolowicz
 [pypi]: https://pypi.org/
 [hypermodern python cookiecutter]: https://github.com/cjolowicz/cookiecutter-hypermodern-python
-[file an issue]: https://github.com/nilsnevertree/sdm-euerc4a/issues
+[file an issue]: https://github.com/nilsnevertree/sdm-eurec4a/issues
 [pip]: https://pip.pypa.io/
 
 <!-- github-only -->
