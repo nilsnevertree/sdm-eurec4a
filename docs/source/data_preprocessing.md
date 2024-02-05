@@ -31,9 +31,9 @@ wget -r --no-parent -nH --cut-dirs=1 --reject "index.html*" --accept "*.nc" -P S
 
 ## Identify individual clouds.
 
-For this one can use the ``python scripts\preprocessing\cloud_identification_general.py`` script. 
+For this one can use the ``python scripts\preprocessing\cloud_identification_general.py`` script.
 
-Further informations can be found here: 
+Further informations can be found here:
 ```{eval-rst}
    ./source/autosummary_index.rst
 ```
