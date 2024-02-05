@@ -1,10 +1,9 @@
 from typing import Union
 
-import dask
-from dask import array as dask_array
 import numpy as np
 import xarray as xr
 
+from dask import array as dask_array
 from shapely.geometry import Point, Polygon
 
 
