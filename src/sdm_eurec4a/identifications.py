@@ -11,8 +11,8 @@ def consecutive_events_xr(
     This function calculates the mask of consecutive events with a duration of
     at least ´´min_duration´´(default 1) It runs full on xarray and numpy.
 
-    Input
-    -----
+    Parameters
+    ----------
     da_mask : xr.DataArray
         boolean array as xarray dataarray.
     min_duration : int, optional
@@ -23,38 +23,42 @@ def consecutive_events_xr(
 
     Returns
     -------
-    xr.DataArray
-        mask array with True for each timestep that is part of a consecutive event
+        xr.DataArray
+            mask array with True for each timestep that is part of a consecutive event
 
-    Further Notes
-    -------------
 
-    Detailed explanation of calculation:
+    Notes
+    --------------------------
     (1 - True, 0 - False)
-    Example
-    >>> da_mask = [1,0,1,1,1,0,0,1,1,1,1,0]
-    >>> consecutive_events(da_mask, min_duration = 3) runs the following steps:
-    First for loop: mask_temporary
-    it will create the following temporary mask_index (start index always moved to the right.)
-            [1,0,1,1,1,0,0,1,1,1]           [1,0,1,1,1,0,0,1,1,1]
-            [0,1,1,1,0,0,1,1,1,1]             [0,1,1,1,0,0,1,1,1,1]
-            [1,1,1,0,0,1,1,1,1,0]               [1,1,1,0,0,1,1,1,1,0]
-            - - - - - - - - - -     # with & operator the following will be done:
-    mask_temporary: [0,0,1,0,0,0,0,1,1,0]
-    # if a heatwave occures, one can see that all values of the lists on the left side are 1 above each other
 
-    but the mask_temporary is shorter ??
-    -> for each value with 1 in mask_temporary the following 3 days (duration = 3) are part of the heatwave.
+    Example setup
+        >>> da_mask = [1,0,1,1,1,0,0,1,1,1,1,0]
+        >>> consecutive_events(da_mask, min_duration = 3)
+
+    First for loop: mask_temporary
+        >>> # It will create the following temporary mask_index (start index always moved to the right.)
+        >>> [1,0,1,1,1,0,0,1,1,1]    # [1,0,1,1,1,0,0,1,1,1]
+        >>> [0,1,1,1,0,0,1,1,1,1]    #   [0,1,1,1,0,0,1,1,1,1]
+        >>> [1,1,1,0,0,1,1,1,1,0]    #     [1,1,1,0,0,1,1,1,1,0]
+        >>>  - - - - - - - - - -     # with & operator the following will be done:
+        >>> [0,0,1,0,0,0,0,1,1,0]    # <- mask_temporary:
 
     Second for loop:
-    mask_result     [0,0,0,0,0,0,0,0,0,0,0,0]       # mask_result starts with 0 ( need a array with the size to work on)
-                     - - - - - - - - - - - -
-    mask_temporary  [0,0,1,0,0,0,0,1,1,0]           # here the mask_temporary will be moved to the right for each itteration:
-            ""        [0,0,1,0,0,0,0,1,1,0]         # now the + opertaor will be used (1+1=1, 1+0=1 , 0+0=0) :
-            ""          [0,0,1,0,0,0,0,1,1,0]       # all 3 days after the 1 in mask_ temoprary will change to 1, as they are part of a heatwave.
-                     - - - - - - - - - - - -
-    mask_result:    [0,0,1,1,1,0,0,1,1,1,1,0]       # you should be convinced that this works :D
-    da_mask : [1,0,1,1,1,0,0,1,1,1,1,0]
+        >>> # Here the ``mask_temporary`` will be moved to the right for each itteration.
+        >>> # The ``+`` opertaor will be used (1+1=1, 1+0=1 , 0+0=0).
+        >>> mask_result     [0,0,0,0,0,0,0,0,0,0,0,0]       # mask_result starts with 0
+        >>>                 - - - - - - - - - - - -
+        >>> mask_temporary  [0,0,1,0,0,0,0,1,1,0]
+        >>>         ""        [0,0,1,0,0,0,0,1,1,0]
+        >>>         ""          [0,0,1,0,0,0,0,1,1,0]
+        >>>                   - - - - - - - - - - - -
+        >>> mask_result =   [0,0,1,1,1,0,0,1,1,1,1,0]
+        >>> da_mask =       [1,0,1,1,1,0,0,1,1,1,1,0]
+
+    Examples
+    --------
+        >>> da_mask = [1,0,1,1,1,0,0,1,1,1,1,0]
+        >>> consecutive_events(da_mask, min_duration = 3)
     """
     if da_mask[axis].ndim != 1:
         raise ValueError(f"axis must be one dimensional but is {da_mask[axis].ndim}")
@@ -118,8 +122,8 @@ def consecutive_events_np(
     This means that all values that are not 0 will be converted to True.
     Except for np.nan values or any other value that is not convertable to bool.
 
-    Input
-    -----
+    Parameters
+    ----------
     mask : np.ndarray
         boolean array as numpy array.
     min_duration : int, optional
@@ -132,38 +136,41 @@ def consecutive_events_np(
 
     Returns
     -------
-    np.ndarray
-        mask array with True for each timestep that is part of a consecutive event
+        np.ndarray
+            mask array with True for each timestep that is part of a consecutive event
 
-    Further Notes
-    -------------
-
-    Detailed explanation of calculation:
+    Notes
+    --------------------------
     (1 - True, 0 - False)
-    Example
-    >>> da_mask = [1,0,1,1,1,0,0,1,1,1,1,0]
-    >>> consecutive_events(da_mask, min_duration = 3) runs the following steps:
-    First for loop: mask_temporary
-    it will create the following temporary mask_index (start index always moved to the right.)
-            [1,0,1,1,1,0,0,1,1,1]           [1,0,1,1,1,0,0,1,1,1]
-            [0,1,1,1,0,0,1,1,1,1]             [0,1,1,1,0,0,1,1,1,1]
-            [1,1,1,0,0,1,1,1,1,0]               [1,1,1,0,0,1,1,1,1,0]
-            - - - - - - - - - -     # with & operator the following will be done:
-    mask_temporary: [0,0,1,0,0,0,0,1,1,0]
-    # if a heatwave occures, one can see that all values of the lists on the left side are 1 above each other
 
-    but the mask_temporary is shorter ??
-    -> for each value with 1 in mask_temporary the following 3 days (duration = 3) are part of the heatwave.
+    Example setup
+        >>> da_mask = [1,0,1,1,1,0,0,1,1,1,1,0]
+        >>> consecutive_events(da_mask, min_duration = 3)
+
+    First for loop: mask_temporary
+        >>> # It will create the following temporary mask_index (start index always moved to the right.)
+        >>> [1,0,1,1,1,0,0,1,1,1]    # [1,0,1,1,1,0,0,1,1,1]
+        >>> [0,1,1,1,0,0,1,1,1,1]    #   [0,1,1,1,0,0,1,1,1,1]
+        >>> [1,1,1,0,0,1,1,1,1,0]    #     [1,1,1,0,0,1,1,1,1,0]
+        >>>  - - - - - - - - - -     # with & operator the following will be done:
+        >>> [0,0,1,0,0,0,0,1,1,0]    # <- mask_temporary
 
     Second for loop:
-    mask_result     [0,0,0,0,0,0,0,0,0,0,0,0]       # mask_result starts with 0 ( need a array with the size to work on)
-                     - - - - - - - - - - - -
-    mask_temporary  [0,0,1,0,0,0,0,1,1,0]           # here the mask_temporary will be moved to the right for each itteration:
-            ""        [0,0,1,0,0,0,0,1,1,0]         # now the + opertaor will be used (1+1=1, 1+0=1 , 0+0=0) :
-            ""          [0,0,1,0,0,0,0,1,1,0]       # all 3 days after the 1 in mask_ temoprary will change to 1, as they are part of a heatwave.
-                     - - - - - - - - - - - -
-    mask_result:    [0,0,1,1,1,0,0,1,1,1,1,0]       # you should be convinced that this works :D
-    da_mask : [1,0,1,1,1,0,0,1,1,1,1,0]
+        >>> # Here the ``mask_temporary`` will be moved to the right for each itteration.
+        >>> # The ``+`` opertaor will be used (1+1=1, 1+0=1 , 0+0=0).
+        >>> mask_result     [0,0,0,0,0,0,0,0,0,0,0,0]       # mask_result starts with 0
+        >>>                 - - - - - - - - - - - -
+        >>> mask_temporary  [0,0,1,0,0,0,0,1,1,0]
+        >>>         ""        [0,0,1,0,0,0,0,1,1,0]
+        >>>         ""          [0,0,1,0,0,0,0,1,1,0]
+        >>>                   - - - - - - - - - - - -
+        >>> mask_result =   [0,0,1,1,1,0,0,1,1,1,1,0]
+        >>> da_mask =       [1,0,1,1,1,0,0,1,1,1,1,0]
+
+    Examples
+    --------
+        >>> da_mask = [1,0,1,1,1,0,0,1,1,1,1,0]
+        >>> consecutive_events(da_mask, min_duration = 3)
     """
 
     # make sure that the mask is boolean
@@ -345,14 +352,8 @@ def match_clouds_and_dropsondes(
     ds_distance : xr.Dataset
         Dataset containing distance data between clouds and dropsondes.
         It is a 2D look up table which constains the temporal and spatial distances between clouds and dropsondes.
-        It choords are:
-            ``index_ds_clouds``: time of the clouds
-            ``index_ds_dropsonde``: time of the dropsondes
-        Its data variables are:
-            ``name_dt``: (index_ds_clouds, index_ds_dropsonde)
-            temporal distance between clouds and dropsondes
-            ``name_dx``: (index_ds_clouds, index_ds_dropsonde)
-            spatial distance between clouds and dropsondes
+        It choords are: ``index_ds_clouds``: time of the clouds, ``index_ds_dropsonde``: time of the dropsondes
+        Its data variables are: ``name_dt``: (index_ds_clouds, index_ds_dropsonde) temporal distance between clouds and dropsondes ``name_dx``: (index_ds_clouds, index_ds_dropsonde) spatial distance between clouds and dropsondes
     max_temporal_distance : np.timedelta64, optional
         Maximum allowed temporal distance between a clouds and a dropsonde for them to be considered a match.
         Default is 1 hour.
@@ -388,83 +389,84 @@ def match_clouds_and_dropsondes(
 
     Examples
     --------
-        Example visualisation
-        >>> # Example setup
-        ... # For a max dt = 5 hours
-        ... # For a max dh = 3 km
-        ... # The datasets below can be summarized visually as follows:
-        ...
-        ... # 0    5    10   15   20  |1    6    11   # Time in hours
-        ... # ---S--M--E--------------|--S--M--E----  # Cloud start, middle, end time
-        ... # D----D----D----D----D---|D----D----D--  # Dropsonde
-        ... # 1----1----3----3----5---|3----1----8--  # Distance dropsonde to clouds in km (same for both clouds)
-        ...
-        ... # 0    5    10   15   20  |1    6    11   # Time in hours
-        ... # F----T----T----F----F---|T----T----F--  # Dropsondes close to cloud T for true F for false
-        ... # F----T----T----F----F---|F----F----F--  # Dropsondes close to cloud 0
-        ... # F----T----T----F----F---|T----T----F--  # Dropsondes close to cloud 1
+    Example visualisation
 
-        Example datasets
-        >>> ds_clouds = xr.Dataset(
-        ...     {
-        ...         "cloud_id": (("time",), [0, 1]),
-        ...         "start": (("time",), pd.date_range("2020-01-01 3:00", periods=2, freq="D")),
-        ...         "end": (("time",), pd.date_range("2020-01-01 9:00", periods=2, freq="D")),
-        ...     },
-        ...     coords={
-        ...         "time": pd.date_range("2020-01-01 6:00", periods=2, freq="D"),
-        ...     },
-        ... )
-        ...
-        >>> ds_sonde = xr.Dataset(
-        ...     {
-        ...         "temp": (("time",), np.arange(8)),
-        ...     },
-        ...     coords={
-        ...         "time": pd.date_range("2020-01-01 0:00", periods=8, freq="5H"),
-        ...     },
-        ... )
-        ...
-        >>> ds_distance = xr.Dataset(
-        ...     {
-        ...         "spatial_distance": (
-        ...             ("time_identified_clouds", "time_drop_sondes"),
-        ...             np.array([
-        ...                 [1, 1, 3, 3, 5, 3, 1, 8],
-        ...                 [1, 1, 3, 3, 5, 3, 1, 8],
-        ...             ], dtype="int"),
-        ...         ),
-        ...         "temporal_distance": (
-        ...             ("time_identified_clouds", "time_drop_sondes"),
-        ...             np.array([
-        ...                     [  6,   1,  -4,  -9, -14, -19, -24, -29],
-        ...                     [ 30,  25,  20,  15,  10,   5,   0, -5]
-        ...                 ], dtype="timedelta64[h]"),
-        ...         ),
-        ...     },
-        ...     coords={
-        ...         "time_drop_sondes": ds_sonde.time.data,
-        ...         "time_identified_clouds": ds_clouds.time.data,
-        ...     },
-        ... )
-        ...
-        >>> result = match_clouds_and_dropsondes(
-        ...     ds_clouds = ds_clouds,
-        ...     ds_sonde = ds_sonde,
-        ...     ds_distance = ds_distance,
-        ...     dim_in_dropsondes = "time",
-        ...     index_ds_dropsonde = "time_drop_sondes",
-        ...     index_ds_clouds = "time_identified_clouds",
-        ...     max_temporal_distance = np.timedelta64(5, "h"),
-        ...     max_spatial_distance = 3,
-        ... )
-        >>> print(result)
-        <xarray.Dataset>
-        Dimensions:  (time: 4)
-        Coordinates:
-        * time     (time) datetime64[ns] 2020-01-01T05:00:00 ... 2020-01-02T06:00:00
-        Data variables:
-            temp     (time) int64 1 2 5 6
+    >>> # Example setup
+    >>> # For a max dt = 5 hours
+    >>> # For a max dh = 3 km
+    >>> # The datasets below can be summarized visually as follows:
+
+    >>> # 0    5    10   15   20  |1    6    11   # Time in hours
+    >>> # ---S--M--E--------------|--S--M--E----  # Cloud start, middle, end time
+    >>> # D----D----D----D----D---|D----D----D--  # Dropsonde
+    >>> # 1----1----3----3----5---|3----1----8--  # Distance dropsonde to clouds in km (same for both clouds)
+
+    >>> # 0    5    10   15   20  |1    6    11   # Time in hours
+    >>> # F----T----T----F----F---|T----T----F--  # Dropsondes close to cloud T for true F for false
+    >>> # F----T----T----F----F---|F----F----F--  # Dropsondes close to cloud 0
+    >>> # F----T----T----F----F---|T----T----F--  # Dropsondes close to cloud 1
+
+    Example datasets
+
+    >>> ds_clouds = xr.Dataset(
+    ...     {
+    ...         "cloud_id": (("time",), [0, 1]),
+    ...         "start": (("time",), pd.date_range("2020-01-01 3:00", periods=2, freq="D")),
+    ...         "end": (("time",), pd.date_range("2020-01-01 9:00", periods=2, freq="D")),
+    ...     },
+    ...     coords={
+    ...         "time": pd.date_range("2020-01-01 6:00", periods=2, freq="D"),
+    ...     },
+
+    >>> ds_sonde = xr.Dataset(
+    ...     {
+    ...         "temp": (("time",), np.arange(8)),
+    ...     },
+    ...     coords={
+    ...         "time": pd.date_range("2020-01-01 0:00", periods=8, freq="5H"),
+    ...     },
+    ... )
+
+    >>> ds_distance = xr.Dataset(
+    ...     {
+    ...         "spatial_distance": (
+    ...             ("time_identified_clouds", "time_drop_sondes"),
+    ...             np.array([
+    ...                 [1, 1, 3, 3, 5, 3, 1, 8],
+    ...                 [1, 1, 3, 3, 5, 3, 1, 8],
+    ...             ], dtype="int"),
+    ...         ),
+    ...         "temporal_distance": (
+    ...             ("time_identified_clouds", "time_drop_sondes"),
+    ...             np.array([
+    ...                     [  6,   1,  -4,  -9, -14, -19, -24, -29],
+    ...                     [ 30,  25,  20,  15,  10,   5,   0, -5]
+    ...                 ], dtype="timedelta64[h]"),
+    ...         ),
+    ...     },
+    ...     coords={
+    ...         "time_drop_sondes": ds_sonde.time.data,
+    ...         "time_identified_clouds": ds_clouds.time.data,
+    ...     },
+    ... )
+
+    >>> result = match_clouds_and_dropsondes(
+    ...     ds_clouds = ds_clouds,
+    ...     ds_sonde = ds_sonde,
+    ...     ds_distance = ds_distance,
+    ...     dim_in_dropsondes = "time",
+    ...     index_ds_dropsonde = "time_drop_sondes",
+    ...     index_ds_clouds = "time_identified_clouds",
+    ...     max_temporal_distance = np.timedelta64(5, "h"),
+    ...     max_spatial_distance = 3,
+    ... )
+    >>> print(result)
+    <xarray.Dataset>
+    Dimensions:  (time: 4)
+    Coordinates:
+    * time     (time) datetime64[ns] 2020-01-01T05:00:00 ... 2020-01-02T06:00:00
+    Data variables:
+        temp     (time) int64 1 2 5 6
     """
 
     # make sure that all values of the clouds dataset are in the distance dataset
@@ -568,7 +570,7 @@ def match_clouds_and_cloudcomposite(
         A subset of the cloud composite dataset that matches which is part of the individual cloud.
         The selection is performed purely based on the start and end time of the individual cloud.
 
-    Example:
+    Examples
     --------
     >>> ds_cloudcomposite = xr.Dataset(
     ...     {
