@@ -1,11 +1,12 @@
-SDM-EUREC4A
-=====================
+API Reference
+=============
+sdm_eurec4a
+---------------
 
-Some words first.
 
 .. autosummary::
    :toctree: _autosummary
    :template: custom-module-template.rst
    :recursive:
 
-   src.sdm_eurec4a
+   sdm_eurec4a

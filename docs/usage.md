@@ -1,7 +1,18 @@
 # Usage
 
-```{eval-rst}
-.. click:: sdm_eurec4a.__main__:main
-    :prog: sdm-eurec4a
-    :nested: full
+
+<!-- Include Usage file
+```{include} ./source/data_preprocessing.md
+``` -->
+
+[source/data_preprocessing]: data
+
+
+```{toctree}
+---
+glob:
+maxdepth: 2
+---
+
+source/data_preprocessing
 ```
