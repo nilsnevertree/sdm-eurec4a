@@ -56,7 +56,7 @@ def split_linear_func(
 
 
 def lnnormaldist(
-    radii: np.ndarray, scalefac: float, geomean: float, geosig: float
+    radii: np.ndarray, scale_factors: float, geometric_means: float, geometric_sigmas: float
 ) -> np.ndarray:
     """
     Calculate probability of radii given the paramters of a lognormal
@@ -65,24 +65,24 @@ def lnnormaldist(
 
     Note
     ----
-    The parameters geomean and geosig are the geometric mean and geometric
+    The parameters geometric_means and geometric_sigmas are the geometric mean and geometric
     standard deviation of the distribution, not the arithmetic mean and
     standard deviation.
     The scale in which radii is given, is the same as the scale in which
-    geomean and geosig needs to be given.
-    The scalefac is the total number of particles N_a in the distribution
+    geometric_means and geometric_sigmas needs to be given.
+    The scale_factors is the total number of particles N_a in the distribution
     [#/m^3]
 
     Parameters
     ----------
     radii : array_like
         radii [m] to calculate probability for
-    scalefac : float
+    scale_factors : float
         scale factor for distribution (see eq. 5.2)
         It is the total number particles N_a in the distribution [#/m^3]
-    geomean : float
+    geometric_means : float
         geometric mean of distribution (see eq. 5.5)
-    geosig : float
+    geometric_sigmas : float
         geometric standard deviation of distribution (see eq. 5.6)
 
     Returns
@@ -91,10 +91,10 @@ def lnnormaldist(
         probability of each radius in radii [m^-1]
     """
 
-    sigtilda = np.log(geosig)
-    mutilda = np.log(geomean)
+    sigtilda = np.log(geometric_sigmas)
+    mutilda = np.log(geometric_means)
 
-    norm = scalefac / (np.sqrt(2 * np.pi) * sigtilda)
+    norm = scale_factors / (np.sqrt(2 * np.pi) * sigtilda)
     exponent = -((np.log(radii) - mutilda) ** 2) / (2 * sigtilda**2)
 
     dn_dlnr = norm * np.exp(exponent)  # eq.5.8 [lohmann intro 2 clouds]
