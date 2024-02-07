@@ -2,11 +2,12 @@
 from __future__ import annotations
 
 import numpy as np
-from typing import Tuple
 from scipy.optimize import curve_fit
-from typing import Union
+from typing import Union, Dict
 import lmfit
 from sdm_eurec4a.input_processing.models import lnnormaldist
+
+import warnings
 
 class Transfer:
     """Class to transfer the fitted observations to CLEO."""
@@ -68,6 +69,7 @@ class ParticleSizeDistributionInput():
         self.set_type(type=type)
         self.set_func(func=func)
         self.set_model(**model_arguments)
+        self.model_result = None
 
     def set_parameters(self, parameters: dict = dict()) -> None:
         """
@@ -84,6 +86,7 @@ class ParticleSizeDistributionInput():
         None
         """
         self.parameters = parameters
+        self.__autoupdate_parameters__()
     
     def get_parameters(self) -> dict:
         """
@@ -100,6 +103,45 @@ class ParticleSizeDistributionInput():
         """
         return self.parameters
     
+    def add_parameters(self, params_to_add : Dict) -> None:
+        """
+        Add the model parameters to the parameters of the particle size distribution.
+        
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        None
+        """
+
+        assert params_to_add.keys() == self.model_parameters.keys(), "The keys of the parameters to add must be the same as the keys of the model parameters."
+
+        for key in params_to_add.keys():
+            if isinstance(self.parameters[key], np.ndarray) :
+                self.parameters[key] = np.concatenate((self.parameters[key], [params_to_add[key].value]))
+            elif isinstance(self.parameters[key], list):
+                self.parameters[key].append(params_to_add[key].value)
+            else :
+                raise TypeError(f"The type of the parameter {key} is not supported. Only np.ndarray and list are supported.")
+        self.__autoupdate_parameters__()
+
+    def __autoupdate_parameters__(self) -> None:
+            """
+            Autoupdate all dependent parameters.
+            The default method changes nothing.
+
+            Parameters
+            ----------
+            None
+
+            Returns
+            -------
+            None
+            """
+            pass
+
     def set_type(self, type: str = "Not specified") -> None:
         """
         Set the type of the particle size distribution.
@@ -166,7 +208,7 @@ class ParticleSizeDistributionInput():
     def set_model(self, **kwargs : dict()) -> None:
         """
         Set the model of the particle size distribution.
-        It uses the lmfit.Model class.
+        It uses the lmfit.model.Model class.
         The function to be used for this is the function set in the set_func method.
         The function cannot be provided as a parameter to this method!
         It is set in the set_func method.
@@ -177,15 +219,15 @@ class ParticleSizeDistributionInput():
         Parameters
         ----------
         **kwargs : dict
-            The keyword arguments for the lmfit.Model class.
-            See also the lmfit.Model class.
+            The keyword arguments for the lmfit.model.Model class.
+            See also the lmfit.model.Model class.
             https://lmfit.github.io/lmfit-py/model.html#lmfit.model.Model
 
         Returns
         -------
         None
         """
-        self.model : lmfit.Model = lmfit.Model(func = self.get_func(), independent_vars= self.independent_vars, **kwargs)
+        self.model : lmfit.model.Model = lmfit.model.Model(func = self.get_func(), independent_vars= self.independent_vars, **kwargs)
         # make sure that radii is the independent variable
         self.__set_model_independ_vars__()
         self.__update_model__()
@@ -222,7 +264,7 @@ class ParticleSizeDistributionInput():
         """
         pass
 
-    def get_model(self) -> lmfit.Model:
+    def get_model(self) -> lmfit.model.Model:
         """
         Get the model of the particle size distribution.
         
@@ -232,7 +274,7 @@ class ParticleSizeDistributionInput():
 
         Returns
         -------
-        lmfit.Model
+        lmfit.model.Model
             The model of the particle size distribution.
         """
         return self.model
@@ -267,6 +309,38 @@ class ParticleSizeDistributionInput():
         """
         pass
 
+    def set_model_result(self, model_result: Union(lmfit.model.ModelResult, None) = None) -> None:
+        
+        """
+        Set the model result of the particle size distribution.
+
+        Parameters
+        ----------
+        model_result : lmfit.model.ModelResult
+            The model result of the particle size distribution.
+            Default is None.
+
+        Returns
+        -------
+        None
+        """
+        self.model_result = model_result
+
+    def get_model_result(self) -> lmfit.model.ModelResult:
+        """
+        Get the model result of the particle size distribution.
+        
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        lmfit.model.ModelResult
+            The model result of the particle size distribution.
+        """
+        return self.model_result
+
     def fit_model(
         self, 
         data, 
@@ -281,7 +355,7 @@ class ParticleSizeDistributionInput():
         calc_covar=True, 
         max_nfev=None,
         coerce_farray=True, 
-        **kwargs) -> lmfit.ModelResult:
+        **kwargs) -> lmfit.model.ModelResult:
         """
         This method fits the model to the data using the supplied Parameters.
         The docstring was copied from  https://lmfit.github.io/lmfit-py/model.html#lmfit.model.Model.fit
@@ -374,7 +448,7 @@ class ParticleSizeDistributionInput():
             params = self.model_parameters
         
         # Fit the model to the data
-        self.model_result = self.model.fit(
+        result = self.model.fit(
             data = data,
             params = params,
             weights = weights,
@@ -390,19 +464,67 @@ class ParticleSizeDistributionInput():
             **kwargs
         )
 
-        self.set_model_parameters(self.model_result.params)
-        
-        # Overwrite the parameters with the fitted parameters
-        self.set_parameters(self.model_result.best_values)
-        
+        self.set_model_result(model_result=result)
+        params = self.get_model_result().params
+        self.set_model_parameters(params)
+        # add the fit to the parameters
+        self.add_parameters(params)
 
-        return self.model_result
+        return result
 
 
 class PSD_LnNormal(ParticleSizeDistributionInput):
     """
-    Class to handle the particle size distribution input.
-    It uses a lognormal distribution.
+    A class used to represent the particle size distribution input using a lognormal distribution.
+
+    This class is a subclass of the ParticleSizeDistributionInput class and is used to handle the particle size distribution input of the type "LnNormal". It provides methods to set and get geometric means, geometric sigmas, scale factors, mode number, and number concentration. It also provides methods to update model parameters and auto-update all dependent parameters.
+
+    Attributes
+    ----------
+    number_modes : int
+        The number of modes in the distribution.
+    parameters : dict
+        A dictionary to store geometric means, geometric sigmas, scale factors, and number concentration.
+    model_parameters : lmfit.Parameters
+        The model parameters of the particle size distribution.
+    model : lmfit.model.Model
+        The model used for fitting the particle size distribution. Initialized in the constructor.
+    model_result : lmfit.model.ModelResult
+        The result of the model fitting. 
+        Initialized as None in the constructor and updated after fitting.
+
+    Methods
+    -------
+    set_mode_number():
+        Updates the mode number based on the length of the geometric means.
+    get_mode_number():
+        Returns the mode number.
+    set_geometric_means(geometric_means):
+        Sets the geometric means.
+    get_geometric_means():
+        Returns the geometric means.
+    set_geometric_sigmas(geometric_sigmas):
+        Sets the geometric sigmas.
+    get_geometric_sigmas():
+        Returns the geometric sigmas.
+    set_scale_factors(scale_factor):
+        Sets the scale factors.
+    get_scale_factors():
+        Returns the scale factors.
+    set_number_concentration():
+        Sets the number concentration.
+    get_number_concentration():
+        Returns the number concentration.
+    __update_model_parameters__(params):
+        Updates the model parameters of the particle size distribution.
+    __update_individual_model_parameters__(parameter):
+        Updates a specific model parameter.
+    __autoupdate_parameters__():
+        Auto-updates all dependent parameters.
+    __add__(other):
+        Returns a new PSD_LnNormal instance that is the sum of this instance and another.
+    __str__():
+        Returns a string representation of the PSD_LnNormal instance.
     """
     def __init__(
             self, 
@@ -428,13 +550,9 @@ class PSD_LnNormal(ParticleSizeDistributionInput):
             The scale factors.
             Default is an empty array.
 
-
-        Attributes
-        ----------
-        parameters : dict
-            The parameters of the particle size distribution.
-        type : str
-            The type of the particle size distribution.
+        Returns
+        -------
+        None
 
         """
         super().__init__(
@@ -452,11 +570,12 @@ class PSD_LnNormal(ParticleSizeDistributionInput):
             self.set_geometric_means(geometric_means)
             self.set_geometric_sigmas(geometric_sigmas)
             self.set_scale_factors(scale_factors)
-            self.set_mode_number()
-            self.set_number_concentration()
+            # The automatic update does the same as:
+            # self.set_mode_number()
+            # self.set_number_concentration()
+            self.__autoupdate_parameters__()
 
-
-
+            
 
     def set_mode_number(self) -> None:
         """
@@ -520,13 +639,13 @@ class PSD_LnNormal(ParticleSizeDistributionInput):
         """
         return self.parameters["geometric_means"]
 
-    def set_geometric_sigmas(self, geometric_sigma: np.ndarray = np.empty(0)) -> None:
+    def set_geometric_sigmas(self, geometric_sigmas: np.ndarray = np.empty(0)) -> None:
         """
         Set the geometric sigma.
         
         Parameters
         ----------
-        geometric_sigma : np.ndarray
+        geometric_sigmas : np.ndarray
             The geometric sigma.
             Default is an empty array.
 
@@ -534,10 +653,10 @@ class PSD_LnNormal(ParticleSizeDistributionInput):
         -------
         None
         """
-        if not isinstance(geometric_sigma, np.ndarray):
-            geometric_sigma = np.array(geometric_sigma)
+        if not isinstance(geometric_sigmas, np.ndarray):
+            geometric_sigmas = np.array(geometric_sigmas)
         
-        self.parameters["geometric_sigma"] = geometric_sigma
+        self.parameters["geometric_sigmas"] = geometric_sigmas
 
     def get_geometric_sigmas(self) -> np.ndarray:
         """
@@ -552,7 +671,7 @@ class PSD_LnNormal(ParticleSizeDistributionInput):
         np.ndarray
             The geometric sigma.
         """
-        return self.parameters["geometric_sigma"]
+        return self.parameters["geometric_sigmas"]
 
     def set_scale_factors(self, scale_factor: np.ndarray = np.empty(0)) -> None:
         """
@@ -645,14 +764,14 @@ class PSD_LnNormal(ParticleSizeDistributionInput):
             geosigs = lmfit.Parameter(name="geometric_sigmas", value=1.38e+00, min=0)
             scalefacs = lmfit.Parameter(name="scale_factors", value=2.73e+08, min=0)
 
-            for param, name in zip([geomeans, geosigs, scalefacs], ["geometrical_means", "geometrical_sigmas", "scale_factors"]):
-                self.__update_individual_model_parameters__(parameter=param, name=name)
+            for param in [geomeans, geosigs, scalefacs]:
+                self.__update_individual_model_parameters__(parameter=param)
         elif isinstance(lmfit.Parameters, params):
             self.set_model_parameters(params)
         else :
             raise TypeError("The type of the parameters must be lmfit.Parameters or None.")
             
-    def __update_individual_model_parameters__(self, parameter : lmfit.Parameter, name : str) -> None:
+    def __update_individual_model_parameters__(self, parameter : lmfit.Parameter) -> None:
         """
         Update a specific model parameter.
 
@@ -660,15 +779,33 @@ class PSD_LnNormal(ParticleSizeDistributionInput):
         ----------
         parameter : lmfit.Parameters
             The model parameters of the particle size distribution.
-        name : str
-            The name of the parameter to be updated.
-            
+
         Returns
         -------
         None
         """
-
+        name = parameter.name
         self.model_parameters[name] = parameter
+
+    def __autoupdate_parameters__(self) -> None:
+        """
+        Autoupdate all dependent parameters.
+        The default method changes nothing.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        None
+        """
+        try :
+            self.set_mode_number()
+            self.set_number_concentration()
+            print("Autoupdate of all parameters performed.")
+        except Exception as e:
+            warnings.warn(f"Autoupdate of all parameters not performed, due to error: {e}")
 
 
     def __add__(self, other : PSD_LnNormal) -> PSD_LnNormal:
