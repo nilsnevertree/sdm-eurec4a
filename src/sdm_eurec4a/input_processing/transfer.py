@@ -641,8 +641,8 @@ class PSD_LnNormal(ParticleSizeDistributionInput):
         if params == None:
 
             # Set the default parameters
-            geomeans = lmfit.Parameter(name="geometrical_means", value=3.77e-06, min=0)
-            geosigs = lmfit.Parameter(name="geometrical_sigmas", value=1.38e+00, min=0)
+            geomeans = lmfit.Parameter(name="geometric_means", value=3.77e-06, min=0)
+            geosigs = lmfit.Parameter(name="geometric_sigmas", value=1.38e+00, min=0)
             scalefacs = lmfit.Parameter(name="scale_factors", value=2.73e+08, min=0)
 
             for param, name in zip([geomeans, geosigs, scalefacs], ["geometrical_means", "geometrical_sigmas", "scale_factors"]):
