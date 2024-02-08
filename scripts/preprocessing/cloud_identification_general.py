@@ -53,6 +53,7 @@ import xarray as xr
 
 from dask.diagnostics import ProgressBar
 from sdm_eurec4a.calculations import horizontal_extent_func, vertical_extent_func
+from sdm_eurec4a import get_git_revision_hash
 
 
 # %%
@@ -118,6 +119,7 @@ sys.excepthook = handle_exception
 
 logging.info("============================================================")
 logging.info("Start cloud identification pre-processing")
+logging.info("Git hash: %s", get_git_revision_hash())
 logging.info("Input file: %s", INPUT_FILEPATH.relative_to(REPO_PATH))
 logging.info("Destination directory: %s", OUTPUT_DIR.relative_to(REPO_PATH))
 logging.info("Destination filename: %s", OUTPUT_FILE_NAME)
