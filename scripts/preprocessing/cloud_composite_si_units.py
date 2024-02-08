@@ -24,8 +24,8 @@ import pandas as pd
 import xarray as xr
 
 from sdm_eurec4a import get_git_revision_hash
+from sdm_eurec4a.conversions import lwc_from_psd, msd_from_psd, vsd_from_psd
 from sdm_eurec4a.reductions import validate_datasets_same_attrs
-from sdm_eurec4a.conversions import msd_from_psd, vsd_from_psd
 
 
 REPO_PATH = Path(__file__).resolve().parent.parent.parent
@@ -123,7 +123,7 @@ try:
         "alt": "alt",
         "PSD": "particle_size_distribution",
         "MSD": "mass_size_distribution",
-        "LWC": "liquid_water_content",
+        "LWC": "liquid_water_content_original",
         "NT": "total_concentration",
         "MVD": "median_volume_diameter",
         "M6": "radar_reflectivity_factor",
@@ -147,9 +147,9 @@ try:
         datas["time"], units="seconds since 2020-01-01 00:00:00", calendar="standard"
     )
     attrs.update(
-        unit = "cftime nanoseconds",
-        calender = "standard",
-        comment = "UTC time. Seconds since 2020-01-01 00:00:00. Use cftime.num2date to convert to datetime object."
+        unit="cftime nanoseconds",
+        calender="standard",
+        comment="UTC time. Seconds since 2020-01-01 00:00:00. Use cftime.num2date to convert to datetime object.",
     )
     datas["time"].attrs.update(attrs)
 
@@ -205,6 +205,22 @@ try:
         }
     )
 
+    logging.info("Add volume size distribution to dataset")
+    # Calculate volume size distribution
+    datas["volume_size_distribution"] = vsd_from_psd(
+        datas,
+        psd_name="particle_size_distribution",
+        psd_factor=1,
+        scale_name="radius",
+        scale_factor=1,
+        radius_given=True,
+    )
+    comment = "histogram: each bin gives the volume of droplets "
+    comment += "per cubic meter of air assuming spherical droplets."
+    comment += "\nNOT normalized by the bin width. To normalize, divide by the bin width."
+    datas["volume_size_distribution"].attrs.update(
+        comment=comment,
+    )
 
     logging.info("Add mass size distribution to dataset")
     # Calculate mass size distribution
@@ -220,31 +236,26 @@ try:
     comment = "histogram: each bin gives the mass of droplets "
     comment += "per cubic meter of air assuming water density of 1000 kg/m3."
     comment += "\nNOT normalized by the bin width. To normalize, divide by the bin width."
-    
-    datas["mass_size_distribution"].attrs.update(
-        unit="kg/m^3",
-        long_name="Mass size distribution",
-        comment=comment)
-    
-    logging.info("Add volume size distribution to dataset")
-    # Calculate volume size distribution
-    datas["volume_size_distribution"] = vsd_from_psd(
+
+    datas["mass_size_distribution"].attrs.update(comment=comment)
+
+    logging.info("Add liquid water content to dataset")
+    # Calculate liquid water content
+    datas["liquid_water_content"] = lwc_from_psd(
         datas,
         psd_name="particle_size_distribution",
         psd_factor=1,
         scale_name="radius",
         scale_factor=1,
         radius_given=True,
-    )
-    comment = "histogram: each bin gives the volume of droplets "
-    comment += "per cubic meter of air assuming spherical droplets."
-    comment += "\nNOT normalized by the bin width. To normalize, divide by the bin width."
-    datas["volume_size_distribution"].attrs.update(
-        unit="m^3/m^3",
-        long_name="Volume size distribution",
-        comment=comment,
+        rho_water=1000,
     )
 
+    comment = "Liquid water content calculated from the particle size distribution."
+    comment += "LWC = sum over all radii of (rho_water * PSD * 4/3 * pi * radius^3)"
+    comment += "\nNOT normalized by the bin width. To normalize, divide by the bin width."
+
+    datas["liquid_water_content"].attrs.update(comment=comment)
 
 
 except Exception as e:
