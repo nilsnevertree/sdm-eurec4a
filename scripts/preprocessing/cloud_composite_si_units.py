@@ -25,6 +25,7 @@ import xarray as xr
 
 from sdm_eurec4a import get_git_revision_hash
 from sdm_eurec4a.reductions import validate_datasets_same_attrs
+from sdm_eurec4a.conversions import msd_from_psd, vsd_from_psd
 
 
 REPO_PATH = Path(__file__).resolve().parent.parent.parent
@@ -203,6 +204,48 @@ try:
             "GitHub Commit": get_git_revision_hash(),
         }
     )
+
+
+    logging.info("Add mass size distribution to dataset")
+    # Calculate mass size distribution
+    datas["mass_size_distribution"] = msd_from_psd(
+        datas,
+        psd_name="particle_size_distribution",
+        psd_factor=1,
+        scale_name="radius",
+        scale_factor=1,
+        radius_given=True,
+        rho_water=1000,
+    )
+    comment = "histogram: each bin gives the mass of droplets "
+    comment += "per cubic meter of air assuming water density of 1000 kg/m3."
+    comment += "\nNOT normalized by the bin width. To normalize, divide by the bin width."
+    
+    datas["mass_size_distribution"].attrs.update(
+        unit="kg/m^3",
+        long_name="Mass size distribution",
+        comment=comment)
+    
+    logging.info("Add volume size distribution to dataset")
+    # Calculate volume size distribution
+    datas["volume_size_distribution"] = vsd_from_psd(
+        datas,
+        psd_name="particle_size_distribution",
+        psd_factor=1,
+        scale_name="radius",
+        scale_factor=1,
+        radius_given=True,
+    )
+    comment = "histogram: each bin gives the volume of droplets "
+    comment += "per cubic meter of air assuming spherical droplets."
+    comment += "\nNOT normalized by the bin width. To normalize, divide by the bin width."
+    datas["volume_size_distribution"].attrs.update(
+        unit="m^3/m^3",
+        long_name="Volume size distribution",
+        comment=comment,
+    )
+
+
 
 except Exception as e:
     logging.exception("Error while organizing dataset")
