@@ -198,7 +198,3 @@ def test_lwc_from_psd():
     assert lwc.name == "liquid_water_content"
     assert lwc.attrs == ds_should["liquid_water_content"].attrs
 
-
-test_vsd_from_psd()
-test_msd_from_psd()
-test_lwc_from_psd()
