@@ -105,7 +105,7 @@ print(f"Output file name is\n\t'{OUTPUT_FILE_NAME}'")
 
 temp_file_name = f"{secrets.token_hex(nbytes=4)}_temporary.nc"
 TEMPORARY_FILEPATH = OUTPUT_DIR / temp_file_name
-SETTINGS["paths"]["temporary_filepath"] = TEMPORARY_FILEPATH
+SETTINGS["paths"]["temporary_filepath"] = TEMPORARY_FILEPATH.relative_to(REPO_PATH).as_posix()
 
 # prepare logger
 
@@ -151,7 +151,7 @@ logging.info("Git hash: %s", get_git_revision_hash())
 logging.info("Input file: %s", INPUT_FILEPATH.relative_to(REPO_PATH))
 logging.info("Destination directory: %s", OUTPUT_DIR.relative_to(REPO_PATH))
 logging.info("Destination filename: %s", OUTPUT_FILE_NAME)
-logging.ingo("Temporary file path: %s", TEMPORARY_FILEPATH)
+logging.info("Temporary file path: %s", TEMPORARY_FILEPATH)
 logging.info("Mask name: %s", mask_name)
 logging.info("Minimum duration of cloud holes: %s", min_duration_cloud_holes)
 

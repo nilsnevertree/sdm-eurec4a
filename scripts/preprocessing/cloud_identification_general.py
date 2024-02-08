@@ -46,6 +46,7 @@ import logging
 import os
 import sys
 import yaml
+import secrets 
 
 from pathlib import Path
 
@@ -92,7 +93,12 @@ else :
     OUTPUT_FILE_NAME = SETTINGS["paths"]["output_file_name"]
     settings_output_name = SETTINGS["paths"]["output_file_name"].split(".")[0] + ".yaml"
 
+SETTINGS["paths"]["output_file_name"] = OUTPUT_FILE_NAME
 print(f"Output file name is\n\t'{OUTPUT_FILE_NAME}'")
+
+temp_file_name = f"{secrets.token_hex(nbytes=4)}_temporary.nc"
+TEMPORARY_FILEPATH = OUTPUT_DIR / temp_file_name
+SETTINGS["paths"]["temporary_filepath"] = TEMPORARY_FILEPATH.relative_to(REPO_PATH).as_posix()
 
 # %%
 # prepare logger
@@ -139,12 +145,13 @@ logging.info("Git hash: %s", get_git_revision_hash())
 logging.info("Input file: %s", INPUT_FILEPATH.relative_to(REPO_PATH))
 logging.info("Destination directory: %s", OUTPUT_DIR.relative_to(REPO_PATH))
 logging.info("Destination filename: %s", OUTPUT_FILE_NAME)
+logging.info("Temporary file path: %s", TEMPORARY_FILEPATH)
 logging.info("Mask name: %s", mask_name)
 
 logging.info("Save settings to output directory")
 with open(OUTPUT_DIR / settings_output_name, "w") as file:
     yaml.dump(SETTINGS, file)
-
+    
 
 def main():
 
@@ -190,33 +197,17 @@ def main():
         clouds = clouds.assign_coords({"time": clouds.mid_time})
         clouds = clouds.swap_dims({"cloud_id": "time"})
         logging.info("Store cloud identification dataset")
-        clouds.to_netcdf(OUTPUT_DIR / "temporary.nc")
+        clouds.to_netcdf(TEMPORARY_FILEPATH)
 
-    clouds = xr.open_dataset(OUTPUT_DIR / "temporary.nc", chunks={"time": 10000})
- 
+    clouds = xr.open_dataset(TEMPORARY_FILEPATH)
 
-    alt_list = []
-    lat_list = []
-    lon_list = []
-    horizontal_extend_list = []
-    vertical_extend_list = []
-    lwc_list = []
-
-
-    for time in clouds.time:
-        subdata = cloud_composite.sel(time=slice(clouds.start.sel(time=time), clouds.end.sel(time=time)))
-        alt_list.append(subdata.alt.mean().values)
-        lat_list.append(subdata.lat.mean().values)
-        lon_list.append(subdata.lon.mean().values)
-        horizontal_extend_list.append(horizontal_extent_func(subdata))
-        vertical_extend_list.append(vertical_extent_func(subdata))
-        lwc_list.append(subdata.liquid_water_content.sum().values)
-
-    
     logging.info("Calculate mean altitude of cloud events")
     clouds["alt"] = (
         "time",
-        alt_list,
+        [
+            cloud_composite["alt"].sel(time=slice(start, end)).mean()
+            for start, end in zip(clouds.start.data, clouds.end.data)
+        ],
     )
     clouds["alt"].attrs = {
         "long_name": "mean altitude of cloud event",
@@ -227,8 +218,11 @@ def main():
     logging.info("Calculate mean latitude of cloud events")
     clouds["lat"] = (
         "time",
-        lat_list,
-        )
+        [
+            cloud_composite["lat"].sel(time=slice(start, end)).mean()
+            for start, end in zip(clouds.start.data, clouds.end.data)
+        ],
+    )
     clouds["lat"].attrs = {
         "long_name": "mean latitude of cloud event",
         "units": "degree",
@@ -238,7 +232,10 @@ def main():
     logging.info("Calculate mean longitude of cloud events")
     clouds["lon"] = (
         "time",
-        lon_list,
+        [
+            cloud_composite["lon"].sel(time=slice(start, end)).mean()
+            for start, end in zip(clouds.start.data, clouds.end.data)
+        ],
     )
     clouds["lon"].attrs = {
         "long_name": "mean longitude of cloud event",
@@ -248,23 +245,27 @@ def main():
 
     logging.info("Calculate spatial extent of cloud events")
 
-    clouds["horizontal_extent"] = (
-        "time",
-        horizontal_extend_list,
-    )
-    clouds["horizontal_extent"].attrs.update(
-        {
+    clouds["horizontal_extent"] = xr.DataArray(
+        [
+            horizontal_extent_func(cloud_composite.sel(time=slice(start, end)))
+            for start, end in zip(clouds.start.data, clouds.end.data)
+        ],
+        dims="time",
+        coords={"time": clouds.time},
+        attrs={
             "long_name": "horizontal extent of cloud",
-            "units": "m",
+            "units": "km",
             "description": "The horizontal extent of the cloud in m. Calculated as the great circle distance based on the minimum and maximum of both latitude and longitude.",
         },
     )
     clouds["vetical_extent"] = xr.DataArray(
-        "time",
-        vertical_extend_list,
-    )
-    clouds["vetical_extent"].attrs.upate(
-        {
+        [
+            vertical_extent_func(cloud_composite.sel(time=slice(start, end)))
+            for start, end in zip(clouds.start.data, clouds.end.data)
+        ],
+        dims="time",
+        coords={"time": clouds.time},
+        attrs={
             "long_name": "vertical extent of cloud",
             "units": "km",
             "description": "The vertical extent of the cloud in km. Calculated as the difference between the maximum and minimum altitude.",
@@ -274,15 +275,16 @@ def main():
     logging.info("Calculate total LWC of cloud events")
     clouds["liquid_water_content"] = (
         "time",
-        lwc_list,
+        [
+            cloud_composite["liquid_water_content"].sel(time=slice(start, end)).sum()
+            for start, end in zip(clouds.start.data, clouds.end.data)
+        ],
     )
-    clouds["liquid_water_content"].attrs.update(
-        {
+    clouds["liquid_water_content"].attrs = {
         "long_name": "total LWC of cloud event",
         "units": "g/m3",
         "comment": "This is the sum of the LWC of all pixels in the cloud event.\nMass of all droplets per cubic meter of air, assuming water spheres with density = 1g/cm3",
     }
-    )
 
     with ProgressBar():
         clouds.to_netcdf(OUTPUT_DIR / OUTPUT_FILE_NAME)
