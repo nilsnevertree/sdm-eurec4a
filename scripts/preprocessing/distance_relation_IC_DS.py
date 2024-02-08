@@ -44,9 +44,7 @@ INPUT_FILEPATH_CLOUDS = REPO_PATH / Path(
 )
 print(f"Input file path to individual clouds is\n\t{INPUT_FILEPATH_CLOUDS}")
 
-INPUT_FILEPATH_DROPSONDES = REPO_PATH / Path(
-    "data/observation/dropsonde/Level_3/EUREC4A_JOANNE_Dropsonde-RD41_Level_3_v2.0.0.nc"
-)
+INPUT_FILEPATH_DROPSONDES = REPO_PATH / Path("data/observation/dropsonde/processed/drop_sondes.nc")
 print(f"Input file path to dropsondes is\n\t{INPUT_FILEPATH_DROPSONDES}")
 
 OUTPUT_FILE_NAME = f"distance_dropsondes_clouds_{mask_name}.nc"
@@ -107,10 +105,6 @@ def main():
     # display(identified_clouds)
 
     drop_sondes = xr.open_dataset(INPUT_FILEPATH_DROPSONDES)
-    drop_sondes = drop_sondes.rename({"launch_time": "time"})
-    drop_sondes = drop_sondes.swap_dims({"sonde_id": "time"})
-    drop_sondes = drop_sondes.sortby("time")
-    drop_sondes = drop_sondes.chunk({"time": -1})
 
     # 1. Create combined dataset
     # 2. Compute the distances
