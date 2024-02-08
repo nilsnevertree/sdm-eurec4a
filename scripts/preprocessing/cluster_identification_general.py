@@ -52,6 +52,7 @@ import numpy as np
 import xarray as xr
 
 from dask.diagnostics import ProgressBar
+from sdm_eurec4a.calculations import horizontal_extent_func, vertical_extent_func
 from sdm_eurec4a.identifications import consecutive_events_xr
 
 
@@ -184,12 +185,6 @@ def main(mask_name=mask_name):
         clouds["duration"].attrs = {"long_name": "duration of cloud event"}
         clouds["mid_time"] = clouds.start + clouds.duration / 2
         clouds["mid_time"].attrs = {"long_name": "mid time of cloud event"}
-        # # The following code is omitted because storing objects is not a good idea.
-        # clouds['selection'] = ('cloud_id', [(start, end) for start, end in zip(clouds.start.data, clouds.end.data)])
-        # clouds['selection'].attrs = {
-        #         'long_name': 'time selection of cloud event',
-        #         'description': 'tupel of (start, end) for the cloud event. This can help to select the cloud event from the original dataset'
-        #         }
 
         # Define
         clouds = clouds.assign_coords({"time": clouds.mid_time})
@@ -198,20 +193,6 @@ def main(mask_name=mask_name):
         clouds.to_netcdf(OUTPUT_DIR / "temporary.nc")
 
     clouds = xr.open_dataset(OUTPUT_DIR / "temporary.nc")
-
-    logging.info("Calculate total LWC of cloud events")
-    clouds["liquid_water_content"] = (
-        "time",
-        [
-            cloud_composite["liquid_water_content"].sel(time=slice(start, end)).sum()
-            for start, end in zip(clouds.start.data, clouds.end.data)
-        ],
-    )
-    clouds["liquid_water_content"].attrs = {
-        "long_name": "total LWC of cloud event",
-        "units": "g/m3",
-        "comment": "This is the sum of the LWC of all pixels in the cloud event.\nMass of all droplets per cubic meter of air, assuming water spheres with density = 1g/cm3",
-    }
 
     logging.info("Calculate mean altitude of cloud events")
     clouds["alt"] = (
@@ -253,6 +234,49 @@ def main(mask_name=mask_name):
         "long_name": "mean longitude of cloud event",
         "units": "degree",
         "comment": "This is the mean longitude of all pixels in the cloud event.\nFrom SAFIRE ATR42 Inertial/GPS System.",
+    }
+
+    logging.info("Calculate spatial extent of cloud events")
+
+    clouds["horizontal_extent"] = xr.DataArray(
+        [
+            horizontal_extent_func(cloud_composite.sel(time=slice(start, end)))
+            for start, end in zip(clouds.start.data, clouds.end.data)
+        ],
+        dims="time",
+        coords={"time": clouds.time},
+        attrs={
+            "long_name": "horizontal extent of cloud",
+            "units": "km",
+            "description": "The horizontal extent of the cloud in m. Calculated as the great circle distance based on the minimum and maximum of both latitude and longitude.",
+        },
+    )
+    clouds["vetical_extent"] = xr.DataArray(
+        [
+            vertical_extent_func(cloud_composite.sel(time=slice(start, end)))
+            for start, end in zip(clouds.start.data, clouds.end.data)
+        ],
+        dims="time",
+        coords={"time": clouds.time},
+        attrs={
+            "long_name": "vertical extent of cloud",
+            "units": "km",
+            "description": "The vertical extent of the cloud in km. Calculated as the difference between the maximum and minimum altitude.",
+        },
+    )
+
+    logging.info("Calculate total LWC of cloud events")
+    clouds["liquid_water_content"] = (
+        "time",
+        [
+            cloud_composite["liquid_water_content"].sel(time=slice(start, end)).sum()
+            for start, end in zip(clouds.start.data, clouds.end.data)
+        ],
+    )
+    clouds["liquid_water_content"].attrs = {
+        "long_name": "total LWC of cloud event",
+        "units": "g/m3",
+        "comment": "This is the sum of the LWC of all pixels in the cloud event.\nMass of all droplets per cubic meter of air, assuming water spheres with density = 1g/cm3",
     }
 
     with ProgressBar():
