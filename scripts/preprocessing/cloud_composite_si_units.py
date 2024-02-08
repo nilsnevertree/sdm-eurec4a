@@ -141,9 +141,11 @@ try:
     # Convert time to datetime object
     # Note, that the time is in seconds since 2020-01-01 00:00:00
     logging.info("Convert UTC time to datetime object")
+    attrs = datas["time"].attrs
     datas["time"] = cftime.num2date(
-        datas.time, units="seconds since 2020-01-01 00:00:00", calendar="standard"
+        datas["time"], units="seconds since 2020-01-01 00:00:00", calendar="standard"
     )
+    datas["time"].attrs.update(attrs)
 
     logging.info("Validate that diameter and bin_width do not vary along time axis")
     assert np.all(datas.diameter == datas.diameter.isel(time=0))
