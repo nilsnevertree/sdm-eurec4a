@@ -118,6 +118,7 @@ logging.basicConfig(
 )
 logging.info("============================================================")
 logging.info("Start drop_sondes pre-processing")
+logging.info("Git hash: %s", get_git_revision_hash())
 logging.info("Origin directory: %s", ORIGIN_DIRECTORY.relative_to(REPO_PATH))
 logging.info("Origin filename: %s", ORIGIN_FILENAME)
 logging.info("Destination directory: %s", DESTINATION_DIRECTORY.relative_to(REPO_PATH))

@@ -42,6 +42,7 @@ logging.basicConfig(
 )
 logging.info("============================================================")
 logging.info("Start cloud composite pre-processing")
+logging.info("Git hash: %s", get_git_revision_hash())
 logging.info("Origin directory: %s", ORIGIN_DIRECTORY.relative_to(REPO_PATH))
 logging.info("Destination directory: %s", DESTINATION_DIRECTORY.relative_to(REPO_PATH))
 logging.info("Destination filename: %s", DESTINATION_FILENAME)
@@ -201,7 +202,7 @@ except Exception as e:
     raise e
 
 
-print(f"Save the produced datset to netcdf file?\n{DESTINATION_DIRECTORY / 'cloud_composite.nc'}")
+print(f"Save the produced datset to netcdf file?\n{DESTINATION_DIRECTORY / DESTINATION_FILENAME}")
 user_input = input("Do you want to continue running the script? (y/n): ")
 if user_input.lower() == "y":
     print("Saving dataset\nPlease wait...")
