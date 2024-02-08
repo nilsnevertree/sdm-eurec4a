@@ -79,7 +79,7 @@ ds_should = xr.Dataset(
             {
                 "units": "kg/m^3",
                 "long_name": "Liquid water content",
-                "description": "Liquid water content calculated from the particle size distribution. LWC = sum over all diameters of (rho_water * PSD * 4/3 * pi * radius^3)",
+                "description": "Liquid water content calculated from the particle size distribution. LWC is the sum over specified dimension of (rho_water * PSD * 4/3 * pi * radius^3)",
             },
         ),
     },
@@ -197,4 +197,3 @@ def test_lwc_from_psd():
     )
     assert lwc.name == "liquid_water_content"
     assert lwc.attrs == ds_should["liquid_water_content"].attrs
-

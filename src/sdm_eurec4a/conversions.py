@@ -228,7 +228,7 @@ def lwc_from_psd(
     lwc.attrs = dict(
         units="kg/m^3",
         long_name="Liquid water content",
-        description="Liquid water content calculated from the particle size distribution. LWC = sum over all diameters of (rho_water * PSD * 4/3 * pi * radius^3)",
+        description="Liquid water content calculated from the particle size distribution. LWC is the sum over specified dimension of (rho_water * PSD * 4/3 * pi * radius^3)",
     )
     lwc.name = "liquid_water_content"
     # warnings.warn("units is set to kg/m^3. Make sure to check the units and otherwise set the value!")
