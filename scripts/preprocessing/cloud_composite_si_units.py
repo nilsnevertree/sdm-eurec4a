@@ -145,6 +145,11 @@ try:
     datas["time"] = cftime.num2date(
         datas["time"], units="seconds since 2020-01-01 00:00:00", calendar="standard"
     )
+    attrs.update(
+        unit = "cftime nanoseconds",
+        calender = "standard",
+        comment = "UTC time. Seconds since 2020-01-01 00:00:00. Use cftime.num2date to convert to datetime object."
+    )
     datas["time"].attrs.update(attrs)
 
     logging.info("Validate that diameter and bin_width do not vary along time axis")
