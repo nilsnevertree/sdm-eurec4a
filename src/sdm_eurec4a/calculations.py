@@ -91,7 +91,7 @@ def great_circle_distance_np(
     return res
 
 
-def horizontal_extend(
+def horizontal_extent_func(
     da: xr.Dataset,
     lon_name: str = "lon",
     lat_name: str = "lat",
@@ -121,19 +121,19 @@ def horizontal_extend(
     """
     d_lon = da[lon_name].max() - da[lon_name].min()
     d_lat = da[lat_name].max() - da[lat_name].min()
-    spatial_extend = 1e3 * great_circle_distance_np(d_lat, d_lon, 0, 0)
-    spatial_extend.name = "spatial_extend"
-    spatial_extend.attrs.update(
+    horizontal_extent = 1e3 * great_circle_distance_np(d_lat, d_lon, 0, 0)
+    horizontal_extent.name = "horizontal_extent"
+    horizontal_extent.attrs.update(
         {
-            "long_name": "spatial extent of cloud",
-            "units": "km",
-            "description": "The spatial extent of the cloud in km. Calculated as the great circle distance based on the minimum and maximum of both latitude and longitude.",
+            "long_name": "horizontal extent of cloud",
+            "units": "m",
+            "description": "The horizontal extent of the cloud in m. Calculated as the great circle distance based on the minimum and maximum of both latitude and longitude.",
         }
     )
-    return spatial_extend
+    return horizontal_extent
 
 
-def vertical_extend(
+def vertical_extent_func(
     ds: xr.Dataset,
     alt_name: str = "alt",
 ) -> xr.DataArray:
@@ -172,13 +172,13 @@ def vertical_extend(
         warnings.warn("No units found for altitude.")
         alt_units = "None"
 
-    vertical_extend = ds[alt_name].max() - ds[alt_name].min()
-    vertical_extend.name = "vertical_extend"
-    vertical_extend.attrs.update(
+    vertical_extent = ds[alt_name].max() - ds[alt_name].min()
+    vertical_extent.name = "vertical_extent"
+    vertical_extent.attrs.update(
         {
             "long_name": "vertical extent of cloud",
             "units": f"{alt_units}",
             "description": f"The vertical extent of the cloud in {alt_units}. Calculated as the difference between the maximum and minimum altitude.",
         }
     )
-    return vertical_extend
+    return vertical_extent
