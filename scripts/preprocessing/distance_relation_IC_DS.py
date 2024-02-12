@@ -20,8 +20,8 @@ import numpy as np
 import xarray as xr
 
 from dask.diagnostics import ProgressBar
-from sdm_eurec4a.calculations import great_circle_distance_np
 from sdm_eurec4a import get_git_revision_hash
+from sdm_eurec4a.calculations import great_circle_distance_np
 
 
 # %%
