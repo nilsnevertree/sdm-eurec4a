@@ -44,18 +44,19 @@ github_username: nilsnevertree
 import datetime
 import logging
 import os
+import secrets
 import sys
-import yaml
-import secrets 
 
 from pathlib import Path
 
 import numpy as np
 import xarray as xr
+import yaml
 
 from dask.diagnostics import ProgressBar
 from sdm_eurec4a import get_git_revision_hash
 from sdm_eurec4a.calculations import horizontal_extent_func, vertical_extent_func
+
 
 # %%
 # Example dataset
@@ -89,7 +90,7 @@ print(f"Use mask '{mask_name}' to identify clouds")
 if SETTINGS["paths"]["output_file_name"] is None:
     OUTPUT_FILE_NAME = f"identified_clouds_{mask_name}.nc"
     settings_output_name = f"identified_clouds_{mask_name}.yaml"
-else :
+else:
     OUTPUT_FILE_NAME = SETTINGS["paths"]["output_file_name"]
     settings_output_name = SETTINGS["paths"]["output_file_name"].split(".")[0] + ".yaml"
 
@@ -151,10 +152,9 @@ logging.info("Mask name: %s", mask_name)
 logging.info("Save settings to output directory")
 with open(OUTPUT_DIR / settings_output_name, "w") as file:
     yaml.dump(SETTINGS, file)
-    
+
 
 def main():
-
     cloud_composite = xr.open_dataset(INPUT_FILEPATH, chunks={"time": 1000})
 
     with ProgressBar():

@@ -44,14 +44,14 @@ github_username: nilsnevertree
 import datetime
 import logging
 import os
-import sys
-import yaml
 import secrets
+import sys
 
 from pathlib import Path
 
 import numpy as np
 import xarray as xr
+import yaml
 
 from dask.diagnostics import ProgressBar
 from sdm_eurec4a import get_git_revision_hash
@@ -96,7 +96,7 @@ print(f"Minimum duration of cloud holes is {min_duration_cloud_holes} time steps
 if SETTINGS["paths"]["output_file_name"] is None:
     OUTPUT_FILE_NAME = f"identified_clouds_{mask_name}_{min_duration_cloud_holes}.nc"
     settings_output_name = f"identified_clouds_{mask_name}.yaml"
-else :
+else:
     OUTPUT_FILE_NAME = SETTINGS["paths"]["output_file_name"]
     settings_output_name = SETTINGS["paths"]["output_file_name"].split(".")[0] + ".yaml"
 
@@ -158,7 +158,7 @@ logging.info("Minimum duration of cloud holes: %s", min_duration_cloud_holes)
 logging.info("Save settings to output directory")
 with open(OUTPUT_DIR / settings_output_name, "w") as file:
     yaml.dump(SETTINGS, file)
-    
+
 
 def main(mask_name=mask_name):
     cloud_composite = xr.open_dataset(INPUT_FILEPATH, chunks={"time": 1000})
@@ -317,7 +317,6 @@ def main(mask_name=mask_name):
     logging.info("Remove temporary file")
     Path(TEMPORARY_FILEPATH).unlink()
     logging.info("Successfully finished cloud identification pre-processing")
-
 
 
 if __name__ == "__main__":
