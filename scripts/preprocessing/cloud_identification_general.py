@@ -258,7 +258,7 @@ def main():
             "description": "The horizontal extent of the cloud in m. Calculated as the great circle distance based on the minimum and maximum of both latitude and longitude.",
         },
     )
-    clouds["vetical_extent"] = xr.DataArray(
+    clouds["vertical_extent"] = xr.DataArray(
         [
             vertical_extent_func(cloud_composite.sel(time=slice(start, end)))
             for start, end in zip(clouds.start.data, clouds.end.data)
