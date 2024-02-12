@@ -94,8 +94,8 @@ print(f"Minimum duration of cloud holes is {min_duration_cloud_holes} time steps
 
 
 if SETTINGS["paths"]["output_file_name"] is None:
-    OUTPUT_FILE_NAME = f"identified_clouds_{mask_name}_{min_duration_cloud_holes}.nc"
-    settings_output_name = f"identified_clouds_{mask_name}.yaml"
+    OUTPUT_FILE_NAME = f"identified_clusters_{mask_name}_{min_duration_cloud_holes}.nc"
+    settings_output_name = f"identified_clusters_{mask_name}.yaml"
 else:
     OUTPUT_FILE_NAME = SETTINGS["paths"]["output_file_name"]
     settings_output_name = SETTINGS["paths"]["output_file_name"].split(".")[0] + ".yaml"
@@ -224,92 +224,93 @@ def main(mask_name=mask_name):
 
         clouds.to_netcdf(TEMPORARY_FILEPATH)
 
-    clouds = xr.open_dataset(TEMPORARY_FILEPATH)
+    with ProgressBar():
+        clouds = xr.open_dataset(TEMPORARY_FILEPATH)
 
-    logging.info("Calculate mean altitude of cloud events")
-    clouds["alt"] = (
-        "time",
-        [
-            cloud_composite["alt"].sel(time=slice(start, end)).mean()
-            for start, end in zip(clouds.start.data, clouds.end.data)
-        ],
-    )
-    clouds["alt"].attrs = {
-        "long_name": "mean altitude of cloud event",
-        "units": "m",
-        "comment": "This is the mean altitude of all pixels in the cloud event.\nFrom SAFIRE ATR42 Inertial/GPS System",
-    }
+        logging.info("Calculate mean altitude of cloud events")
+        clouds["alt"] = (
+            "time",
+            [
+                cloud_composite["alt"].sel(time=slice(start, end)).mean()
+                for start, end in zip(clouds.start.data, clouds.end.data)
+            ],
+        )
+        clouds["alt"].attrs = {
+            "long_name": "mean altitude of cloud event",
+            "units": "m",
+            "comment": "This is the mean altitude of all pixels in the cloud event.\nFrom SAFIRE ATR42 Inertial/GPS System",
+        }
 
-    logging.info("Calculate mean latitude of cloud events")
-    clouds["lat"] = (
-        "time",
-        [
-            cloud_composite["lat"].sel(time=slice(start, end)).mean()
-            for start, end in zip(clouds.start.data, clouds.end.data)
-        ],
-    )
-    clouds["lat"].attrs = {
-        "long_name": "mean latitude of cloud event",
-        "units": "degree",
-        "comment": "This is the mean latitude of all pixels in the cloud event.\nFrom SAFIRE ATR42 Inertial/GPS System.",
-    }
+        logging.info("Calculate mean latitude of cloud events")
+        clouds["lat"] = (
+            "time",
+            [
+                cloud_composite["lat"].sel(time=slice(start, end)).mean()
+                for start, end in zip(clouds.start.data, clouds.end.data)
+            ],
+        )
+        clouds["lat"].attrs = {
+            "long_name": "mean latitude of cloud event",
+            "units": "degree",
+            "comment": "This is the mean latitude of all pixels in the cloud event.\nFrom SAFIRE ATR42 Inertial/GPS System.",
+        }
 
-    logging.info("Calculate mean longitude of cloud events")
-    clouds["lon"] = (
-        "time",
-        [
-            cloud_composite["lon"].sel(time=slice(start, end)).mean()
-            for start, end in zip(clouds.start.data, clouds.end.data)
-        ],
-    )
-    clouds["lon"].attrs = {
-        "long_name": "mean longitude of cloud event",
-        "units": "degree",
-        "comment": "This is the mean longitude of all pixels in the cloud event.\nFrom SAFIRE ATR42 Inertial/GPS System.",
-    }
+        logging.info("Calculate mean longitude of cloud events")
+        clouds["lon"] = (
+            "time",
+            [
+                cloud_composite["lon"].sel(time=slice(start, end)).mean()
+                for start, end in zip(clouds.start.data, clouds.end.data)
+            ],
+        )
+        clouds["lon"].attrs = {
+            "long_name": "mean longitude of cloud event",
+            "units": "degree",
+            "comment": "This is the mean longitude of all pixels in the cloud event.\nFrom SAFIRE ATR42 Inertial/GPS System.",
+        }
 
-    logging.info("Calculate spatial extent of cloud events")
+        logging.info("Calculate spatial extent of cloud events")
 
-    clouds["horizontal_extent"] = xr.DataArray(
-        [
-            horizontal_extent_func(cloud_composite.sel(time=slice(start, end)))
-            for start, end in zip(clouds.start.data, clouds.end.data)
-        ],
-        dims="time",
-        coords={"time": clouds.time},
-        attrs={
-            "long_name": "horizontal extent of cloud",
-            "units": "km",
-            "description": "The horizontal extent of the cloud in m. Calculated as the great circle distance based on the minimum and maximum of both latitude and longitude.",
-        },
-    )
-    clouds["vertical_extent"] = xr.DataArray(
-        [
-            vertical_extent_func(cloud_composite.sel(time=slice(start, end)))
-            for start, end in zip(clouds.start.data, clouds.end.data)
-        ],
-        dims="time",
-        coords={"time": clouds.time},
-        attrs={
-            "long_name": "vertical extent of cloud",
-            "units": "km",
-            "description": "The vertical extent of the cloud in km. Calculated as the difference between the maximum and minimum altitude.",
-        },
-    )
+        clouds["horizontal_extent"] = xr.DataArray(
+            [
+                horizontal_extent_func(cloud_composite.sel(time=slice(start, end)))
+                for start, end in zip(clouds.start.data, clouds.end.data)
+            ],
+            dims="time",
+            coords={"time": clouds.time},
+            attrs={
+                "long_name": "horizontal extent of cloud",
+                "units": "km",
+                "description": "The horizontal extent of the cloud in m. Calculated as the great circle distance based on the minimum and maximum of both latitude and longitude.",
+            },
+        )
+        clouds["vertical_extent"] = xr.DataArray(
+            [
+                vertical_extent_func(cloud_composite.sel(time=slice(start, end)))
+                for start, end in zip(clouds.start.data, clouds.end.data)
+            ],
+            dims="time",
+            coords={"time": clouds.time},
+            attrs={
+                "long_name": "vertical extent of cloud",
+                "units": "km",
+                "description": "The vertical extent of the cloud in km. Calculated as the difference between the maximum and minimum altitude.",
+            },
+        )
 
-    logging.info("Calculate total LWC of cloud events")
-    clouds["liquid_water_content"] = (
-        "time",
-        [
-            cloud_composite["liquid_water_content"].sel(time=slice(start, end)).sum()
-            for start, end in zip(clouds.start.data, clouds.end.data)
-        ],
-    )
-    clouds["liquid_water_content"].attrs = {
-        "long_name": "total LWC of cloud event",
-        "units": "g/m3",
-        "comment": "This is the sum of the LWC of all pixels in the cloud event.\nMass of all droplets per cubic meter of air, assuming water spheres with density = 1g/cm3",
-    }
+        logging.info("Calculate total LWC of cloud events")
+        clouds["liquid_water_content"] = (
+            "time",
+            [
+                cloud_composite["liquid_water_content"].sel(time=slice(start, end)).sum()
+                for start, end in zip(clouds.start.data, clouds.end.data)
+            ],
+        )
+        clouds["liquid_water_content"].attrs = {
+            "long_name": "total LWC of cloud event",
+            "units": "g/m3",
+            "comment": "This is the sum of the LWC of all pixels in the cloud event.\nMass of all droplets per cubic meter of air, assuming water spheres with density = 1g/cm3",
+        }
 
     with ProgressBar():
         clouds.to_netcdf(OUTPUT_DIR / OUTPUT_FILE_NAME)
