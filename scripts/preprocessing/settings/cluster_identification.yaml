@@ -12,7 +12,7 @@ paths:
 # The settings for the cloud identification
 setup:
   # The name of the mask that shall be used
-  mask_name : 'rain_mask'
+  mask_name : 'cloud_mask'
   # The minimum duration of the cloud holes in timesteps, for them to be considered as cloud holes
   # this defines how far each cloud in a cluster can be apart from each other
   min_duration_cloud_holes : 5 # in timesteps

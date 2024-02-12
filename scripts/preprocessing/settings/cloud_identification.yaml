@@ -13,4 +13,4 @@ paths:
 # The settings for the cloud identification
 setup:
   # The name of the mask that shall be used
-  mask_name : 'rain_mask'
+  mask_name : 'cloud_mask'
