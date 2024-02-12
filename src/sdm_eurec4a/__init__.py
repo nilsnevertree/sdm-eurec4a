@@ -1,6 +1,8 @@
 """Use Super-Droplet Model and EUREC4A data to simulate rain evaporation."""
 from __future__ import annotations
 
+import subprocess
+
 from pathlib import Path
 from typing import Any
 
@@ -30,3 +32,19 @@ class RepositoryPath:
 
     def __str__(self) -> str:
         return str(self.repo_dir)
+
+
+def get_git_revision_hash() -> str:
+    """
+    Get the git revision hash.
+
+    Parameters
+    ----------
+    None
+
+    Returns
+    -------
+    str
+        The full git revision hash.
+    """
+    return subprocess.check_output(["git", "rev-parse", "HEAD"]).decode("ascii").strip()

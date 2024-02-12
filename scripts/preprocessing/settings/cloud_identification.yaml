@@ -1,0 +1,16 @@
+
+# The settings for the
+
+paths:
+  # The paths need to be relative to the root directory of the project.
+  # The path to the input file
+  input_filepath: data/observation/cloud_composite/processed/cloud_composite.nc
+  # The path to the directory where the output data will be stored
+  output_directory: data/observation/cloud_composite/processed/identified_clouds/
+  # The output file name. If NULL is provided, the input file will be automatically made:
+  # f"identified_clouds_{mask_name}.nc"
+  output_file_name : NULL
+# The settings for the cloud identification
+setup:
+  # The name of the mask that shall be used
+  mask_name : 'rain_mask'

@@ -20,6 +20,7 @@ import numpy as np
 import xarray as xr
 
 from dask.diagnostics import ProgressBar
+from sdm_eurec4a import get_git_revision_hash
 from sdm_eurec4a.calculations import great_circle_distance_np
 
 
@@ -44,9 +45,7 @@ INPUT_FILEPATH_CLOUDS = REPO_PATH / Path(
 )
 print(f"Input file path to individual clouds is\n\t{INPUT_FILEPATH_CLOUDS}")
 
-INPUT_FILEPATH_DROPSONDES = REPO_PATH / Path(
-    "data/observation/dropsonde/Level_3/EUREC4A_JOANNE_Dropsonde-RD41_Level_3_v2.0.0.nc"
-)
+INPUT_FILEPATH_DROPSONDES = REPO_PATH / Path("data/observation/dropsonde/processed/drop_sondes.nc")
 print(f"Input file path to dropsondes is\n\t{INPUT_FILEPATH_DROPSONDES}")
 
 OUTPUT_FILE_NAME = f"distance_dropsondes_clouds_{mask_name}.nc"
@@ -95,6 +94,7 @@ sys.excepthook = handle_exception
 
 logging.info("============================================================")
 logging.info("Start cloud identification pre-processing")
+logging.info("Git hash: %s", get_git_revision_hash())
 logging.info("Input file clouds dataset: %s", INPUT_FILEPATH_CLOUDS.relative_to(REPO_PATH))
 logging.info("Input file dropsondes dataset: %s", INPUT_FILEPATH_DROPSONDES.relative_to(REPO_PATH))
 logging.info("Destination directory: %s", OUTPUT_DIR.relative_to(REPO_PATH))
@@ -107,10 +107,6 @@ def main():
     # display(identified_clouds)
 
     drop_sondes = xr.open_dataset(INPUT_FILEPATH_DROPSONDES)
-    drop_sondes = drop_sondes.rename({"launch_time": "time"})
-    drop_sondes = drop_sondes.swap_dims({"sonde_id": "time"})
-    drop_sondes = drop_sondes.sortby("time")
-    drop_sondes = drop_sondes.chunk({"time": -1})
 
     # 1. Create combined dataset
     # 2. Compute the distances
