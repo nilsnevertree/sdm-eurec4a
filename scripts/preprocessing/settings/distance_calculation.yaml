@@ -1,0 +1,19 @@
+# The settings for the distance calculation between identified clouds and the dropsondes
+
+paths:
+  # The paths need to be relative to the root directory of the project.
+  # The path to the input file
+  input_filepath_clouds: data/observation/cloud_composite/processed/identified_clouds/identified_clusters_rain_mask_5.nc
+  input_filepath_dropsondes: data/observation/dropsonde/processed/drop_sondes.nc
+  # The path to the directory where the output data will be stored
+  output_directory: data/observation/cloud_composite/processed/identified_clouds/
+  # The output file name. If NULL is provided, the input file will be automatically made:
+  # f"identified_clouds_{mask_name}.nc"
+  output_file_name : NULL
+# The settings for the cloud identification
+setup:
+  # The name of the mask that shall be used
+  mask_name : 'rain_mask'
+  # The minimum duration of the cloud holes in timesteps, for them to be considered as cloud holes
+  # this defines how far each cloud in a cluster can be apart from each other
+  min_duration_cloud_holes : 5 # in timesteps
