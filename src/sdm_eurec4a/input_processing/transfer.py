@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import warnings
 
-from typing import Dict, Union, Tuple
+from typing import Dict, Tuple, Union
 
 import lmfit
 import numpy as np
@@ -87,19 +87,19 @@ class Input:
             # for parameters in self.parameters which are numpy arrays
             if isinstance(self.parameters[key], np.ndarray):
                 # convert the parameter input to an numpy array
-                if isinstance(value, (float, int)) :
+                if isinstance(value, (float, int)):
                     value = np.array([value])
-                elif isinstance(value, list) :
+                elif isinstance(value, list):
                     value = np.array(value)
-                elif isinstance(value, (np.ndarray,)) :
+                elif isinstance(value, (np.ndarray,)):
                     pass
-                else :
+                else:
                     raise TypeError(
-                    f"The type of the parameter {key} from the input parameters is not supported."
-                )
+                        f"The type of the parameter {key} from the input parameters is not supported."
+                    )
 
                 self.parameters[key] = np.concatenate((self.parameters[key], value))
-            
+
             elif isinstance(self.parameters[key], list):
                 self.parameters[key].append(parameters[key])
             else:
@@ -275,8 +275,7 @@ class Input:
         """
         self.model_parameters = model_parameters
 
-    def get_model_parameters(self) -> lmfit.Parameters :
-
+    def get_model_parameters(self) -> lmfit.Parameters:
         return self.model_parameters
 
     def update_model_parameters(self) -> None:
@@ -310,18 +309,18 @@ class Input:
         name = parameter.name
         self.model_parameters[name] = parameter
 
-    def lmfitParameterValues_to_dict(self, parameters : lmfit.Parameters, add :bool = True) -> dict:
+    def lmfitParameterValues_to_dict(self, parameters: lmfit.Parameters, add: bool = True) -> dict:
         result = dict()
-        for key in parameters :
+        for key in parameters:
             result[key] = parameters[key].value
 
         if add is True:
-            self.add_parameters(parameters = result)
+            self.add_parameters(parameters=result)
         return result
 
-    def lmfitParameterStderr_to_dict(self, parameters : lmfit.Parameters) -> dict:
+    def lmfitParameterStderr_to_dict(self, parameters: lmfit.Parameters) -> dict:
         result = dict()
-        for key in parameters :
+        for key in parameters:
             result[key] = parameters[key].stderr
 
         return result
@@ -360,10 +359,10 @@ class ThermodynamicSplitLinear(Input):
         None
         """
         params = dict(
-            f_0 = f_0,
-            slope_1 = slope_1,
-            slope_2 = slope_2,
-            x_split = x_split,
+            f_0=f_0,
+            slope_1=slope_1,
+            slope_2=slope_2,
+            x_split=x_split,
         )
         super().__init__(
             type="SplitLinear",
@@ -375,26 +374,21 @@ class ThermodynamicSplitLinear(Input):
         self.__autoupdate_parameters__()
 
     def __autoupdate_parameters__(self) -> None:
-        
         self.set_mode_number()
 
         slopes = list()
         slope_1 = self.get_parameters()["slope_1"]
         slope_2 = self.get_parameters()["slope_2"]
-        for n in range(self.get_mode_number()) :
-            slopes.append(
-                (slope_1[n], slope_2[n])
-            )
+        for n in range(self.get_mode_number()):
+            slopes.append((slope_1[n], slope_2[n]))
         slopes = np.asarray(slopes)
         self.set_slopes(slopes)
 
-    def set_slopes(self, slopes) :
-
+    def set_slopes(self, slopes):
         self.slopes = slopes
 
     def get_slopes(self) -> list:
         return self.slopes
-    
 
     def set_mode_number(self) -> None:
         """
@@ -428,9 +422,9 @@ class ThermodynamicSplitLinear(Input):
 
     def get_f_0(self):
         return self.get_parameters()["f_0"]
+
     def get_x_split(self):
         return self.get_parameters()["x_split"]
-
 
     def __str__(self):
         nmodes = f"nmodes = {self.get_mode_number():.2e}"
@@ -474,13 +468,14 @@ class ThermodynamicSplitLinear(Input):
         result = list()
 
         for idx in range(self.get_mode_number()):
-            result.append(self.func(
-                x=x,
-                f_0=params["f_0"][idx],
-                slope_1=params["slope_1"][idx],
-                slope_2=params["slope_2"][idx],
-                x_split=params["x_split"][idx],
-            )
+            result.append(
+                self.func(
+                    x=x,
+                    f_0=params["f_0"][idx],
+                    slope_1=params["slope_1"][idx],
+                    slope_2=params["slope_2"][idx],
+                    x_split=params["x_split"][idx],
+                )
             )
         # For each mode, evaluate the model
 
@@ -784,8 +779,6 @@ class PSD_LnNormal(Input):
             self.set_model_parameters(params)
         else:
             raise TypeError("The type of the parameters must be lmfit.Parameters or None.")
-
-
 
     def __autoupdate_parameters__(self) -> None:
         """
