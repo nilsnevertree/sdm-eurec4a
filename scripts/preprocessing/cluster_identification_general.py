@@ -44,42 +44,61 @@ github_username: nilsnevertree
 import datetime
 import logging
 import os
+import secrets
 import sys
 
 from pathlib import Path
 
 import numpy as np
 import xarray as xr
+import yaml
 
 from dask.diagnostics import ProgressBar
+from sdm_eurec4a import get_git_revision_hash
+from sdm_eurec4a.calculations import horizontal_extent_func, vertical_extent_func
 from sdm_eurec4a.identifications import consecutive_events_xr
 
 
 # %%
+# %%
 # Example dataset
-script_path = os.path.abspath(__file__)
+script_path = Path(os.path.abspath(__file__))
 print(f"Script path is\n\t{script_path}")
+SCRIPT_DIR = script_path.parent
+
+SETTINGS_PATH = SCRIPT_DIR / "settings" / "cluster_identification.yaml"
+
+# open settings path
+with open(SETTINGS_PATH, "r") as stream:
+    try:
+        SETTINGS = yaml.safe_load(stream)
+    except yaml.YAMLError as exc:
+        raise exc
 
 REPO_PATH = Path(script_path).parent.parent.parent
 print(f"Repository root is\n\t{REPO_PATH}")
 
-OUTPUT_DIR = REPO_PATH / Path("data/observation/cloud_composite/processed/identified_clusters/")
+OUTPUT_DIR = REPO_PATH / Path(SETTINGS["paths"]["output_directory"])
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
-print(f"Output directory is\n\t{OUTPUT_DIR}")
 
-INPUT_FILEPATH = REPO_PATH / Path("data/observation/cloud_composite/processed/cloud_composite.nc")
-print(f"Input file path is\n\t{INPUT_FILEPATH}")
+INPUT_FILEPATH = REPO_PATH / Path(SETTINGS["paths"]["input_filepath"])
 
 # specify the mask to use for cloud identification
-mask_name = "cloud_mask"
-print(f"Use mask '{mask_name}' to identify clouds")
+mask_name = SETTINGS["setup"]["mask_name"]
+min_duration_cloud_holes = SETTINGS["setup"]["min_duration_cloud_holes"]
 
-min_duration_cloud_holes = 5
-print(f"Minimum duration of cloud holes is {min_duration_cloud_holes} time steps")
+if SETTINGS["paths"]["output_file_name"] is None:
+    OUTPUT_FILE_NAME = f"identified_clusters_{mask_name}_{min_duration_cloud_holes}.nc"
+    settings_output_name = f"identified_clusters_{mask_name}.yaml"
+else:
+    OUTPUT_FILE_NAME = SETTINGS["paths"]["output_file_name"]
+    settings_output_name = SETTINGS["paths"]["output_file_name"].split(".")[0] + ".yaml"
 
-OUTPUT_FILE_NAME = f"identified_clusters_{mask_name}_{min_duration_cloud_holes}.nc"
-print(f"Output file name is\n\t'{OUTPUT_FILE_NAME}'")
+SETTINGS["paths"]["output_file_name"] = OUTPUT_FILE_NAME
 
+temp_file_name = f"{secrets.token_hex(nbytes=4)}_temporary.nc"
+TEMPORARY_FILEPATH = OUTPUT_DIR / temp_file_name
+SETTINGS["paths"]["temporary_filepath"] = TEMPORARY_FILEPATH.relative_to(REPO_PATH).as_posix()
 
 # prepare logger
 
@@ -121,11 +140,17 @@ sys.excepthook = handle_exception
 
 logging.info("============================================================")
 logging.info("Start cloud identification pre-processing")
+logging.info("Git hash: %s", get_git_revision_hash())
 logging.info("Input file: %s", INPUT_FILEPATH.relative_to(REPO_PATH))
 logging.info("Destination directory: %s", OUTPUT_DIR.relative_to(REPO_PATH))
 logging.info("Destination filename: %s", OUTPUT_FILE_NAME)
+logging.info("Temporary file path: %s", TEMPORARY_FILEPATH)
 logging.info("Mask name: %s", mask_name)
 logging.info("Minimum duration of cloud holes: %s", min_duration_cloud_holes)
+
+logging.info("Save settings to output directory")
+with open(OUTPUT_DIR / settings_output_name, "w") as file:
+    yaml.dump(SETTINGS, file)
 
 
 def main(mask_name=mask_name):
@@ -184,34 +209,15 @@ def main(mask_name=mask_name):
         clouds["duration"].attrs = {"long_name": "duration of cloud event"}
         clouds["mid_time"] = clouds.start + clouds.duration / 2
         clouds["mid_time"].attrs = {"long_name": "mid time of cloud event"}
-        # # The following code is omitted because storing objects is not a good idea.
-        # clouds['selection'] = ('cloud_id', [(start, end) for start, end in zip(clouds.start.data, clouds.end.data)])
-        # clouds['selection'].attrs = {
-        #         'long_name': 'time selection of cloud event',
-        #         'description': 'tupel of (start, end) for the cloud event. This can help to select the cloud event from the original dataset'
-        #         }
 
         # Define
         clouds = clouds.assign_coords({"time": clouds.mid_time})
         clouds = clouds.swap_dims({"cloud_id": "time"})
         logging.info("Store cloud identification dataset")
-        clouds.to_netcdf(OUTPUT_DIR / "temporary.nc")
 
-    clouds = xr.open_dataset(OUTPUT_DIR / "temporary.nc")
+        clouds.to_netcdf(TEMPORARY_FILEPATH)
 
-    logging.info("Calculate total LWC of cloud events")
-    clouds["liquid_water_content"] = (
-        "time",
-        [
-            cloud_composite["liquid_water_content"].sel(time=slice(start, end)).sum()
-            for start, end in zip(clouds.start.data, clouds.end.data)
-        ],
-    )
-    clouds["liquid_water_content"].attrs = {
-        "long_name": "total LWC of cloud event",
-        "units": "g/m3",
-        "comment": "This is the sum of the LWC of all pixels in the cloud event.\nMass of all droplets per cubic meter of air, assuming water spheres with density = 1g/cm3",
-    }
+    clouds = xr.open_dataset(TEMPORARY_FILEPATH)
 
     logging.info("Calculate mean altitude of cloud events")
     clouds["alt"] = (
@@ -255,10 +261,55 @@ def main(mask_name=mask_name):
         "comment": "This is the mean longitude of all pixels in the cloud event.\nFrom SAFIRE ATR42 Inertial/GPS System.",
     }
 
+    logging.info("Calculate spatial extent of cloud events")
+
+    clouds["horizontal_extent"] = xr.DataArray(
+        [
+            horizontal_extent_func(cloud_composite.sel(time=slice(start, end)))
+            for start, end in zip(clouds.start.data, clouds.end.data)
+        ],
+        dims="time",
+        coords={"time": clouds.time},
+        attrs={
+            "long_name": "horizontal extent of cloud",
+            "units": "km",
+            "description": "The horizontal extent of the cloud in m. Calculated as the great circle distance based on the minimum and maximum of both latitude and longitude.",
+        },
+    )
+    clouds["vertical_extent"] = xr.DataArray(
+        [
+            vertical_extent_func(cloud_composite.sel(time=slice(start, end)))
+            for start, end in zip(clouds.start.data, clouds.end.data)
+        ],
+        dims="time",
+        coords={"time": clouds.time},
+        attrs={
+            "long_name": "vertical extent of cloud",
+            "units": "km",
+            "description": "The vertical extent of the cloud in km. Calculated as the difference between the maximum and minimum altitude.",
+        },
+    )
+
+    logging.info("Calculate total LWC of cloud events")
+    clouds["liquid_water_content"] = (
+        "time",
+        [
+            cloud_composite["liquid_water_content"].sel(time=slice(start, end)).sum()
+            for start, end in zip(clouds.start.data, clouds.end.data)
+        ],
+    )
+    clouds["liquid_water_content"].attrs = {
+        "long_name": "total LWC of cloud event",
+        "units": "g/m3",
+        "comment": "This is the sum of the LWC of all pixels in the cloud event.\nMass of all droplets per cubic meter of air, assuming water spheres with density = 1g/cm3",
+    }
+
     with ProgressBar():
         clouds.to_netcdf(OUTPUT_DIR / OUTPUT_FILE_NAME)
-    logging.info("Successfully finished cloud identification pre-processing")
     logging.info(f"File written to {OUTPUT_DIR / OUTPUT_FILE_NAME}")
+    logging.info("Remove temporary file")
+    Path(TEMPORARY_FILEPATH).unlink()
+    logging.info("Successfully finished cloud identification pre-processing")
 
 
 if __name__ == "__main__":

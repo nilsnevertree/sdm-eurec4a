@@ -18,40 +18,48 @@ from pathlib import Path
 
 import numpy as np
 import xarray as xr
+import yaml
 
 from dask.diagnostics import ProgressBar
+from sdm_eurec4a import get_git_revision_hash
 from sdm_eurec4a.calculations import great_circle_distance_np
 
 
 # %%
 # Example dataset
-script_path = os.path.abspath(__file__)
+script_path = Path(os.path.abspath(__file__))
 print(f"Script path is\n\t{script_path}")
+SCRIPT_DIR = script_path.parent
+
+SETTINGS_PATH = SCRIPT_DIR / "settings" / "distance_calculation.yaml"
+
+# open settings path
+with open(SETTINGS_PATH, "r") as stream:
+    try:
+        SETTINGS = yaml.safe_load(stream)
+    except yaml.YAMLError as exc:
+        raise exc
+
 
 REPO_PATH = Path(script_path).parent.parent.parent
 print(f"Repository root is\n\t{REPO_PATH}")
 
-OUTPUT_DIR = REPO_PATH / Path("data/observation/combined/distance")
+OUTPUT_DIR = REPO_PATH / Path(SETTINGS["paths"]["output_directory"])
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
-print(f"Output directory is\n\t{OUTPUT_DIR}")
 
-# specify the mask to use for cloud identification
-mask_name = "cloud_mask"
-print(f"Use mask '{mask_name}' to identify clouds")
 
-INPUT_FILEPATH_CLOUDS = REPO_PATH / Path(
-    f"data/observation/cloud_composite/processed/identified_clouds/identified_clouds_{mask_name}.nc"
-)
-print(f"Input file path to individual clouds is\n\t{INPUT_FILEPATH_CLOUDS}")
+INPUT_FILEPATH_CLOUDS = REPO_PATH / Path(SETTINGS["paths"]["input_filepath_clouds"])
+input_filename_clouds = str(INPUT_FILEPATH_CLOUDS).split(".")[0].split("/")[-1]
+INPUT_FILEPATH_DROPSONDES = REPO_PATH / Path("data/observation/dropsonde/processed/drop_sondes.nc")
 
-INPUT_FILEPATH_DROPSONDES = REPO_PATH / Path(
-    "data/observation/dropsonde/Level_3/EUREC4A_JOANNE_Dropsonde-RD41_Level_3_v2.0.0.nc"
-)
-print(f"Input file path to dropsondes is\n\t{INPUT_FILEPATH_DROPSONDES}")
+if SETTINGS["paths"]["output_file_name"] is None:
+    OUTPUT_FILE_NAME = f"distance_dropsondes_{input_filename_clouds}.nc"
+    settings_output_name = f"distance_relation.yaml"
+else:
+    OUTPUT_FILE_NAME = SETTINGS["paths"]["output_file_name"]
+    settings_output_name = SETTINGS["paths"]["output_file_name"].split(".")[0] + ".yaml"
 
-OUTPUT_FILE_NAME = f"distance_dropsondes_clouds_{mask_name}.nc"
-print(f"Output file name is\n\t'{OUTPUT_FILE_NAME}'")
-
+SETTINGS["paths"]["output_file_name"] = OUTPUT_FILE_NAME
 
 # prepare logger
 
@@ -94,12 +102,16 @@ sys.excepthook = handle_exception
 # %%
 
 logging.info("============================================================")
-logging.info("Start cloud identification pre-processing")
-logging.info("Input file clouds dataset: %s", INPUT_FILEPATH_CLOUDS.relative_to(REPO_PATH))
-logging.info("Input file dropsondes dataset: %s", INPUT_FILEPATH_DROPSONDES.relative_to(REPO_PATH))
+logging.info("Start distance calculation")
+logging.info("Git hash: %s", get_git_revision_hash())
+logging.info("Input clouds file: %s", INPUT_FILEPATH_CLOUDS.relative_to(REPO_PATH))
+logging.info("Input dropsondes file: %s", INPUT_FILEPATH_DROPSONDES.relative_to(REPO_PATH))
 logging.info("Destination directory: %s", OUTPUT_DIR.relative_to(REPO_PATH))
 logging.info("Destination filename: %s", OUTPUT_FILE_NAME)
-logging.info("Mask name: %s", mask_name)
+
+logging.info("Save settings to output directory")
+with open(OUTPUT_DIR / settings_output_name, "w") as file:
+    yaml.dump(SETTINGS, file)
 
 
 def main():
@@ -107,10 +119,6 @@ def main():
     # display(identified_clouds)
 
     drop_sondes = xr.open_dataset(INPUT_FILEPATH_DROPSONDES)
-    drop_sondes = drop_sondes.rename({"launch_time": "time"})
-    drop_sondes = drop_sondes.swap_dims({"sonde_id": "time"})
-    drop_sondes = drop_sondes.sortby("time")
-    drop_sondes = drop_sondes.chunk({"time": -1})
 
     # 1. Create combined dataset
     # 2. Compute the distances

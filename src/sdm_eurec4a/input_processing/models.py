@@ -53,3 +53,50 @@ def split_linear_func(
     y_1 = np.where(x > x_split, 0, y_1)
     y_2 = np.where(x <= x_split, 0, y_2)
     return y_1 + y_2
+
+
+def lnnormaldist(
+    radii: np.ndarray, scale_factors: float, geometric_means: float, geometric_sigmas: float
+) -> np.ndarray:
+    """
+    Calculate probability of radii given the paramters of a lognormal
+    distribution according to equation 5.8 of "An Introduction to clouds from
+    the Microscale to Climate" by Lohmann, Luond and Mahrt.
+
+    Note
+    ----
+    The parameters geometric_means and geometric_sigmas are the geometric mean and geometric
+    standard deviation of the distribution, not the arithmetic mean and
+    standard deviation.
+    The scale in which radii is given, is the same as the scale in which
+    geometric_means and geometric_sigmas needs to be given.
+    The scale_factors is the total number of particles N_a in the distribution
+    [#/m^3]
+
+    Parameters
+    ----------
+    radii : array_like
+        radii [m] to calculate probability for
+    scale_factors : float
+        scale factor for distribution (see eq. 5.2)
+        It is the total number particles N_a in the distribution [#/m^3]
+    geometric_means : float
+        geometric mean of distribution (see eq. 5.5)
+    geometric_sigmas : float
+        geometric standard deviation of distribution (see eq. 5.6)
+
+    Returns
+    -------
+    dn_dlnr : array_like
+        probability of each radius in radii [m^-1]
+    """
+
+    sigtilda = np.log(geometric_sigmas)
+    mutilda = np.log(geometric_means)
+
+    norm = scale_factors / (np.sqrt(2 * np.pi) * sigtilda)
+    exponent = -((np.log(radii) - mutilda) ** 2) / (2 * sigtilda**2)
+
+    dn_dlnr = norm * np.exp(exponent)  # eq.5.8 [lohmann intro 2 clouds]
+
+    return dn_dlnr

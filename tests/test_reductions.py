@@ -7,6 +7,7 @@ import xarray as xr
 from sdm_eurec4a.reductions import (
     rectangle_spatial_mask,
     shape_dim_as_dataarray,
+    validate_datasets_same_attrs,
     x_y_flatten,
 )
 
@@ -206,3 +207,82 @@ def test_shape_dim_as_dataarray():
     # Check the KeyError
     with pytest.raises(KeyError) as e_info:
         shape_dim_as_dataarray(da, "time2")
+
+
+empty_ds1 = xr.Dataset(
+    coords={},
+    data_vars={},
+    attrs={
+        "Conventions": "abc",
+        "history": "2021-08-12 14:23:22 GMT",
+        "edition": 2,
+        "random_number": 1,
+        "random_string": "first random",
+    },
+)
+
+empty_ds2 = xr.Dataset(
+    coords={},
+    data_vars={},
+    attrs={
+        "Conventions": "abc",
+        "history": "2021-08-12 14:23:22 GMT",
+        "edition": 2,
+        "random_number": 2,
+        "random_string": "first random",
+    },
+)
+
+
+empty_ds3 = xr.Dataset(
+    coords={},
+    data_vars={},
+    attrs={
+        "Conventions": "abc",
+        "history": "2021-08-12 14:23:22 GMT",
+        "edition": 2,
+        "random_number": 1,
+        "random_string": "second random",
+    },
+)
+
+
+# test to check using all combinations of the three empty datasets to validate if the attributes are the same or not
+# The test function is parametrized with the three empty datasets
+# and it usees the validate_datasets_same_attrs function to check if the attributes are the same or not
+# \
+def test_validate_datasets_same_attrs():
+    # same dataset
+    assert (
+        validate_datasets_same_attrs(
+            [empty_ds1, empty_ds1],
+        )
+        == True
+    )
+    # different number
+    assert (
+        validate_datasets_same_attrs(
+            [empty_ds1, empty_ds2],
+        )
+        == False
+    )
+    # different string
+    assert (
+        validate_datasets_same_attrs(
+            [empty_ds1, empty_ds3],
+        )
+        == False
+    )
+    # different number but skip string
+    assert validate_datasets_same_attrs([empty_ds1, empty_ds2], skip_attrs=["random_string"]) == False
+    # different number and skip number
+    assert validate_datasets_same_attrs([empty_ds1, empty_ds2], skip_attrs=["random_number"]) == True
+    # different string but skip number
+    assert validate_datasets_same_attrs([empty_ds2, empty_ds3], skip_attrs=["random_number"]) == False
+    # different string and number - skip both
+    assert (
+        validate_datasets_same_attrs(
+            [empty_ds2, empty_ds3], skip_attrs=["random_number", "random_string"]
+        )
+        == True
+    )
