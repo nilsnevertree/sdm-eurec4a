@@ -80,18 +80,12 @@ print(f"Repository root is\n\t{REPO_PATH}")
 
 OUTPUT_DIR = REPO_PATH / Path(SETTINGS["paths"]["output_directory"])
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
-print(f"Output directory is\n\t{OUTPUT_DIR}")
 
 INPUT_FILEPATH = REPO_PATH / Path(SETTINGS["paths"]["input_filepath"])
-print(f"Input file path is\n\t{INPUT_FILEPATH}")
 
 # specify the mask to use for cloud identification
 mask_name = SETTINGS["setup"]["mask_name"]
-print(f"Use mask '{mask_name}' to identify clouds")
-
 min_duration_cloud_holes = SETTINGS["setup"]["min_duration_cloud_holes"]
-print(f"Minimum duration of cloud holes is {min_duration_cloud_holes} time steps")
-
 
 if SETTINGS["paths"]["output_file_name"] is None:
     OUTPUT_FILE_NAME = f"identified_clusters_{mask_name}_{min_duration_cloud_holes}.nc"
@@ -101,7 +95,6 @@ else:
     settings_output_name = SETTINGS["paths"]["output_file_name"].split(".")[0] + ".yaml"
 
 SETTINGS["paths"]["output_file_name"] = OUTPUT_FILE_NAME
-print(f"Output file name is\n\t'{OUTPUT_FILE_NAME}'")
 
 temp_file_name = f"{secrets.token_hex(nbytes=4)}_temporary.nc"
 TEMPORARY_FILEPATH = OUTPUT_DIR / temp_file_name
