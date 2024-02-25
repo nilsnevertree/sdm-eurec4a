@@ -1,5 +1,5 @@
-Identifying clouds and cloud cluster in the ATR dataset
-=======================================================
+Identifying clouds and clusters of clouds in the ATR dataset
+============================================================
 
 Cloud indentification
 ---------------------
