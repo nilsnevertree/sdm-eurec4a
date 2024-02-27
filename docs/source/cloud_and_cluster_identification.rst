@@ -12,7 +12,12 @@ Below you can find a copy of this script.
 The important lines are highlighted.
 
 .. note::
-    - In lines ``162-165`` the script uses the ``cloud_mask`` to identify individual clouds.
+    - The input data is the cloud composite dataset.
+    - The main idea behind it is to use a boolean mask (e.g. the pre-defined ``cloud_mask``) to identify individual clouds.
+    - Using the ``xarray.diff`` function along the time dimension, the changes in the ``cloud_mask`` are identified.
+    - These differences show the switch from e.g. cloud to non cloud sections in the dataset and vice versa.
+    - Thus the start and end time stamps of individual clouds can be obtained.
+    - In lines ``162-165`` the script uses the user defined boolean mask, to identify these individual clouds.
     - In lines ``193-198`` the mid time of a cloud event is chosen as the leading dimension of the new netCDF file.
     - The leading dimension becomes ``time``.
 
@@ -38,12 +43,14 @@ The script below ignores holes between the clouds if they do not exceed a specif
 
 **Script**
 
-The script below is used to identify cloud clusters in the ATR dataset.
-It is very similar to the cloud identification script.
-
 .. note::
+    - The script below is used to identify cloud clusters in the ATR dataset.
+    - It is very similar to the cloud identification script mentioned above.
     - The main differnce lies in lines ``161-174``.
-    - Here a ``cluster_mask`` is created, by removing the cloud holes which are shorter than a specified time span.
+    - Here a ``cluster_mask`` is created based on the user defined boolean mask.
+    - This is done by **removing** all cloud holes which are shorter than a specified time span (``min_duration_cloud_holes``)
+    - So if ``min_duration_cloud_holes =  3``, in the picture above, the two holes at 18:10.50 and 18:11:00 would be removed. 
+       The values in the cluster mask would be set from ``0`` to ``1``.
     - For this procedure, the funciton ``sdm_eurec4a.identification.consecutive_events_xr`` is used. For more information see the API documentation of this function. You can use the search function at the top right to find it.
 
 
