@@ -3,7 +3,7 @@
 paths:
   # The paths need to be relative to the root directory of the project.
   # The path to the input file
-  input_filepath_clouds: data/observation/cloud_composite/processed/identified_clouds/identified_clouds_rain_mask.nc
+  input_filepath_clouds: data/observation/cloud_composite/processed/identified_clouds/identified_clusters_rain_mask_5.nc
   input_filepath_dropsondes: data/observation/dropsonde/processed/drop_sondes.nc
   # The path to the directory where the output data will be stored
   output_directory: data/observation/combined/distance/
