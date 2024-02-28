@@ -172,7 +172,7 @@ try:
     data.assign_attrs(
         {
             "Modified_by": "Nils Niebaum",
-            "Modification_date_UTC": str(datetime.datetime.now(datetime.UTC)) + " GMT",
+            "Modification_date_UTC": datetime.datetime.now(datetime.UTC).strftime("%Y-%m-%d %H:%M:%S"),
             "GitHub Repository": "https://github.com/nilsnevertree/sdm-eurec4a",
             "GitHub Commit": get_git_revision_hash(),
         }

@@ -177,7 +177,7 @@ def main():
 
         clouds.attrs = {
             "description": "cloud identification dataset",
-            "creation_time": str(datetime.datetime.now()),
+            "creation_time": datetime.datetime.now(datetime.UTC).strftime("%Y-%m-%d %H:%M:%S"),
             "details": details,
             "author": "Nils Niebaum",
             "email": "nils-ole.niebaum@mpimet.mpg.de",

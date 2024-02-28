@@ -136,7 +136,7 @@ def main():
             "author": "Nils Niebaum",
             "author email": "nils-ole.niebaum@mpimet.mpg.de",
             "featureType": "trajectory",
-            "creation_time": str(datetime.datetime.now()),
+            "creation_time": datetime.datetime.now(datetime.UTC).strftime("%Y-%m-%d %H:%M:%S"),
         },
     )
     ds_combined = ds_combined.drop_vars(["sonde_id"])
