@@ -36,7 +36,7 @@ Here is an example image which shows an example cloud clusters in the ATR datase
 Each one of the spikes will be identified as an individual cloud by the script shown above.
 The script below ignores holes between the clouds if they do not exceed a specified duration.
 
-.. image:: images/cloud_cluster_example.png
+.. image:: images/cloud_cluster_ATR_example.png
     :width: 400px
     :align: center
 
