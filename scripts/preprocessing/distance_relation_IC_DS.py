@@ -47,14 +47,13 @@ print(f"Repository root is\n\t{REPO_PATH}")
 OUTPUT_DIR = REPO_PATH / Path(SETTINGS["paths"]["output_directory"])
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
-
 INPUT_FILEPATH_CLOUDS = REPO_PATH / Path(SETTINGS["paths"]["input_filepath_clouds"])
 input_filename_clouds = str(INPUT_FILEPATH_CLOUDS).split(".")[0].split("/")[-1]
-INPUT_FILEPATH_DROPSONDES = REPO_PATH / Path("data/observation/dropsonde/processed/drop_sondes.nc")
+INPUT_FILEPATH_DROPSONDES = REPO_PATH / Path(SETTINGS["paths"]["input_filepath_dropsondes"])
 
 if SETTINGS["paths"]["output_file_name"] is None:
     OUTPUT_FILE_NAME = f"distance_dropsondes_{input_filename_clouds}.nc"
-    settings_output_name = f"distance_relation.yaml"
+    settings_output_name = f"distance_dropsondes_{input_filename_clouds}.yaml"
 else:
     OUTPUT_FILE_NAME = SETTINGS["paths"]["output_file_name"]
     settings_output_name = SETTINGS["paths"]["output_file_name"].split(".")[0] + ".yaml"

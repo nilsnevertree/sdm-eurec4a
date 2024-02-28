@@ -36,7 +36,7 @@ Here is an example image which shows an example cloud clusters in the ATR datase
 Each one of the spikes will be identified as an individual cloud by the script shown above.
 The script below ignores holes between the clouds if they do not exceed a specified duration.
 
-.. image:: Cloud_Cluster.svg
+.. image:: images/cloud_cluster_example.png
     :width: 400px
     :align: center
 
@@ -49,7 +49,7 @@ The script below ignores holes between the clouds if they do not exceed a specif
     - The main differnce lies in lines ``161-174``.
     - Here a ``cluster_mask`` is created based on the user defined boolean mask.
     - This is done by **removing** all cloud holes which are shorter than a specified time span (``min_duration_cloud_holes``)
-    - So if ``min_duration_cloud_holes =  3``, in the picture above, the two holes at 18:10.50 and 18:11:00 would be removed. 
+    - So if ``min_duration_cloud_holes =  3``, in the picture above, the two holes at 18:10.50 and 18:11:00 would be removed.
        The values in the cluster mask would be set from ``0`` to ``1``.
     - For this procedure, the funciton ``sdm_eurec4a.identification.consecutive_events_xr`` is used. For more information see the API documentation of this function. You can use the search function at the top right to find it.
 
@@ -58,4 +58,3 @@ The script below ignores holes between the clouds if they do not exceed a specif
     :language: python
     :linenos:
     :emphasize-lines: 161-174
-
