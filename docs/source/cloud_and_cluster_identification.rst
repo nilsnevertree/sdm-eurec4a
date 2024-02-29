@@ -9,8 +9,7 @@ Cloud indentification
 In the whole cloud composite dataset, many differnt cloud types can be found.
 Thus it might make sense to take a look on individual cloud.
 Therefore a script is implemented to identify individual clouds in the cloud composite dataset ``data/observation/cloud_composite/processed/cloud_composite.nc``.
-To obtain this see  
-:ref:`data_preprocessing`
+To obtain this see also :ref:`data_preprocessing`
 
 Below you can find a copy of this script.
 The important lines are highlighted.
@@ -55,7 +54,7 @@ The script below ignores holes between the clouds if they do not exceed a specif
     - This is done by **removing** all cloud holes which are shorter than a specified time span (``min_duration_cloud_holes``)
     - So if ``min_duration_cloud_holes =  3``, in the picture above, the two holes at 18:10.50 and 18:11:00 would be removed.
        The values in the cluster mask would be set from ``0`` to ``1``.
-    - For this procedure, the function :py:meth:`sdm_eurec4a.identification.consecutive_events_xr` is used. 
+    - For this procedure, the function :py:func:`sdm_eurec4a.identification.consecutive_events_xr` is used. 
        For more information see the API documentation of this function. You can use the search function at the top right to find it.
 
 
