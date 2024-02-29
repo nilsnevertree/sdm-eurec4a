@@ -1,3 +1,5 @@
+.. _cloud_and_cluster_identification:
+
 Identifying clouds and clusters of clouds in the ATR dataset
 ============================================================
 
@@ -6,7 +8,8 @@ Cloud indentification
 
 In the whole cloud composite dataset, many differnt cloud types can be found.
 Thus it might make sense to take a look on individual cloud.
-Therefore a script is implemented to identify individual clouds in the cloud composite dataset (data\observation\cloud_composite\processed\cloud_composite.nc)
+Therefore a script is implemented to identify individual clouds in the cloud composite dataset ``data/observation/cloud_composite/processed/cloud_composite.nc``.
+To obtain this see also :ref:`data_preprocessing`
 
 Below you can find a copy of this script.
 The important lines are highlighted.
@@ -37,7 +40,7 @@ Each one of the spikes will be identified as an individual cloud by the script s
 The script below ignores holes between the clouds if they do not exceed a specified duration.
 
 .. image:: images/cloud_cluster_ATR_example.png
-    :width: 400px
+    :width: 1200px
     :align: center
 
 
@@ -48,10 +51,9 @@ The script below ignores holes between the clouds if they do not exceed a specif
     - It is very similar to the cloud identification script mentioned above.
     - The main differnce lies in lines ``161-174``.
     - Here a ``cluster_mask`` is created based on the user defined boolean mask.
-    - This is done by **removing** all cloud holes which are shorter than a specified time span (``min_duration_cloud_holes``)
-    - So if ``min_duration_cloud_holes =  3``, in the picture above, the two holes at 18:10.50 and 18:11:00 would be removed.
-       The values in the cluster mask would be set from ``0`` to ``1``.
-    - For this procedure, the funciton ``sdm_eurec4a.identification.consecutive_events_xr`` is used. For more information see the API documentation of this function. You can use the search function at the top right to find it.
+    - This is done by *removing* all cloud holes which are shorter than a specified time span (``min_duration_cloud_holes``)
+    - The results of this can be seen in the figure above. For the cluster identification, small individual clouds are combined into longer durating clusters.
+    - For this procedure, the function :py:func:`sdm\_eurec4a.identification.consecutive\_events\_xr` is used. For more information see the API documentation of this function. You can use the search function at the top right to find it.
 
 
 .. literalinclude:: ../../scripts/preprocessing/cluster_identification_general.py

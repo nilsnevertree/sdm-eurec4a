@@ -10,6 +10,7 @@ dependencies:
   - numpy >= 1.26.3
   - scipy >= 1.11.4
   - pandas >= 2.1.4
+  - lmfit >= 1.2.2
   - matplotlib >= 3.8.2
   - cftime >= 1.6.3
   - cartopy >= 0.22.0

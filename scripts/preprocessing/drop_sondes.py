@@ -1,81 +1,6 @@
 """
-Script to pre-process drop sonde data from JOANNE dataset:
-references:
-- id: george2021
-  abstract: >-
-    As part of the EUREC4A field campaign which took place over the tropical
-    North Atlantic during January–February 2020, 1215 dropsondes from the HALO
-    and WP-3D aircraft were deployed through 26 flights to characterize the
-    thermodynamic and dynamic environment of clouds in the trade-wind regions.
-    We present JOANNE (Joint dropsonde Observations of the Atmosphere in
-    tropical North atlaNtic meso-scale Environments), the dataset that contains
-    these dropsonde measurements and the products derived from them. Along with
-    the raw measurement profiles and basic post-processing of pressure,
-    temperature, relative humidity and horizontal winds, the dataset also
-    includes a homogenized and gridded dataset with 10 m vertical spacing. The
-    gridded data are used as a basis for deriving diagnostics of the
-    area-averaged mesoscale circulation properties such as divergence,
-    vorticity, vertical velocity and gradient terms, making use of sondes
-    dropped at regular intervals along a circular flight path. A total of 85
-    such circles, ∼ 222 km in diameter, were flown during EUREC4A. We describe
-    the sampling strategy for dropsonde measurements during EUREC4A, the quality
-    control for the data, the methods of estimation of additional products from
-    the measurements and the different post-processed levels of the dataset. The
-    dataset is publicly available (https://doi.org/10.25326/246, George et al.,
-    2021b) as is the software used to create it
-    (https://doi.org/10.5281/zenodo.4746312, George, 2021).
-  accessed:
-    - year: 2023
-      month: 12
-      day: 11
-  author:
-    - family: George
-      given: Geet
-    - family: Stevens
-      given: Bjorn
-    - family: Bony
-      given: Sandrine
-    - family: Pincus
-      given: Robert
-    - family: Fairall
-      given: Chris
-    - family: Schulz
-      given: Hauke
-    - family: Kölling
-      given: Tobias
-    - family: Kalen
-      given: Quinn T.
-    - family: Klingebiel
-      given: Marcus
-    - family: Konow
-      given: Heike
-    - family: Lundry
-      given: Ashley
-    - family: Prange
-      given: Marc
-    - family: Radtke
-      given: Jule
-  citation-key: george2021
-  container-title: Earth System Science Data
-  DOI: 10.5194/essd-13-5253-2021
-  ISSN: 1866-3508
-  issue: '11'
-  issued:
-    - year: 2021
-      month: 11
-      day: 11
-  language: English
-  page: 5253-5272
-  publisher: Copernicus GmbH
-  source: Copernicus Online Journals
-  title: >-
-    JOANNE: Joint dropsonde Observations of the Atmosphere in tropical North
-    atlaNtic meso-scale Environments
-  title-short: JOANNE
-  type: article-journal
-  URL: https://essd.copernicus.org/articles/13/5253/2021/
-  volume: '13'
-
+Script to pre-process drop sonde data from JOANNE dataset: references
+https://doi.org/10.25326/246, George et al. 2021.
 
 The dataset storage location in this Repository is assumed to be at
     ../data/observation/cloud_composite/raw/Level_3/EUREC4A_JOANNE_Dropsonde-RD41_Level_3_v2.0.0.nc
@@ -86,7 +11,6 @@ The script will:
     - modify attributes
     - save the produced datset to netcdf file
 The produced dataset is stored in ../data/observation/dropsonde/processed/drop_sondes.nc
-
 """
 
 import datetime
