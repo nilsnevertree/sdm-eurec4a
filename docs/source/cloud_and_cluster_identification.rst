@@ -37,7 +37,7 @@ Each one of the spikes will be identified as an individual cloud by the script s
 The script below ignores holes between the clouds if they do not exceed a specified duration.
 
 .. image:: images/cloud_cluster_ATR_example.png
-    :width: 400px
+    :width: 1200px
     :align: center
 
 
