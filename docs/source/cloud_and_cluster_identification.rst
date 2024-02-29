@@ -10,7 +10,7 @@ In the whole cloud composite dataset, many differnt cloud types can be found.
 Thus it might make sense to take a look on individual cloud.
 Therefore a script is implemented to identify individual clouds in the cloud composite dataset ``data/observation/cloud_composite/processed/cloud_composite.nc``.
 To obtain this see  
-:ref: `data_preprocessing`
+:ref:`data_preprocessing`
 
 Below you can find a copy of this script.
 The important lines are highlighted.
