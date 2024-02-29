@@ -6,15 +6,15 @@ https://doi.org/10.25326/237 which is stored locally in
 
     - rename variables to longer names
     - convert time to datetime object
-    - use diameter as coordinate for size bins
+    - creates radius variable and uses it as coordinate for size bins
     - modify attributes
     - save the produced datset to netcdf file
 The produced dataset is stored in ../data/observation/cloud_composite/processed
 """
 
+import datetime
 import logging
 
-from datetime import datetime
 from pathlib import Path
 
 import cftime
@@ -23,13 +23,17 @@ import numpy as np
 import pandas as pd
 import xarray as xr
 
+from sdm_eurec4a import get_git_revision_hash
+from sdm_eurec4a.conversions import lwc_from_psd, msd_from_psd, vsd_from_psd
+from sdm_eurec4a.reductions import validate_datasets_same_attrs
+
 
 REPO_PATH = Path(__file__).resolve().parent.parent.parent
 
 ORIGIN_DIRECTORY = REPO_PATH / Path("data/observation/cloud_composite/raw")
 DESTINATION_DIRECTORY = REPO_PATH / Path("data/observation/cloud_composite/processed")
 DESTINATION_DIRECTORY.mkdir(parents=True, exist_ok=True)
-DESTINATION_FILENAME = "cloud_composite.nc"
+DESTINATION_FILENAME = "cloud_composite_si_units.nc"
 
 
 logging.basicConfig(
@@ -39,6 +43,7 @@ logging.basicConfig(
 )
 logging.info("============================================================")
 logging.info("Start cloud composite pre-processing")
+logging.info("Git hash: %s", get_git_revision_hash())
 logging.info("Origin directory: %s", ORIGIN_DIRECTORY.relative_to(REPO_PATH))
 logging.info("Destination directory: %s", DESTINATION_DIRECTORY.relative_to(REPO_PATH))
 logging.info("Destination filename: %s", DESTINATION_FILENAME)
@@ -46,7 +51,13 @@ logging.info("Destination filename: %s", DESTINATION_FILENAME)
 
 def add_flight_number(ds: xr.Dataset) -> xr.Dataset:
     """
-    Add flight number to dataset based on filename ending.
+    Add flight number to dataset based on filename ending. This function is
+    used as a pre-processing step when opening the files of the cloud composite
+    dataset.
+
+    Coutris, P. (2021).  SAFIRE
+    ATR42: PMA/Cloud composite dataset.  [Dataset].  Aeris.
+    https://doi.org/10.25326/237
 
     Args:
         ds (xr.Dataset): dataset to add flight number to
@@ -62,109 +73,6 @@ def add_flight_number(ds: xr.Dataset) -> xr.Dataset:
     ds["flight_number"] = flight_number
     ds["flight_id"] = ds.attrs["flight_id"]
     return ds
-
-
-def validate_datasets_same_attrs(datasets: list, skip_attrs: list = []) -> bool:
-    """
-    Check if all datasets have the same attributes except for the ones in
-    skip_attrs.
-
-    Args:
-        datasets (list): list of datasets
-        skip_attrs (list): list of attributes to skip, default is empty list
-
-    Returns:
-        bool: True if all attributes are the same, False otherwise
-    """
-    attrs = []
-    for ds in datasets:
-        attrs.append(ds.attrs)
-    attrs = pd.DataFrame(attrs)
-    attrs = attrs.drop(columns=skip_attrs)
-    nunique_attrs = attrs.nunique()
-    return np.all(nunique_attrs == 1)
-
-
-empty_ds1 = xr.Dataset(
-    coords={},
-    data_vars={},
-    attrs={
-        "Conventions": "abc",
-        "history": "2021-08-12 14:23:22 GMT",
-        "edition": 2,
-        "random_number": 1,
-        "random_string": "first random",
-    },
-)
-
-empty_ds2 = xr.Dataset(
-    coords={},
-    data_vars={},
-    attrs={
-        "Conventions": "abc",
-        "history": "2021-08-12 14:23:22 GMT",
-        "edition": 2,
-        "random_number": 2,
-        "random_string": "first random",
-    },
-)
-
-
-empty_ds3 = xr.Dataset(
-    coords={},
-    data_vars={},
-    attrs={
-        "Conventions": "abc",
-        "history": "2021-08-12 14:23:22 GMT",
-        "edition": 2,
-        "random_number": 1,
-        "random_string": "second random",
-    },
-)
-
-
-# test to check using all combinations of the three empty datasets to validate if the attributes are the same or not
-# The test function is parametrized with the three empty datasets
-# and it usees the validate_datasets_same_attrs function to check if the attributes are the same or not
-# \
-def test_validate_datasets_same_attrs():
-    # same dataset
-    assert (
-        validate_datasets_same_attrs(
-            [empty_ds1, empty_ds1],
-        )
-        == True
-    )
-    # different number
-    assert (
-        validate_datasets_same_attrs(
-            [empty_ds1, empty_ds2],
-        )
-        == False
-    )
-    # different string
-    assert (
-        validate_datasets_same_attrs(
-            [empty_ds1, empty_ds3],
-        )
-        == False
-    )
-    # different number but skip string
-    assert validate_datasets_same_attrs([empty_ds1, empty_ds2], skip_attrs=["random_string"]) == False
-    # different number and skip number
-    assert validate_datasets_same_attrs([empty_ds1, empty_ds2], skip_attrs=["random_number"]) == True
-    # different string but skip number
-    assert validate_datasets_same_attrs([empty_ds2, empty_ds3], skip_attrs=["random_number"]) == False
-    # different string and number - skip both
-    assert (
-        validate_datasets_same_attrs(
-            [empty_ds2, empty_ds3], skip_attrs=["random_number", "random_string"]
-        )
-        == True
-    )
-
-
-test_validate_datasets_same_attrs()
 
 
 files = sorted(ORIGIN_DIRECTORY.glob("*.nc"))
@@ -215,7 +123,7 @@ try:
         "alt": "alt",
         "PSD": "particle_size_distribution",
         "MSD": "mass_size_distribution",
-        "LWC": "liquid_water_content",
+        "LWC": "liquid_water_content_original",
         "NT": "total_concentration",
         "MVD": "median_volume_diameter",
         "M6": "radar_reflectivity_factor",
@@ -234,35 +142,128 @@ try:
     # Convert time to datetime object
     # Note, that the time is in seconds since 2020-01-01 00:00:00
     logging.info("Convert UTC time to datetime object")
+    attrs = datas["time"].attrs
     datas["time"] = cftime.num2date(
-        datas.time, units="seconds since 2020-01-01 00:00:00", calendar="standard"
+        datas["time"], units="seconds since 2020-01-01 00:00:00", calendar="standard"
     )
+    attrs.update(
+        unit="cftime nanoseconds",
+        calender="standard",
+        comment="UTC time. Seconds since 2020-01-01 00:00:00. Use cftime.num2date to convert to datetime object.",
+    )
+    datas["time"].attrs.update(attrs)
 
     logging.info("Validate that diameter and bin_width do not vary along time axis")
     assert np.all(datas.diameter == datas.diameter.isel(time=0))
     assert np.all(datas.bin_width == datas.bin_width.isel(time=0))
-    datas["diameter"] = datas["diameter"].mean("time", keep_attrs=True)  # convert from m to um
-    datas["bin_width"] = datas["bin_width"].mean("time", keep_attrs=True)  # convert from m to um
+    datas["diameter"] = datas["diameter"].mean("time", keep_attrs=True)
+    datas["bin_width"] = datas["bin_width"].mean("time", keep_attrs=True)
 
-    logging.info("Use diameter as coordinate for size bins")
-    datas = datas.swap_dims({"size": "diameter"})
+    logging.info("Renormalize the particle size distribution from #/L/µm to #/m^3")
+    # Multiply the particle size distribution by the bin width to get the total number of particles in #/L
+    datas["particle_size_distribution"] = datas["particle_size_distribution"] * datas["bin_width"]
+    # Convert from #/l to #/m^3 ->  * 1e3
+    datas["particle_size_distribution"] = datas["particle_size_distribution"] * 1e3
+    # Update attributes
+    attrs = datas["particle_size_distribution"].attrs
+    datas["particle_size_distribution"].attrs.update(
+        unit="#/m^3",
+        comment="histogram: each bin gives the number of droplets per cubic meter of air, NOT normalized by the bin width. To normalize, divide by the bin width.",
+    )
+    logging.info("Convert diameter and bin_width to meters")
+    # Convert from µm to m -> 1e-6
+    # Diameter
+    attrs = datas["diameter"].attrs
+    datas["diameter"] = datas["diameter"] * 1e-6
+    attrs.update(
+        unit="meter",
+    )
+    datas["diameter"].attrs.update(attrs)
+    # Bin width
+    attrs = datas["bin_width"].attrs
+    datas["bin_width"] = datas["bin_width"] * 1e-6
+    attrs.update(
+        unit="meter",
+    )
+    datas["bin_width"].attrs.update(attrs)
+
+    logging.info("Create radius variable and use it as leading dimension")
+    datas["radius"] = datas["diameter"] / 2
+    datas["radius"].attrs.update(long_name="Radius", unit="m", comment="radius of the droplets")
+
+    logging.info("Use radius as leading dimension for size bins")
+    datas = datas.swap_dims({"size": "radius"})
 
     logging.info("Modify and add attributes")
     datas.assign_attrs(
         {
-            "creation_date": "varying, see single source files",
             "flight_id": "varying, see also flight_number",
             "Modified_by": "Nils Niebaum",
             "Modification_date_UTC": datetime.datetime.now(datetime.UTC).strftime("%Y-%m-%d %H:%M:%S"),
+            "GitHub Repository": "https://github.com/nilsnevertree/sdm-eurec4a",
+            "GitHub Commit": get_git_revision_hash(),
         }
     )
+
+    logging.info("Add volume size distribution to dataset")
+    # Calculate volume size distribution
+    datas["volume_size_distribution"] = vsd_from_psd(
+        datas,
+        psd_name="particle_size_distribution",
+        psd_factor=1,
+        scale_name="radius",
+        scale_factor=1,
+        radius_given=True,
+    )
+    comment = "histogram: each bin gives the volume of droplets "
+    comment += "per cubic meter of air assuming spherical droplets."
+    comment += "\nNOT normalized by the bin width. To normalize, divide by the bin width."
+    datas["volume_size_distribution"].attrs.update(
+        comment=comment,
+    )
+
+    logging.info("Add mass size distribution to dataset")
+    # Calculate mass size distribution
+    datas["mass_size_distribution"] = msd_from_psd(
+        datas,
+        psd_name="particle_size_distribution",
+        psd_factor=1,
+        scale_name="radius",
+        scale_factor=1,
+        radius_given=True,
+        rho_water=1000,
+    )
+    comment = "histogram: each bin gives the mass of droplets "
+    comment += "per cubic meter of air assuming water density of 1000 kg/m3."
+    comment += "\nNOT normalized by the bin width. To normalize, divide by the bin width."
+
+    datas["mass_size_distribution"].attrs.update(comment=comment)
+
+    logging.info("Add liquid water content to dataset")
+    # Calculate liquid water content
+    datas["liquid_water_content"] = lwc_from_psd(
+        datas,
+        psd_name="particle_size_distribution",
+        psd_factor=1,
+        scale_name="radius",
+        scale_factor=1,
+        radius_given=True,
+        rho_water=1000,
+    )
+
+    comment = "Liquid water content calculated from the particle size distribution."
+    comment += "LWC = sum over all radii of (rho_water * PSD * 4/3 * pi * radius^3)"
+    comment += "\nNOT normalized by the bin width. To normalize, divide by the bin width."
+
+    datas["liquid_water_content"].attrs.update(comment=comment)
+
 
 except Exception as e:
     logging.exception("Error while organizing dataset")
     raise e
 
 
-print(f"Save the produced datset to netcdf file?\n{DESTINATION_DIRECTORY / 'cloud_composite.nc'}")
+print(f"Save the produced datset to netcdf file?\n{DESTINATION_DIRECTORY / DESTINATION_FILENAME}")
 user_input = input("Do you want to continue running the script? (y/n): ")
 if user_input.lower() == "y":
     print("Saving dataset\nPlease wait...")

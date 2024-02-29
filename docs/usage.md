@@ -6,6 +6,7 @@
 ``` -->
 
 [source/data_preprocessing]: data
+[source/cloud_and_cluster_identification]: clouds
 
 
 ```{toctree}
@@ -15,4 +16,5 @@ maxdepth: 2
 ---
 
 source/data_preprocessing
+source/cloud_and_cluster_identification
 ```

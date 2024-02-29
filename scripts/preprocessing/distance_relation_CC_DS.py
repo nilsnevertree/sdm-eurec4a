@@ -44,14 +44,8 @@ print(FILEPATH)
 cloud_composite = xr.open_dataset(FILEPATH, chunks={"time": 1000})
 # display(cloud_composite)
 
-FILEPATH = REPOSITORY_ROOT / Path(
-    "data/observation/dropsonde/Level_3/EUREC4A_JOANNE_Dropsonde-RD41_Level_3_v2.0.0.nc"
-)
+FILEPATH = REPOSITORY_ROOT / Path("data/observation/dropsonde/processed/drop_sondes.nc")
 drop_sondes = xr.open_dataset(FILEPATH)
-drop_sondes = drop_sondes.rename({"launch_time": "time"})
-drop_sondes = drop_sondes.swap_dims({"sonde_id": "time"})
-drop_sondes = drop_sondes.sortby("time")
-drop_sondes = drop_sondes.chunk({"time": -1})
 
 # 1. Create combined dataset
 # 2. Compute the distances
@@ -69,7 +63,7 @@ ds_combined = xr.Dataset(
         "author": "Nils Niebaum",
         "author email": "nils-ole.niebaum@mpimet.mpg.de",
         "featureType": "trajectory",
-        "creation_time": str(datetime.datetime.now()),
+        "creation_time": datetime.datetime.now(datetime.UTC).strftime("%Y-%m-%d %H:%M:%S"),
     },
 )
 ds_combined = ds_combined.drop_vars(["sonde_id"])

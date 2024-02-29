@@ -1,6 +1,7 @@
 from typing import Union
 
 import numpy as np
+import pandas as pd
 import xarray as xr
 
 from dask import array as dask_array
@@ -316,3 +317,24 @@ def shape_dim_as_dataarray(da, output_dim: str):
             axis_list.append(da.dims.index(dim))
 
     return da[output_dim].expand_dims(dim=expand_dict, axis=axis_list)
+
+
+def validate_datasets_same_attrs(datasets: list, skip_attrs: list = []) -> bool:
+    """
+    Check if all datasets have the same attributes except for the ones in
+    skip_attrs.
+
+    Args:
+        datasets (list): list of datasets
+        skip_attrs (list): list of attributes to skip, default is empty list
+
+    Returns:
+        bool: True if all attributes are the same, False otherwise
+    """
+    attrs = []
+    for ds in datasets:
+        attrs.append(ds.attrs)
+    attrs = pd.DataFrame(attrs)
+    attrs = attrs.drop(columns=skip_attrs)
+    nunique_attrs = attrs.nunique()
+    return np.all(nunique_attrs == 1)
