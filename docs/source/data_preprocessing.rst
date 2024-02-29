@@ -5,7 +5,7 @@ In order to use the package with all advantages, it makes sense, to pre-process 
 
 ATR cloud composite
 -------------------
-To download the already pre-processed ATR data one can use wget and download the [Cloud Composite](https://observations.ipsl.fr/aeris/eurec4a-data/AIRCRAFT/ATR/PMA/PROCESSED/CloudComposite/) dataset.
+To download the already pre-processed ATR data one can use wget and download the `Cloud Composite <https://doi.org/10.25326/237>`_.
 Excecute the following command in the ``data/observation/cloud_composite/raw`` folder!
 
 .. code-block:: bash
@@ -29,8 +29,9 @@ Excecute the following command in the ``data/observation/cloud_composite/raw`` f
 Drop sonde dataset JOANNE
 -------------------
 
-The drop sonde dataset [JOANNE](https://doi.org/10.25326/246) from EUREC4A is also available for download.
+The drop sonde dataset `JOANNE <https://doi.org/10.25326/246>`_ from EUREC4A is also available for download.
 Again you can use ``wget`` download it into the correct directory in the repository directory tree:
+
 .. code-block:: bash
     cd data/observation/dropsonde
     wget -r --no-parent -nH --cut-dirs=1 --reject "index.html*" --accept "*.nc" -P SPECIFYTHIS https://observations.ipsl.fr/aeris/eurec4a-data/PRODUCTS/MERGED-MEASUREMENTS/JOANNE/v2.0.0/SPECIFYTHIS/
