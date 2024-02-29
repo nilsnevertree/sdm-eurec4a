@@ -29,7 +29,8 @@ Excecute the following command in the ``data/observation/cloud_composite/raw`` f
 Drop sonde dataset JOANNE
 -------------------
 
-Again you can use ``wget`` for this:
+The drop sonde dataset [JOANNE](https://doi.org/10.25326/246) from EUREC4A is also available for download.
+Again you can use ``wget`` download it into the correct directory in the repository directory tree:
 .. code-block:: bash
     cd data/observation/dropsonde
     wget -r --no-parent -nH --cut-dirs=1 --reject "index.html*" --accept "*.nc" -P SPECIFYTHIS https://observations.ipsl.fr/aeris/eurec4a-data/PRODUCTS/MERGED-MEASUREMENTS/JOANNE/v2.0.0/SPECIFYTHIS/
