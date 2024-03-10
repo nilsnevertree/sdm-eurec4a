@@ -12,7 +12,9 @@ Therefore a script is implemented to identify individual clouds in the cloud com
 To obtain this see also :ref:`data_preprocessing`
 
 *Script*
+
 The dataset containing the identified clouds looks like this:
+
 .. code-block:: python
 
     <xarray.Dataset>
@@ -67,7 +69,7 @@ The script below ignores holes between the clouds if they do not exceed a specif
     :align: center
 
 
-**Script**
+*Script*
 
 .. note::
     - The script below is used to identify cloud clusters in the ATR dataset.
@@ -79,6 +81,7 @@ The script below ignores holes between the clouds if they do not exceed a specif
     - For this procedure, the function :py:func:`sdm\_eurec4a.identification.consecutive\_events\_xr` is used. For more information see the API documentation of this function. You can use the search function at the top right to find it.
 
 The dataset created by the script which used the pre-defined ``rain_mask`` and with ``min_duration_cloud_holes = 5`` looks like this:
+
 .. code-block:: python
 
     <xarray.Dataset>
