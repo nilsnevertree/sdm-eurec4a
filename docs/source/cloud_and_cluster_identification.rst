@@ -10,6 +10,7 @@ In the whole cloud composite dataset, many differnt cloud types can be found.
 Thus it might make sense to take a look on individual cloud.
 Therefore a script is implemented to identify individual clouds in the cloud composite dataset ``data/observation/cloud_composite/processed/cloud_composite.nc``.
 To obtain this dataset from see also :ref:`data_preprocessing`.
+
 The dataset containing the identified clouds looks like this:
 
 .. code-block:: python
@@ -68,7 +69,7 @@ The script below ignores holes between the clouds if they do not exceed a specif
     :align: center
 
 
-**Script**
+*Script*
 
 .. note::
     - The script below is used to identify cloud clusters in the ATR dataset.
