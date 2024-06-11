@@ -233,3 +233,135 @@ def lwc_from_psd(
     lwc.name = "liquid_water_content"
     # warnings.warn("units is set to kg/m^3. Make sure to check the units and otherwise set the value!")
     return lwc
+
+
+def saturation_vapour_pressure(temperature: np.ndarray) -> np.ndarray:
+    """
+    Calculate the saturation vapour pressure over water for a given
+    temperature.
+
+    Parameters
+    ----------
+    temperature : np.ndarray
+        The temperature in Kelvin.
+
+    Returns
+    -------
+    np.ndarray
+        The saturation vapour pressure in Pa.
+    """
+    T = temperature
+    A_w = 2.543e11  # Pa
+    B_w = 5420  # K
+    es = A_w * np.exp(-B_w / T)
+    es = __rename_if_dataarray__(es, "saturation_vapour_pressure")
+    return es
+
+
+def water_vapour_pressure(
+    specific_humidity: np.ndarray, pressure: np.ndarray, simplified: bool = False
+) -> np.ndarray:
+    """
+    Calculate the water vapour pressure from the specific humidity and the
+    pressure. This follows (2.80) from Introduction to Clouds: From the
+    Microscale to Climate.
+
+    Simplified version uses:
+    q_v = (epsilon * e) /  p
+    e = q_v * p / epsilon
+
+    Non simplified version uses:
+    q_v = (epsilon * e) / (p - e + epsilon * e)
+    e = q_v * p / (epsilon + q_v - epsilon * q_v)
+
+
+    Citation
+    --------
+    (2.80) from Introduction to Clouds: From the Microscale to Climate
+    Ulrike Lohmann, Felix Lüönd, Fabian Mahrt, and Gregor Feingold
+    ISBN: 978-1-107-01822-8 978-1-139-08751-3
+
+
+    Parameters
+    ----------
+    specific_humidity : np.ndarray
+        The specific humidity in kg/kg.
+    pressure : np.ndarray
+        The pressure in Pa.
+
+    Returns
+    -------
+    np.ndarray
+        The vapour pressure in Pa.
+    """
+    q_v = specific_humidity
+    p = pressure
+    epsilon = 0.622
+    if simplified:
+        e = q_v * p / epsilon
+    else:
+        e = q_v * p / (epsilon + q_v - epsilon * q_v)
+    return e
+
+
+def relative_humidity(saturation_vapour_pressure: np.ndarray, vapour_pressure: np.ndarray) -> np.ndarray:
+    """
+    Calculate the relative humidity from the saturation vapour pressure and the
+    vapour pressure.
+
+    Parameters
+    ----------
+    saturation_vapour_pressure : np.ndarray
+        The saturation vapour pressure in Pa.
+    vapour_pressure : np.ndarray
+        The vapour pressure in Pa.
+
+    Returns
+    -------
+    np.ndarray
+        The relative humidity in %.
+    """
+    rh = 100 * vapour_pressure / saturation_vapour_pressure
+    rh = __rename_if_dataarray__(rh, "relative_humidity")
+    return rh
+
+
+def relative_humidity_from_tps(
+    temperature: np.ndarray,
+    pressure: np.ndarray,
+    specific_humidity: np.ndarray,
+    simplified: bool = False,
+):
+    """
+    Calculate the relative humidity from the temperature, pressure and specific
+    humidity.
+
+    Parameters
+    ----------
+    temperature : np.ndarray
+        The temperature in Kelvin.
+    pressure : np.ndarray
+        The pressure in Pa.
+    specific_humidity : np.ndarray
+        The specific humidity in kg/kg.
+    simplified : bool, optional
+        If set to True, the simplified version is used.
+        Default is False.
+
+    Returns
+    -------
+    np.ndarray
+        The relative humidity in %.
+    """
+    es = saturation_vapour_pressure(temperature)
+    e = water_vapour_pressure(specific_humidity, pressure, simplified)
+    rh = relative_humidity(es, e)
+    rh = __rename_if_dataarray__(rh, "relative_humidity")
+    return rh
+
+
+def __rename_if_dataarray__(da, name):
+    if isinstance(da, xr.DataArray):
+        print("rename dataarray")
+        da.name = name
+    return da
