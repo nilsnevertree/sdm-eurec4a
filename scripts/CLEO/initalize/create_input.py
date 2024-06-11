@@ -1,6 +1,9 @@
 # %%
 import datetime
+import logging
 import os
+import sys
+import traceback
 
 from pathlib import Path
 
@@ -11,7 +14,7 @@ import numpy as np
 import xarray as xr
 import yaml
 
-from sdm_eurec4a import RepositoryPath, get_git_revision_hash
+from sdm_eurec4a import RepositoryPath, conversions, get_git_revision_hash
 from sdm_eurec4a.identifications import (
     match_clouds_and_cloudcomposite,
     match_clouds_and_dropsondes,
@@ -27,57 +30,89 @@ from sdm_eurec4a.visulization import (
 
 
 # %%
-
-# %%
 plt.style.use("default")
 default_colors = set_custom_rcParams()
 dark_colors = adjust_lightness_array(default_colors, amount=0.5)
-from matplotlib import rc
+# from matplotlib import rc
 
 
-# rc('font',**{'family':'sans-serif','sans-serif':['Helvetica']})
-## for Palatino and other serif fonts use:
-# rc('font',**{'family':'serif','serif':['Palatino']})
-rc("text", usetex=False)
+# # rc('font',**{'family':'sans-serif','sans-serif':['Helvetica']})
+# ## for Palatino and other serif fonts use:
+# # rc('font',**{'family':'serif','serif':['Palatino']})
+# rc("text", usetex=False)
 
 # THE PATH TO THE SCRIPT DIRECTORY
-script_dir = os.path.abspath("/home/m/m301096/repositories/sdm-eurec4a/scripts/CLEO/initalize")
+script_dir = Path("/home/m/m301096/repositories/sdm-eurec4a/scripts/CLEO/initalize")
 print(script_dir)
 
 # REPOSITORY_ROOT = Path(script_dir).parents[2]
 REPOSITORY_ROOT = RepositoryPath("levante")()
 print(REPOSITORY_ROOT)
 
-fig_path = REPOSITORY_ROOT / Path(f"results/CLEO/create_input")
-fig_path.mkdir(parents=True, exist_ok=True)
+# ======================================
+# %% Define output and figure directories
 
-# %%
-plt.style.use("default")
-default_colors = set_custom_rcParams()
-from matplotlib import rc
-
-
-# rc('font',**{'family':'sans-serif','sans-serif':['Helvetica']})
-## for Palatino and other serif fonts use:
-# rc('font',**{'family':'serif','serif':['Palatino']})
-rc("text", usetex=False)
-
-# THE PATH TO THE SCRIPT DIRECTORY
-script_dir = os.path.abspath("/home/m/m301096/repositories/sdm-eurec4a/scripts/CLEO/initalize")
-print(script_dir)
-
-# REPOSITORY_ROOT = Path(script_dir).parents[2]
-REPOSITORY_ROOT = RepositoryPath("levante")()
-print(REPOSITORY_ROOT)
-
-output_dir = REPOSITORY_ROOT / "data/model/input/all_rain_clusters_shallow"
+output_dir = REPOSITORY_ROOT / "data/model/input/new"
 output_dir.mkdir(parents=True, exist_ok=True)
 
 
-fig_path = REPOSITORY_ROOT / Path(f"results/CLEO/create_input")
+fig_path = REPOSITORY_ROOT / "results" / script_dir.relative_to(REPOSITORY_ROOT) / "create_input"
 fig_path.mkdir(parents=True, exist_ok=True)
 
+
+# ======================================
+#  Define logger
+
+
+# %%
+# create a logger which stores the log file in the script directory of the logger directory
+log_dir = REPOSITORY_ROOT / Path("logs") / Path(script_dir).relative_to(REPOSITORY_ROOT)
+log_dir.mkdir(parents=True, exist_ok=True)
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
+
+# create a file handler
+handler = logging.FileHandler(log_dir / 'create_input.log')
+handler.setLevel(logging.INFO)
+
+# create a console handler
+console_handler = logging.StreamHandler()
+console_handler.setLevel(logging.INFO)
+
+# create a logging format
+formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
+handler.setFormatter(formatter)
+console_handler.setFormatter(formatter)
+
+# add the handlers to the logger
+logger.addHandler(handler)
+logger.addHandler(console_handler)
+
+
+def handle_exception(exc_type, exc_value, exc_traceback):
+    if issubclass(exc_type, KeyboardInterrupt):
+        sys.__excepthook__(exc_type, exc_value, exc_traceback)
+        return
+
+    logger.critical(
+        "Execution terminated due to an Exception", exc_info=(exc_type, exc_value, exc_traceback)
+    )
+
+
+sys.excepthook = handle_exception
+
+
+# %%
+
+logging.info("============================================================")
+logging.info("Start preprocessing of identified clouds to create input for CLEO")
+logging.info("Git hash: %s", get_git_revision_hash())
+logging.info("Date: %s", datetime.datetime.now(datetime.UTC).strftime("%Y-%m-%d %H:%M:%S"))
+logging.info("============================================================")
+
+
 # %% [markdown]
+# ======================================
 # ### Load datasets
 #
 
@@ -85,11 +120,11 @@ fig_path.mkdir(parents=True, exist_ok=True)
 identified_clouds = xr.open_dataset(
     "/home/m/m301096/repositories/sdm-eurec4a/data/observation/cloud_composite/processed/identified_clouds/identified_clusters_rain_mask_5.nc"
 )
-# select only clouds which are between 800 and 1100 m
+# select only clouds which are
+# below 1500m and have a duration of at least 10s.
 identified_clouds = identified_clouds.where(
-    # (identified_clouds.alt >= 700)
-    (identified_clouds.alt <= 1500)
-    # & (identified_clouds.vertical_extent < 100
+    (identified_clouds["alt"] <= 1500)
+    & (identified_clouds["duration"] >= np.timedelta64(10, "s"))
     ,
     drop=True,
 )
@@ -109,7 +144,15 @@ drop_sondes = xr.open_dataset(
     REPOSITORY_ROOT / Path("data/observation/dropsonde/processed/drop_sondes.nc")
 )
 
-drop_sondes = drop_sondes.where(drop_sondes.alt <= 1500, drop=True)
+drop_sondes = drop_sondes.where(drop_sondes.alt <= 1600, drop=True)
+
+# add relative humidity to the dataset
+
+drop_sondes["relative_humidity"] = conversions.relative_humidity_from_tps(
+        temperature = drop_sondes["air_temperature"],
+        pressure= drop_sondes["pressure"],
+        specific_humidity= drop_sondes["specific_humidity"],
+    )
 
 
 # Add radii and altitude arrays to datasets
@@ -160,18 +203,6 @@ for t in identified_clouds.sortby("liquid_water_content").time[-10:]:
     axs[1].annotate(subdata.cloud_id.data, (subdata["horizontal_extent"], subdata["vertical_extent"]))
 fig.savefig(fig_path / Path("cloud_properties.png"))
 
-# %% [markdown]
-# ### Lets plot the PSD and Thermodynamic profiles for lets say three clouds to see differences
-#
-#
-
-# %%
-identified_clouds.sortby("liquid_water_content").cloud_id[:10]
-
-# %% [markdown]
-#  ### Create dictonary of input class for each cloud
-
-# %%
 
 
 def main(chosen_id):
@@ -198,6 +229,10 @@ def main(chosen_id):
     else:
         ds_cloud = identified_clouds
 
+    cloud_information["altitude"] = ds_cloud['alt'].data
+    cloud_information["duration"] = ds_cloud["duration"].dt.seconds.data
+    cloud_information["time"] = ds_cloud['time'].dt.strftime("%Y-%m-%d %H:%M:%S").data
+
     ds_cloudcomposite_with_zeros = match_clouds_and_cloudcomposite(
         ds_clouds=ds_cloud,
         ds_cloudcomposite=cloud_composite,
@@ -215,6 +250,15 @@ def main(chosen_id):
     ds_cloudcomposite = ds_cloudcomposite_with_zeros.where(
         ds_cloudcomposite_with_zeros["particle_size_distribution"] != 0
     )
+
+    logging.info(f"Number of dropsondes: {ds_dropsondes["time"].shape}")
+    logging.info(f"Number of cloudcomposite: {ds_cloudcomposite["time"].shape}")
+
+    if ds_cloudcomposite["time"].shape[0] == 0:
+        raise ValueError("No cloudcomposite data found for cloud")
+    if ds_dropsondes["time"].shape[0] == 0:
+        raise ValueError("No dropsonde data found for cloud")
+
 
     # %% [markdown]
     # # Split data into cloud and rain
@@ -257,61 +301,6 @@ def main(chosen_id):
     )
     fig.tight_layout()
     fig.savefig(subfig_path / Path("PSD_radius_time.png"))
-
-    # %%
-    fig, axs = plt.subplots(ncols=3, nrows=1, figsize=(12, 4), sharey=True)
-
-    scatter_style = dict(alpha=0.75, linewidth=0.7)
-
-    ax_q, ax_ta, ax_theta = axs
-    # First plot
-    ax_q.plot(
-        ds_dropsondes["specific_humidity"].T,
-        ds_dropsondes["alt"].T,
-        color=default_colors[0],
-        # label="Spec. Hum.",
-        **scatter_style,
-    )
-
-    ax_q.set_xlabel("Specific humidity [g/kg]")
-    ax_q.set_ylabel("alt [m]")
-    ax_q.xaxis.label.set_color(default_colors[0])  # Set the color of x-axis label
-    ax_q.tick_params(axis="x", colors=default_colors[0])  # Set the color of x-axis ticks
-
-    # Second plot on a new x-axis
-    ax_ta.plot(
-        ds_dropsondes["air_temperature"].T,
-        ds_dropsondes["alt"].T,
-        color=default_colors[1],
-        # label="Air Temperature",
-        **scatter_style,
-    )
-
-    ax_ta.set_xlabel("Air Temperature [K]")
-    ax_ta.xaxis.label.set_color(default_colors[1])  # Set the color of x-axis label
-    ax_ta.tick_params(axis="x", colors=default_colors[1])  # Set the color of x-axis ticks
-
-    # Thrid plot on a new x-axis
-    ax_theta.plot(
-        ds_dropsondes["potential_temperature"].T,
-        ds_dropsondes["alt"].T,
-        color=default_colors[2],
-        # label="Pot. Temperature",
-        **scatter_style,
-    )
-
-    ax_theta.set_xlabel("Pot. Temperature [K]")
-    ax_theta.xaxis.label.set_color(default_colors[2])  # Set the color of x-axis label
-    ax_theta.tick_params(axis="x", colors=default_colors[2])  # Set the color of x-axis ticks
-
-    for ax in axs:
-        ax.axhline(ds_cloud.alt, color="r", linestyle="--", label="PSD measurement")
-        ax.legend(handler_map=handler_map_alpha())
-        ax.tick_params(axis="x", labelrotation=-33)
-
-    fig.tight_layout()
-    fig.suptitle(f"Dropsondes related to cloud {chosen_id}")
-    fig.savefig(subfig_path / Path("dropsonde_properties.png"))
 
     # %%
     psd_rain_fit = transfer.PSD_LnNormal()
@@ -426,9 +415,88 @@ def main(chosen_id):
     fig.savefig(subfig_path / Path("fitted_psd.png"))
 
     # %% [markdown]
-    # ### Allowing a variable x_split
+    # ## Thermodynamics
     #
-    #
+
+    #%%
+
+    fig, axs = plt.subplots(ncols=2, nrows=2, figsize=(8, 8), sharey=True)
+
+    scatter_style = dict(alpha=0.75, linewidth=0.7)
+
+    ax_q, ax_ta  = axs[0]
+    ax_rh, ax_theta = axs[1]
+    ax_q.set_xlim(0, 20)
+    ax_rh.set_xlim(30, 110)
+    ax_ta.set_xlim(285, 305)
+    ax_theta.set_xlim(295, 308)
+
+    # First plot
+    ax_q.plot(
+        1e3 * ds_dropsondes["specific_humidity"].T,
+        ds_dropsondes["alt"].T,
+        color=default_colors[0],
+        # label="Spec. Hum.",
+        **scatter_style,
+    )
+
+    ax_q.set_xlabel("Specific humidity [g/kg]")
+    ax_q.set_ylabel("alt [m]")
+    ax_q.xaxis.label.set_color(default_colors[0])  # Set the color of x-axis label
+    ax_q.tick_params(axis="x", colors=default_colors[0])  # Set the color of x-axis ticks
+
+    # First plot
+    ax_rh.plot(
+        ds_dropsondes["relative_humidity"].T,
+        ds_dropsondes["alt"].T,
+        color=default_colors[3],
+        # label="Spec. Hum.",
+        **scatter_style,
+    )
+    ax_rh.axvline(100, color="grey", linestyle="-", label="Saturation")
+    ax_rh.set_xlabel("Relative humidity [%]")
+    ax_rh.set_ylabel("alt [m]")
+    ax_rh.xaxis.label.set_color(default_colors[3])  # Set the color of x-axis label
+    ax_rh.tick_params(axis="x", colors=default_colors[3])  # Set the color of x-axis ticks
+
+
+    # Second plot on a new x-axis
+    ax_ta.plot(
+        ds_dropsondes["air_temperature"].T,
+        ds_dropsondes["alt"].T,
+        color=default_colors[1],
+        # label="Air Temperature",
+        **scatter_style,
+    )
+
+    ax_ta.set_xlabel("Air Temperature [K]")
+    ax_ta.xaxis.label.set_color(default_colors[1])  # Set the color of x-axis label
+    ax_ta.tick_params(axis="x", colors=default_colors[1])  # Set the color of x-axis ticks
+
+    # Thrid plot on a new x-axis
+    ax_theta.plot(
+        ds_dropsondes["potential_temperature"].T,
+        ds_dropsondes["alt"].T,
+        color=default_colors[2],
+        # label="Pot. Temperature",
+        **scatter_style,
+    )
+
+    ax_theta.set_xlabel("Pot. Temperature [K]")
+    ax_theta.xaxis.label.set_color(default_colors[2])  # Set the color of x-axis label
+    ax_theta.tick_params(axis="x", colors=default_colors[2])  # Set the color of x-axis ticks
+
+    for ax in axs.flatten():
+        ax.set_ylim(0, 1500)
+        ax.axhline(ds_cloud.alt, color="r", linestyle="--", label="PSD measurement")
+        ax.legend(handler_map=handler_map_alpha())
+        ax.tick_params(axis="x", labelrotation=-33)
+
+    fig.suptitle(f"Dropsondes related to cloud {chosen_id}")
+    fig.tight_layout()
+    fig.savefig(subfig_path / Path("dropsonde_properties.png"))
+
+    # %% [markdown]
     # force the split height to be above 150m and below the top of the domain
 
     # %%
@@ -436,6 +504,8 @@ def main(chosen_id):
         air_temperature=transfer.ThermodynamicSplitLinear(),
         specific_humidity=transfer.ThermodynamicSplitLinear(),
         potential_temperature=transfer.ThermodynamicSplitLinear(),
+        relative_humidity=transfer.ThermodynamicSplitLinear(),
+
     )
 
     for var in thermo_fit:
@@ -460,32 +530,66 @@ def main(chosen_id):
 
     # print([thermo_fit[key].get_x_split() for key in thermo_fit])
     x_split = np.mean([thermo_fit[key].get_x_split() for key in thermo_fit])
+    logging.info(f"Split level: {x_split} m")
 
     # %%
-    fig, axs = plt.subplots(ncols=3, nrows=1, figsize=(12, 4), sharey=True)
+    fig, axs = plt.subplots(ncols=2, nrows=2, figsize=(12, 12), sharey=True)
 
     scatter_style = dict(alpha=0.75, linewidth=0.7)
 
-    ax_q, ax_ta, ax_theta = axs
+    ax_q, ax_ta  = axs[0]
+    ax_rh, ax_theta = axs[1]
+    ax_q.set_xlim(0, 20)
+    ax_rh.set_xlim(30, 110)
+    ax_ta.set_xlim(285, 305)
+    ax_theta.set_xlim(295, 308)
+
+
     # First plot
     ax_q.plot(
-        ds_dropsondes["specific_humidity"].T,
+        1e3 * ds_dropsondes["specific_humidity"].T,
         ds_dropsondes["alt"].T,
         color=default_colors[0],
         # label="Spec. Hum.",
         **scatter_style,
     )
     ax_q.plot(
-        thermo_fit["specific_humidity"].eval_func(ds_dropsondes["alt"])[0],
+        1e3 * thermo_fit["specific_humidity"].eval_func(ds_dropsondes["alt"])[0],
         ds_dropsondes["alt"],
         color=dark_colors[0],
         label="fit",
     )
 
+
     ax_q.set_xlabel("Specific humidity [g/kg]")
     ax_q.set_ylabel("alt [m]")
     ax_q.xaxis.label.set_color(default_colors[0])  # Set the color of x-axis label
     ax_q.tick_params(axis="x", colors=default_colors[0])  # Set the color of x-axis ticks
+    ax_q.axhline(thermo_fit["specific_humidity"].get_x_split(), color="black", linestyle="--", label="split level")
+
+
+    # First plot
+    ax_rh.plot(
+        ds_dropsondes["relative_humidity"].T,
+        ds_dropsondes["alt"].T,
+        color=default_colors[3],
+        # label="Spec. Hum.",
+        **scatter_style,
+    )
+    ax_rh.plot(
+        thermo_fit["relative_humidity"].eval_func(ds_dropsondes["alt"])[0],
+        ds_dropsondes["alt"],
+        color=dark_colors[3],
+        label="fit",
+    )
+
+
+    ax_rh.set_xlabel("Relative humidity [%]")
+    ax_rh.set_ylabel("alt [m]")
+    ax_rh.xaxis.label.set_color(default_colors[3])  # Set the color of x-axis label
+    ax_rh.tick_params(axis="x", colors=default_colors[3])  # Set the color of x-axis ticks
+    ax_rh.axhline(thermo_fit["relative_humidity"].get_x_split(), color="black", linestyle="--", label="split level")
+
 
     # Second plot on a new x-axis
     ax_ta.plot(
@@ -505,6 +609,8 @@ def main(chosen_id):
     ax_ta.set_xlabel("Air Temperature [K]")
     ax_ta.xaxis.label.set_color(default_colors[1])  # Set the color of x-axis label
     ax_ta.tick_params(axis="x", colors=default_colors[1])  # Set the color of x-axis ticks
+    ax_ta.axhline(thermo_fit["air_temperature"].get_x_split(), color="black", linestyle="--", label="split level")
+
 
     # Thrid plot on a new x-axis
     ax_theta.plot(
@@ -523,12 +629,18 @@ def main(chosen_id):
     ax_theta.set_xlabel("Pot. Temperature [K]")
     ax_theta.xaxis.label.set_color(default_colors[2])  # Set the color of x-axis label
     ax_theta.tick_params(axis="x", colors=default_colors[2])  # Set the color of x-axis ticks
+    ax_theta.axhline(thermo_fit["potential_temperature"].get_x_split(), color="black", linestyle="--", label="split level")
+
+
 
     for ax in axs.flatten():
-        ax.axhline(x_split, color="black", linestyle="--", label="split level")
         ax.axhline(ds_cloud.alt, color="red", linestyle="--", label="PSD measurement")
         ax.legend(handler_map=handler_map_alpha())
         ax.tick_params(axis="x", labelrotation=-33)
+
+    fig.suptitle(f"Dropsondes related to cloud {chosen_id}")
+    fig.tight_layout()
+    fig.savefig(subfig_path / Path("dropsonde_properties_fit.png"))
 
     # %% [markdown]
     # ### Fix x_split
@@ -538,6 +650,7 @@ def main(chosen_id):
         air_temperature=transfer.ThermodynamicSplitLinear(),
         specific_humidity=transfer.ThermodynamicSplitLinear(),
         potential_temperature=transfer.ThermodynamicSplitLinear(),
+        relative_humidity=transfer.ThermodynamicSplitLinear(),
     )
 
     for var in thermo_fit:
@@ -561,30 +674,64 @@ def main(chosen_id):
     thermo_fit_fixed[var].get_parameters()
 
     # %%
-    fig, axs = plt.subplots(ncols=3, nrows=1, figsize=(12, 4), sharey=True)
+
+    fig, axs = plt.subplots(ncols=2, nrows=2, figsize=(12, 12), sharey=True)
 
     scatter_style = dict(alpha=0.75, linewidth=0.7)
 
-    ax_q, ax_ta, ax_theta = axs
+    ax_q, ax_ta  = axs[0]
+    ax_rh, ax_theta = axs[1]
+    ax_q.set_xlim(0, 20)
+    ax_rh.set_xlim(30, 110)
+    ax_ta.set_xlim(285, 305)
+    ax_theta.set_xlim(295, 308)
+
+
     # First plot
     ax_q.plot(
-        ds_dropsondes["specific_humidity"].T,
+        1e3 * ds_dropsondes["specific_humidity"].T,
         ds_dropsondes["alt"].T,
         color=default_colors[0],
         # label="Spec. Hum.",
         **scatter_style,
     )
     ax_q.plot(
-        thermo_fit_fixed["specific_humidity"].eval_func(ds_dropsondes["alt"])[0],
+        1e3 * thermo_fit_fixed["specific_humidity"].eval_func(ds_dropsondes["alt"])[0],
         ds_dropsondes["alt"],
         color=dark_colors[0],
         label="fit",
     )
 
-    ax_q.set_xlabel("Specific humidity [kg/kg]")
+
+    ax_q.set_xlabel("Specific humidity [g/kg]")
     ax_q.set_ylabel("alt [m]")
     ax_q.xaxis.label.set_color(default_colors[0])  # Set the color of x-axis label
     ax_q.tick_params(axis="x", colors=default_colors[0])  # Set the color of x-axis ticks
+    ax_q.axhline(thermo_fit_fixed["specific_humidity"].get_x_split(), color="black", linestyle="--", label="split level")
+
+
+    # First plot
+    ax_rh.plot(
+        ds_dropsondes["relative_humidity"].T,
+        ds_dropsondes["alt"].T,
+        color=default_colors[3],
+        # label="Spec. Hum.",
+        **scatter_style,
+    )
+    ax_rh.plot(
+        thermo_fit_fixed["relative_humidity"].eval_func(ds_dropsondes["alt"])[0],
+        ds_dropsondes["alt"],
+        color=dark_colors[3],
+        label="fit",
+    )
+
+
+    ax_rh.set_xlabel("Relative humidity [%]")
+    ax_rh.set_ylabel("alt [m]")
+    ax_rh.xaxis.label.set_color(default_colors[3])  # Set the color of x-axis label
+    ax_rh.tick_params(axis="x", colors=default_colors[3])  # Set the color of x-axis ticks
+    ax_rh.axhline(thermo_fit_fixed["relative_humidity"].get_x_split(), color="black", linestyle="--", label="split level")
+
 
     # Second plot on a new x-axis
     ax_ta.plot(
@@ -604,6 +751,8 @@ def main(chosen_id):
     ax_ta.set_xlabel("Air Temperature [K]")
     ax_ta.xaxis.label.set_color(default_colors[1])  # Set the color of x-axis label
     ax_ta.tick_params(axis="x", colors=default_colors[1])  # Set the color of x-axis ticks
+    ax_ta.axhline(thermo_fit_fixed["air_temperature"].get_x_split(), color="black", linestyle="--", label="split level")
+
 
     # Thrid plot on a new x-axis
     ax_theta.plot(
@@ -622,22 +771,23 @@ def main(chosen_id):
     ax_theta.set_xlabel("Pot. Temperature [K]")
     ax_theta.xaxis.label.set_color(default_colors[2])  # Set the color of x-axis label
     ax_theta.tick_params(axis="x", colors=default_colors[2])  # Set the color of x-axis ticks
+    ax_theta.axhline(thermo_fit_fixed["potential_temperature"].get_x_split(), color="black", linestyle="--", label="split level")
+
+
 
     for ax in axs.flatten():
-        ax.axhline(x_split, color="black", linestyle="--", label="split level")
         ax.axhline(ds_cloud.alt, color="red", linestyle="--", label="PSD measurement")
         ax.legend(handler_map=handler_map_alpha())
         ax.tick_params(axis="x", labelrotation=-33)
 
+    fig.suptitle(f"Dropsondes related to cloud {chosen_id}")
     fig.tight_layout()
-    fig.suptitle(f"Fitting Thermodynamics from dropsondes for cloud {chosen_id}")
-    fig.savefig(subfig_path / Path("fitted_thermodynamics.png"))
+    fig.savefig(subfig_path / Path("dropsonde_properties_fit_fixed_x_split.png"))
 
     # %% [markdown]
     # # Export everything as yaml
 
     # %%
-    import yaml
 
     def ndarray_representer(dumper: yaml.Dumper, array: np.ndarray) -> yaml.Node:
         """
@@ -740,8 +890,11 @@ def main(chosen_id):
 
 for id in identified_clouds.cloud_id.data:
     id = int(id)
+    plt.close('all')
     try:
         main(id)
+        logger.info(f"Created input for cloud {id}")
     except Exception as e:
-        print(f"Error for cloud {id}: {e}")
+        message = traceback.format_exception(None, e, e.__traceback__)
+        logger.error(f'Failed to create input for cloud {id}: '+ repr(e) + '\n' + ''.join(message))
         continue
