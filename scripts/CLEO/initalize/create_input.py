@@ -52,11 +52,11 @@ print(REPOSITORY_ROOT)
 # ======================================
 # %% Define output and figure directories
 
-output_dir = REPOSITORY_ROOT / "data/model/input/new"
+output_dir = REPOSITORY_ROOT / "data/model/input/selected_clouds"
 output_dir.mkdir(parents=True, exist_ok=True)
 
 
-fig_path = REPOSITORY_ROOT / "results" / script_dir.relative_to(REPOSITORY_ROOT) / "create_input"
+fig_path = REPOSITORY_ROOT / "results" / script_dir.relative_to(REPOSITORY_ROOT) / "create_input" / "selected_clouds"
 fig_path.mkdir(parents=True, exist_ok=True)
 
 
@@ -66,7 +66,8 @@ fig_path.mkdir(parents=True, exist_ok=True)
 
 # %%
 # create a logger which stores the log file in the script directory of the logger directory
-log_dir = REPOSITORY_ROOT / Path("logs") / Path(script_dir).relative_to(REPOSITORY_ROOT)
+
+log_dir = output_dir / "logs"
 log_dir.mkdir(parents=True, exist_ok=True)
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -108,7 +109,10 @@ logging.info("============================================================")
 logging.info("Start preprocessing of identified clouds to create input for CLEO")
 logging.info("Git hash: %s", get_git_revision_hash())
 logging.info("Date: %s", datetime.datetime.now(datetime.UTC).strftime("%Y-%m-%d %H:%M:%S"))
+logging.info("Output directory: %s", output_dir)
+logging.info("Figure directory: %s", fig_path)
 logging.info("============================================================")
+input('all correct?')
 
 
 # %% [markdown]
@@ -124,6 +128,7 @@ identified_clouds = xr.open_dataset(
 # below 1500m and have a duration of at least 10s.
 identified_clouds = identified_clouds.where(
     (identified_clouds["alt"] <= 1500)
+    & (identified_clouds["alt"] > 500)
     & (identified_clouds["duration"] >= np.timedelta64(10, "s"))
     ,
     drop=True,
@@ -670,7 +675,7 @@ def main(chosen_id):
             )
         )
         thermo_fit_fixed[var].lmfitParameterValues_to_dict(result.params)
-    print(x_split)
+
     thermo_fit_fixed[var].get_parameters()
 
     # %%
