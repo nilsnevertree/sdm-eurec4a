@@ -126,7 +126,7 @@ identified_clouds = xr.open_dataset(
 )
 # select only clouds which are
 # below 1500m and have a duration of at least 10s.
-identified_clouds2 = identified_clouds.where(
+identified_clouds = identified_clouds.where(
     (identified_clouds["alt"] <= 1500)
     & (identified_clouds["alt"] >= 500)
     & (identified_clouds["duration"] >= np.timedelta64(10, "s"))
