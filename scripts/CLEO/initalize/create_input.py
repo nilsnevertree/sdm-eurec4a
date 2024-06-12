@@ -52,11 +52,11 @@ print(REPOSITORY_ROOT)
 # ======================================
 # %% Define output and figure directories
 
-output_dir = REPOSITORY_ROOT / "data/model/input/selected_clouds"
+output_dir = REPOSITORY_ROOT / "data/model/input/selected_clouds_lwc"
 output_dir.mkdir(parents=True, exist_ok=True)
 
 
-fig_path = REPOSITORY_ROOT / "results" / script_dir.relative_to(REPOSITORY_ROOT) / "create_input" / "selected_clouds"
+fig_path = REPOSITORY_ROOT / "results" / script_dir.relative_to(REPOSITORY_ROOT) / "create_input" / "selected_clouds_lwc"
 fig_path.mkdir(parents=True, exist_ok=True)
 
 
@@ -126,13 +126,14 @@ identified_clouds = xr.open_dataset(
 )
 # select only clouds which are
 # below 1500m and have a duration of at least 10s.
-identified_clouds = identified_clouds.where(
+identified_clouds2 = identified_clouds.where(
     (identified_clouds["alt"] <= 1500)
-    & (identified_clouds["alt"] > 500)
+    & (identified_clouds["alt"] >= 500)
     & (identified_clouds["duration"] >= np.timedelta64(10, "s"))
-    ,
+    & (identified_clouds["liquid_water_content"] / identified_clouds["duration"].dt.seconds >=0.1),
     drop=True,
 )
+
 
 distance_IC_DS = xr.open_dataset(
     REPOSITORY_ROOT
