@@ -1,6 +1,7 @@
 # %%
 import os
-from tqdm import tqdm
+import sys
+
 
 import numpy as np
 import awkward as ak 
@@ -11,8 +12,12 @@ from pySD.sdmout_src import supersdata
 from pathlib import Path
 from typing import Union
 
-from importlib import reload
-reload(supersdata)
+print(f"Enviroment: {sys.prefix}")
+data_dir = Path(sys.argv[1])
+
+print("Create eulerian view for all subdirectories in:")
+print(data_dir)
+
 # %%
 def ak_differentiate(sa : supersdata.SupersAttribute) -> supersdata.SupersAttribute:
     """
@@ -429,16 +434,12 @@ def create_eulerian_xr_dataset(
         return ds
 
 
-# %%
-
-data_dir = Path(f"/home/m/m301096/CLEO/data")
-experiment_dir = data_dir / Path("output_v3.0/stationary_condensation")
-
-subdirectories = [name for name in os.listdir(experiment_dir) if os.path.isdir(os.path.join(experiment_dir, name)) and name.startswith("clusters_")]
+subdirectories = [name for name in os.listdir(data_dir) if os.path.isdir(os.path.join(data_dir, name)) and name.startswith("clusters_")]
 
 
-for sub_dir_name in tqdm(subdirectories[0:2]): 
-    sub_dir = experiment_dir / Path(sub_dir_name)
+for sub_dir_name in subdirectories: 
+    print(f"Processing {sub_dir_name}")
+    sub_dir = data_dir / Path(sub_dir_name)
 
     eulerian_dataset_path  = sub_dir / "processed/"
     eulerian_dataset_path.mkdir(exist_ok=True)
@@ -447,15 +448,33 @@ for sub_dir_name in tqdm(subdirectories[0:2]):
 
     setupfile = sub_dir / "config" / "eurec4a1d_setup.txt"
     zarr_dataset = sub_dir / "eurec4a1d_sol.zarr"
-    # read in constants and intial setup from setup .txt file
-    config = pysetuptxt.get_config(setupfile, nattrs=3, isprint=False)
-    consts = pysetuptxt.get_consts(setupfile, isprint=False)
-    # initialize the superdroplets data class
 
-    dataset = supersdata.SupersDataNew(dataset = str(zarr_dataset), consts=consts)
-    ds = create_eulerian_xr_dataset(
-        dataset = dataset,
-        radius_bins = np.logspace(-7, 7, 150),
-        output_path = eulerian_dataset_path / "eulerian_dataset.nc",
-        hand_out = True
-        )
+    try : 
+        # read in constants and intial setup from setup .txt file
+        config = pysetuptxt.get_config(setupfile, nattrs=3, isprint=False)
+        consts = pysetuptxt.get_consts(setupfile, isprint=False)
+    
+        try : 
+            dataset = supersdata.SupersDataNew(dataset = str(zarr_dataset), consts=consts)
+
+            try : 
+                # create the eulerian dataset
+                create_eulerian_xr_dataset(
+                    dataset = dataset,
+                    radius_bins = np.logspace(-7, 7, 150),
+                    output_path = eulerian_dataset_path / "eulerian_dataset.nc",
+                    hand_out = False
+                )
+
+            except Exception:
+                print(f"Error in creating eulerian dataset for {zarr_dataset}")
+                continue
+        except Exception:
+            print(f"Error in reading {zarr_dataset}")
+            continue
+    
+    # initialize the superdroplets data class
+    except Exception:
+        print(f"Error in reading {setupfile}")
+    
+
