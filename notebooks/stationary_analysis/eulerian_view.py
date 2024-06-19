@@ -1,6 +1,7 @@
 # %%
 import os
-from tqdm import tqdm
+import sys
+
 
 import numpy as np
 import awkward as ak 
@@ -10,10 +11,6 @@ from pySD.sdmout_src import pysetuptxt
 from pySD.sdmout_src import supersdata
 from pathlib import Path
 from typing import Union
-
-from importlib import reload
-reload(supersdata)
-import sys
 
 print(f"Enviroment: {sys.prefix}")
 data_dir = Path(sys.argv[1])
