@@ -30,7 +30,8 @@ temporary/*
 # Figures in results folder
 results/*
 # one can include specific files/folders like python scripts
-!results/scripts
+# results/scripts
+# results/scripts/*.yaml
 
 # Logging data
 *.log
@@ -137,3 +138,10 @@ target/
 *.jpg
 *.jpeg
 *.gif
+
+
+# remove data folder from tracking
+data
+
+
+*out
