@@ -10,7 +10,11 @@ import numpy as np
 import yaml
 
 from scipy.optimize import curve_fit
-from sdm_eurec4a.input_processing.models import lnnormaldist, split_linear_func
+from sdm_eurec4a.input_processing.models import (
+    linear_func,
+    lnnormaldist,
+    split_linear_func,
+)
 
 
 class Input:
@@ -324,6 +328,85 @@ class Input:
             result[key] = parameters[key].stderr
 
         return result
+
+
+class ThermodynamicLinear(Input):
+    """Class to handle the thermodynamic input."""
+
+    def __init__(
+        self,
+        f_0: np.ndarray = np.empty(0),
+        slope: np.ndarray = np.empty(0),
+    ) -> None:
+        """
+        Initialize the PSD_LnNormal class.
+
+        This class is a subclass of the ParticleSizeDistributionInput class.
+        It is used to handle the particle size distribution input of the type "LnNormal".
+
+        Parameters
+        ----------
+        f_0 : float
+            The y-intercept.
+        slope : float
+            The slope of the linear function.
+
+
+        Returns
+        -------
+        None
+        """
+
+        params = dict(
+            f_0=f_0,
+            slope=slope,
+        )
+        super().__init__(
+            type="Linear",
+            func=linear_func,
+            independent_vars=["x"],
+            parameters=params,
+        )
+
+        self.__autoupdate_parameters__()
+
+    def get_f_0(self):
+        return self.get_parameters()["f_0"]
+
+    def get_slope(self):
+        return self.get_parameters()["slope"]
+
+    def __str__(self):
+        f_0 = f"intercept = {self.get_f_0()}"
+        slope = f"slope = {self.get_slope()}"
+        return "\n".join([f_0, slope])
+
+    def eval_func(self, x: np.ndarray) -> Tuple[np.ndarray]:
+        """
+        Evaluate the model of the particle size distribution.
+
+        Parameters
+        ----------
+        **kwargs : dict
+            The keyword arguments for the model function.
+            See also the lmfit.model.Model.eval.
+            https://lmfit.github.io/lmfit-py/model.html#lmfit.model.Model.eval
+
+        Returns
+        -------
+        np.ndarray
+            The evaluated model of the particle size distribution.
+        """
+        params = self.get_parameters()
+
+        result = self.func(
+            x=x,
+            f_0=params["f_0"][0],
+            slope=params["slope"][0],
+        )
+        # For each mode, evaluate the model
+
+        return np.array(result)
 
 
 class ThermodynamicSplitLinear(Input):
