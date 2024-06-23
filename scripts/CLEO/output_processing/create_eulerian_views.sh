@@ -28,16 +28,12 @@ echo "git branch: $(git symbolic-ref --short HEAD)"
 echo "============================================"
 
 
-path2sdmeurec4a=${HOME}/repositories/sdm-eurec4a/
-path2CLEO=${HOME}/CLEO/
-
-
-pythonscript=${path2sdmeurec4a}scripts/CLEO/output_processing/eulerian_view.py
-data_dir=${path2CLEO}data/output_v3.0/stationary_condensation
+pythonscript=${HOME}/repositories/sdm-eurec4a/scripts/CLEO/output_processing/eulerian_view.py
+data_dir=${HOME}/CLEO/data/output_v3.0/stationary_condensation
 
 
 ### ------------------ Load Modules -------------------- ###
-env=/work/mh1126/m301096/conda/envs/sdm_pysd_env312/
+env=/work/mh1126/m301096/conda/envs/sdm_pysd_env312
 python=${env}/bin/python
 source activate ${env}
 

@@ -1,4 +1,34 @@
 # %%
+import argparse
+from pathlib import Path
+# Create argument parser
+def is_notebook() -> bool:
+    try:
+        shell = get_ipython().__class__.__name__
+        if shell == 'ZMQInteractiveShell':
+            return True   # Jupyter notebook or qtconsole
+        elif shell == 'TerminalInteractiveShell':
+            return False  # Terminal running IPython
+        else:
+            return False  # Other type (?)
+    except NameError:
+        return False      # Probably standard Python interpreter
+
+if is_notebook() == False:
+    parser = argparse.ArgumentParser(description='Concatenate eulerian views')
+
+    # Add arguments
+    parser.add_argument(
+        '-d', '--data_dir', 
+        type=str, 
+        help='Path to data directory', 
+        required=True
+    )
+    # Parse arguments
+    args = parser.parse_args()
+
+    data_dir = Path(args.data_dir)
+
 import os
 import sys
 
@@ -13,8 +43,6 @@ from pathlib import Path
 from typing import Union
 
 print(f"Enviroment: {sys.prefix}")
-data_dir = Path(sys.argv[1])
-
 print("Create eulerian view for all subdirectories in:")
 print(data_dir)
 
