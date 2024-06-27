@@ -1,40 +1,35 @@
 # %%
 import argparse
+
 from pathlib import Path
+
+
 # Create argument parser
 def is_notebook() -> bool:
     try:
         shell = get_ipython().__class__.__name__
-        if shell == 'ZMQInteractiveShell':
-            return True   # Jupyter notebook or qtconsole
-        elif shell == 'TerminalInteractiveShell':
+        if shell == "ZMQInteractiveShell":
+            return True  # Jupyter notebook or qtconsole
+        elif shell == "TerminalInteractiveShell":
             return False  # Terminal running IPython
         else:
             return False  # Other type (?)
     except NameError:
-        return False      # Probably standard Python interpreter
+        return False  # Probably standard Python interpreter
+
 
 if is_notebook() == False:
-    parser = argparse.ArgumentParser(description='Concatenate eulerian views')
+    parser = argparse.ArgumentParser(description="Concatenate eulerian views")
 
     # Add arguments
+    parser.add_argument("-d", "--data_dir", type=str, help="Path to data directory", required=True)
+    parser.add_argument("-o", "--output_dir", type=str, help="Path to output directory", required=True)
     parser.add_argument(
-        '-d', '--data_dir', 
-        type=str, 
-        help='Path to data directory', 
-        required=True
-    )
-    parser.add_argument(
-        '-o', '--output_dir',
+        "-r",
+        "--result_file_name",
         type=str,
-        help='Path to output directory',
-        required=True
-    )
-    parser.add_argument(
-        '-r', '--result_file_name',
-        type=str,
-        default='eulerian_dataset_combined.nc',
-        help='Name of output file'
+        default="eulerian_dataset_combined.nc",
+        help="Name of output file",
     )
     # Parse arguments
     args = parser.parse_args()
@@ -43,16 +38,18 @@ if is_notebook() == False:
     output_dir = Path(args.output_dir)
     output_file_path = output_dir / args.result_file_name
 
+import logging
 import os
 import sys
-import xarray as xr
+
 import pandas as pd
-import logging
+import xarray as xr
+
 
 log_dir = output_dir / "logs"
 log_dir.mkdir(parents=True, exist_ok=True)
 
-logger = logging.getLogger(name = "logger")
+logger = logging.getLogger(name="logger")
 logger.setLevel(logging.INFO)
 logging.captureWarnings(True)
 
@@ -89,25 +86,28 @@ sys.excepthook = handle_exception
 
 
 logger.info(f"Enviroment: {sys.prefix}")
-logger.info("Create eulerian view for all subdirectories in:")
-logger.info("Create eulerian view for all subdirectories in:")
+logger.info("Combine all eulerian views from:")
 logger.info(data_dir)
 logger.info("Save the combined eulerian view to:")
 logger.info(output_file_path)
 
-subdirectories = [name for name in os.listdir(data_dir) if os.path.isdir(os.path.join(data_dir, name)) and name.startswith("clusters_")]
+subdirectories = [
+    name
+    for name in os.listdir(data_dir)
+    if os.path.isdir(os.path.join(data_dir, name)) and name.startswith("clusters_")
+]
 
 dataset_list = []
-file_path_list =  []
+file_path_list = []
 cloud_id_list = []
 
-for sub_dir_name in subdirectories: 
+for sub_dir_name in subdirectories:
     sub_dir = data_dir / Path(sub_dir_name)
     cloud_id = int(sub_dir_name.split("_")[1])
 
-    eulerian_dataset_path  = sub_dir / "processed/eulerian_dataset.nc"
+    eulerian_dataset_path = sub_dir / "processed/eulerian_dataset.nc"
 
-    try :
+    try:
         euler_dataset = xr.open_dataset(eulerian_dataset_path)
         max_gridbox_temp = euler_dataset["gridbox"].max()
 
@@ -122,30 +122,30 @@ for sub_dir_name in subdirectories:
         logger.error(f"Skip {sub_dir_name} : {type(e)} {e}")
 
 
-cloud_id_index = pd.Index(cloud_id_list, name='cloud_id')
+cloud_id_index = pd.Index(cloud_id_list, name="cloud_id")
 ds = xr.open_mfdataset(file_path_list, combine="nested", concat_dim=[cloud_id_index])
 
-ds["cloud_id"].attrs.update(dict(
-    long_name="Cloud identification number",
-    units=""
-))
+ds["cloud_id"].attrs.update(dict(long_name="Cloud identification number", units=""))
 
 max_gridbox = xr.concat(dataset_list, dim=cloud_id_index)
 ds["max_gridbox"] = max_gridbox
-ds['max_gridbox'].attrs.update(dict(
-    long_name="Maximum gridbox value for each cloud. Above this value, the cloud has no data.",
-    units=""
-))
+ds["max_gridbox"].attrs.update(
+    dict(
+        long_name="Maximum gridbox value for each cloud. Above this value, the cloud has no data.",
+        units="",
+    )
+)
 
-ds = ds.sortby('cloud_id')
+ds = ds.sortby("cloud_id")
 
-ds.attrs.update(dict(
-    description="Combined eulerian view for all clouds.",
-    author="Nils Niebaum",
-    date=str(pd.Timestamp.now()),
-))
+ds.attrs.update(
+    dict(
+        description="Combined eulerian view for all clouds.",
+        author="Nils Niebaum",
+        date=str(pd.Timestamp.now()),
+    )
+)
 
 logger.info(f"Attempt to save combined dataset to: {output_file_path}")
 ds.to_netcdf(output_file_path)
 logger.info(f"Save combined dataset to: {output_file_path}")
-
