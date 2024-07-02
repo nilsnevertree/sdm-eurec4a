@@ -30,11 +30,11 @@ echo "============================================"
 path2sdm_eurec4a=${HOME}/repositories/sdm-eurec4a
 subdir_pattern=clusters_
 
-# NO PHYSICS
-data_dir=${HOME}/CLEO/data/output_v3.3/stationary_no_physics/
+# # NO PHYSICS
+# data_dir=${HOME}/CLEO/data/output_v3.3/stationary_no_physics/
 
-# # CONDENSATION
-# data_dir=${HOME}/CLEO/data/output_v3.3/stationary_condensation
+# CONDENSATION
+data_dir=${HOME}/CLEO/data/output_v3.3/stationary_condensation
 
 # # COLLISION AND CONDENSATION
 # data_dir=${HOME}/CLEO/data/output_v3.4/stationary_collision_condensation
