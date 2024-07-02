@@ -37,7 +37,7 @@ subdir_pattern=clusters_
 # data_dir=${HOME}/CLEO/data/output_v3.2/stationary_condensation
 
 # COLLISION AND CONDENSATION
-data_dir=${HOME}/CLEO/data/output_v3.2/stationary_collision_condensation
+data_dir=${HOME}/CLEO/data/output_v3.4/stationary_collision_condensation
 
 
 output_dir=${data_dir}/combined
