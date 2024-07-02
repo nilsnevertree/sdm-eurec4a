@@ -1,6 +1,6 @@
 # %% [markdown]
 # With this Notebook, the datasets which were created by CLEO of all clusters using rain mask with 5 timestep holes removed will be compared.
-# 
+#
 
 # %%
 from pathlib import Path
@@ -10,18 +10,21 @@ import numpy as np
 import xarray as xr
 import yaml
 
-from sdm_eurec4a.visulization import set_custom_rcParams, adjust_lightness_array, handler_map_alpha
-
+from sdm_eurec4a import RepositoryPath
+from sdm_eurec4a.conversions import msd_from_psd
 from sdm_eurec4a.identifications import (
     match_clouds_and_cloudcomposite,
     match_clouds_and_dropsondes,
     select_individual_cloud_by_id,
 )
-
-from sdm_eurec4a import RepositoryPath
 from sdm_eurec4a.input_processing import transfer
 from sdm_eurec4a.reductions import shape_dim_as_dataarray
-from sdm_eurec4a.conversions import msd_from_psd
+from sdm_eurec4a.visulization import (
+    adjust_lightness_array,
+    handler_map_alpha,
+    set_custom_rcParams,
+)
+
 
 # %%
 def adjust_spines(ax, visible_spines, position=("outward", 5)):
@@ -32,6 +35,7 @@ def adjust_spines(ax, visible_spines, position=("outward", 5)):
             spine.set_position(position)  # outward by 10 points
         else:
             spine.set_visible(False)
+
 
 # %%
 plt.style.use("default")
@@ -107,11 +111,11 @@ drop_sondes = match_clouds_and_dropsondes(
 )
 
 # %% [markdown]
-# 
+#
 # ### Load CLEO output and preprocess
-# 
+#
 # - Convert Multiplicity $\xi$ from #/gridbox to #/m^3
-# - calculate mass of each SD and mass represented in total by each SD 
+# - calculate mass of each SD and mass represented in total by each SD
 
 # %%
 ds_cleo = xr.open_dataset(cleo_output_path)
@@ -287,7 +291,7 @@ fig.savefig(fig_path / "PSD_MSD_cloud.png", dpi=300)
 
 # %% [markdown]
 # ### Results:
-# 
+#
 # What one can see here, is that the total $LWC$ in the cloud is kind of preserved in CLEO.
 # But the magnitude of the distributions differs.
 
@@ -965,7 +969,8 @@ axs[1].set_ylabel("Mass loss $dM$ $[g]$")
 
 axs[0].set_title("Mean mass loss of individual SD.\n$dM_{SD} = m(t_{R_{max}}) - m(t_{bottom})$")
 axs[1].set_title(
-    "Sum of mass loss represented by each SD.\n" + r"$dM = dM_{SD} \\cdot \\xi$    $M = \sum dM =$"
+    "Sum of mass loss represented by each SD.\n"
+    + r"$dM = dM_{SD} \\cdot \\xi$    $M = \sum dM =$"
     + f"{mlr.sum().data:.3f} g"
 )
 
@@ -980,7 +985,6 @@ fig.suptitle(
 )
 fig.tight_layout()
 fig.savefig(fig_path / "mass_loss_rain_evaporation_hist.png", dpi=300)
-
 
 
 # %%
