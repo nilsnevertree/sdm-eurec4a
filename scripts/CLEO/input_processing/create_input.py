@@ -1,9 +1,131 @@
-# %%
+import argparse
+
+from argparse import RawDescriptionHelpFormatter, RawTextHelpFormatter
+from pathlib import Path
+
+
+__epilog__ = """
+
+    NOTE:
+    -----
+    !!! TODO: add explanation of these steps in the docs !!!
+    The IC needs to be created from the CC before executing this script.
+    The DR needs to be created from the IC and DS before executing this script.
+
+
+    IC needs the following variables:
+    - cloud_id: the id of the cloud
+    - time: the time of the cloud
+    - start: the start time of the cloud
+    - end: the end time of the cloud
+    - alt: the altitude of the cloud
+    - vertical_extent: the vertical extent of the cloud
+    - duration: the duration of the cloud
+    - liquid_water_content: the liquid water content of the cloud
+
+    CC needs the following variables:
+    - time: the time of the cloud
+    - radius: the radius of the cloud
+    - particle_size_distribution: the particle size distribution of the cloud
+
+    DS needs the following variables:
+    - time: the time of the dropsonde
+    - alt: the altitude of the dropsonde
+    - air_temperature: the air temperature of the dropsonde
+    - specific_humidity: the specific humidity of the dropsonde
+    - potential_temperature: the potential temperature of the dropsonde
+    - pressure: the pressure of the dropsonde
+
+    DR needs the following variables:
+    - time: the time of the dropsonde
+    - time_identified_clouds: the time of the identified cloud as given in the IC
+    - index_ds_dropsonde: the index of the dropsonde as given in the DS
+    - temporal_distance: the temporal distance between the dropsonde and the identified cloud
+    - spatial_distance : the spatial distance between the dropsonde and the identified cloud
+"""
+
+__short_doc__ = """
+With this script the input yaml files are created to execute CLEO in a EUREC4A1D Rainshaft experiment in a stationary state.
+
+The input paths to the datasets can be relative!
+Then the script uses the repository path to find the datasets.
+This is done by using ``sdm_eurec4a.RepositoryPath(envciroment)`` where enviroment is by default "levante".
+
+OUTPUT:
+-------
+- For each cloud in the IC, a yaml is created with the following information regarding the cloud:
+    - cloud specific information
+    - fit of the particle size distribution of the cloud as bimodal Lognormal distribution
+    - fit of the thermodynamic profiles of the dropsondes as linear fits
+- The yaml is saved in a sub diretory of the defined output directory ``--output-dir``.
+- The sub directory is named as: ``[identification_type]_[cloud_id]``.
+"""
+
+
+# do the argparsing
+parser = argparse.ArgumentParser(
+    description=__short_doc__, epilog="DETAILS: \n" + __epilog__, formatter_class=RawTextHelpFormatter
+)
+parser.add_argument(
+    "--output-dir",
+    "-o",
+    type=Path,
+    help="path or relative path to output directory",
+    default="data/model/input/output_vX.X",
+)
+
+parser.add_argument(
+    "--identified_cloud_path",
+    "-i",
+    type=Path,
+    help="path or relative path to identified clouds",
+    default="data/observation/cloud_composite/processed/identified_clouds/identified_clusters_rain_mask_5.nc",
+)
+parser.add_argument(
+    "--distance_relation_path",
+    "-r",
+    type=Path,
+    help="path or relative path to distance relations",
+    default="data/observation/combined/distance_relations/distance_dropsondes_identified_clusters_rain_mask_5.nc",
+)
+parser.add_argument(
+    "--cloud_composite_path",
+    "-c",
+    type=Path,
+    help="path or relative path to cloud composite",
+    default="data/observation/cloud_composite/processed/cloud_composite_si_units.nc",
+)
+parser.add_argument(
+    "--drop_sonde_path",
+    "-d",
+    type=Path,
+    help="path or relative path to dropsondes",
+    default="data/observation/dropsonde/processed/drop_sondes.nc",
+)
+parser.add_argument(
+    "--identification_type",
+    "-t",
+    type=str,
+    help="type of identification",
+    default="clusters",
+)
+parser.add_argument(
+    "--environment",
+    "-e",
+    type=str,
+    help="environment e.g. 'levante'",
+    default="levante",
+)
+
+args = parser.parse_args()
+
+
 import datetime
 import logging
 import sys
+import traceback
 
-from pathlib import Path
+from typing import Tuple, TypedDict, Union
 
 import lmfit
 import numpy as np
@@ -20,44 +142,55 @@ from sdm_eurec4a.input_processing import transfer
 from sdm_eurec4a.reductions import shape_dim_as_dataarray
 
 
-# %%
-# THE PATH TO THE SCRIPT DIRECTORY
-script_dir = Path("/home/m/m301096/repositories/sdm-eurec4a/scripts/CLEO/initalize")
-print(script_dir)
+repo_path = RepositoryPath("levante")()
+print(repo_path)
 
-# REPOSITORY_ROOT = Path(script_dir).parents[2]
-REPOSITORY_ROOT = RepositoryPath("levante")()
-print(REPOSITORY_ROOT)
+
+version_control = dict(
+    git_hash=get_git_revision_hash(),
+    date=datetime.datetime.now(datetime.UTC).strftime("%Y-%m-%d %H:%M:%S"),
+)
+
+
+def optional_prepend_repo_path(path: Path, repo_path: Path = repo_path):
+    """Make relative paths absolute by prepending the repo path."""
+    if path.is_absolute():
+        return path
+    else:
+        return repo_path / path
+
 
 # ======================================
-# %% Define output and figure directories
+# PATHS
+# ======================================
 
-final_dir = "output_v3.0"
+identified_clouds_path = optional_prepend_repo_path(
+    Path(args.identified_cloud_path), repo_path=repo_path
+)
+distance_relation_path = optional_prepend_repo_path(
+    Path(args.distance_relation_path), repo_path=repo_path
+)
+cloud_composite_path = optional_prepend_repo_path(Path(args.cloud_composite_path), repo_path=repo_path)
+drop_sonde_path = optional_prepend_repo_path(Path(args.drop_sonde_path), repo_path=repo_path)
+output_dir = optional_prepend_repo_path(Path(args.output_dir), repo_path=repo_path)
+identification_type = args.identification_type
 
-output_dir = REPOSITORY_ROOT / "data/model/input/" / final_dir
+# make sure output directory exists
 output_dir.mkdir(parents=True, exist_ok=True)
 
 
-fig_path = (
-    REPOSITORY_ROOT / "results" / script_dir.relative_to(REPOSITORY_ROOT) / "create_input" / final_dir
-)
-fig_path.mkdir(parents=True, exist_ok=True)
-
-
 # ======================================
-#  Define logger
-
-
-# %%
-# create a logger which stores the log file in the script directory of the logger directory
-
+# LOGGING SETUP
+# ======================================
 log_dir = output_dir / "logs"
+log_file_path = log_dir / "create_input.log"
+
 log_dir.mkdir(parents=True, exist_ok=True)
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
 # create a file handler
-handler = logging.FileHandler(log_dir / "create_input.log")
+handler = logging.FileHandler(log_file_path)
 handler.setLevel(logging.INFO)
 
 # create a console handler
@@ -86,30 +219,27 @@ def handle_exception(exc_type, exc_value, exc_traceback):
 
 sys.excepthook = handle_exception
 
-
-# %%
-
 logging.info("============================================================")
 logging.info("Start preprocessing of identified clouds to create input for CLEO")
 logging.info("Git hash: %s", get_git_revision_hash())
 logging.info("Date: %s", datetime.datetime.now(datetime.UTC).strftime("%Y-%m-%d %H:%M:%S"))
 logging.info("Output directory: %s", output_dir)
-logging.info("Figure directory: %s", fig_path)
 logging.info("============================================================")
-# input('all correct?')
+input("all correct?")
 
 
-# %% [markdown]
 # ======================================
-# ### Load datasets
-#
+# LOAD AND SELECT THE DATASETS
+# ======================================
 
-# %%
-identified_clouds = xr.open_dataset(
-    "/home/m/m301096/repositories/sdm-eurec4a/data/observation/cloud_composite/processed/identified_clouds/identified_clusters_rain_mask_5.nc"
-)
-# select only clouds which are
-# below 1500m and have a duration of at least 10s.
+identified_clouds = xr.open_dataset(identified_clouds_path)
+distance_relation = xr.open_dataset(distance_relation_path)
+cloud_composite = xr.open_dataset(cloud_composite_path)
+drop_sondes = xr.open_dataset(drop_sonde_path)
+
+# confine the datasets
+
+# set selection criteria for the identified clouds
 identified_clouds = identified_clouds.where(
     (identified_clouds["alt"] <= 1200)
     & (identified_clouds["alt"] >= 500)
@@ -120,60 +250,46 @@ identified_clouds = identified_clouds.where(
     drop=True,
 )
 
-
-distance_IC_DS = xr.open_dataset(
-    REPOSITORY_ROOT
-    / Path(
-        f"data/observation/combined/distance_relations/distance_dropsondes_identified_clusters_rain_mask_5.nc"
-    )
-)
-
-cloud_composite = xr.open_dataset(
-    REPOSITORY_ROOT / Path(f"data/observation/cloud_composite/processed/cloud_composite_si_units.nc")
-)
-
-drop_sondes = xr.open_dataset(
-    REPOSITORY_ROOT / Path("data/observation/dropsonde/processed/drop_sondes.nc")
-)
-
+# set selection criteria for the dropsondes
 drop_sondes = drop_sondes.where(drop_sondes.alt <= 1600, drop=True)
 
 # add relative humidity to the dataset
-
 drop_sondes["relative_humidity"] = conversions.relative_humidity_from_tps(
     temperature=drop_sondes["air_temperature"],
     pressure=drop_sondes["pressure"],
     specific_humidity=drop_sondes["specific_humidity"],
 )
 
-# %% [markdown]
-# print all the ids of clouds which are used selected by this criteria
+
+# ======================================
+# MAIN FUNCTION
+# ======================================
 
 
 # %%
-def main(chosen_id):
-    """The main function."""
-    identification_type = "clusters"
-    split_radius = 4.5e-5
-    max_spatial_distance = 100
-    max_temporal_distance = np.timedelta64(3, "h")
-    subfig_path = fig_path / Path(f"{identification_type}_{chosen_id}")
-    subfig_path.mkdir(parents=True, exist_ok=True)
-
+def select_subdatasets_from_cloud_id(
+    chosen_id: int,
+    identified_clouds: xr.Dataset,
+    cloud_composite: xr.Dataset,
+    drop_sondes: xr.Dataset,
+    distance_relation: xr.Dataset,
+    identification_type: str,
+    max_spatial_distance: int = 100,
+    max_temporal_distance: np.timedelta64 = np.timedelta64(3, "h"),
+    particle_split_radius: float = 45e-6,  # 45 micrometer
+) -> Tuple[xr.Dataset, xr.Dataset, xr.Dataset, dict]:
     cloud_information = dict(
         cloud_id=chosen_id,
-        split_radius=split_radius,
+        split_radius=particle_split_radius,
         dropsonde_distance=dict(
-            max_spatial_distance=max_spatial_distance, max_temporal_distance=str(max_temporal_distance)
+            max_spatial_distance=max_spatial_distance,
+            max_temporal_distance=str(max_temporal_distance),
         ),
         identification_type=identification_type,
     )
 
     # select a single cloud
-    if chosen_id is not None:
-        ds_cloud = select_individual_cloud_by_id(identified_clouds, chosen_id)
-    else:
-        ds_cloud = identified_clouds
+    ds_cloud = select_individual_cloud_by_id(identified_clouds, chosen_id)
 
     cloud_information["altitude"] = ds_cloud["alt"].data
     cloud_information["duration"] = ds_cloud["duration"].dt.seconds.data
@@ -187,7 +303,7 @@ def main(chosen_id):
     ds_dropsondes = match_clouds_and_dropsondes(
         ds_clouds=ds_cloud,
         ds_sonde=drop_sondes,
-        ds_distance=distance_IC_DS,
+        ds_distance=distance_relation,
         max_spatial_distance=max_spatial_distance,
         max_temporal_distance=max_temporal_distance,
     )
@@ -197,6 +313,7 @@ def main(chosen_id):
         ds_cloudcomposite_with_zeros["particle_size_distribution"] != 0
     )
 
+    # Make sure the data is not empty
     logging.info(f"Number of dropsondes: {ds_dropsondes['time'].shape}")
     logging.info(f"Number of cloudcomposite: {ds_cloudcomposite['time'].shape}")
 
@@ -205,43 +322,89 @@ def main(chosen_id):
     if ds_dropsondes["time"].shape[0] == 0:
         raise ValueError("No dropsonde data found for cloud")
 
-    # # Split data into cloud and rain
+    return ds_cloud, ds_cloudcomposite, ds_dropsondes, cloud_information
 
-    ds_lower = ds_cloudcomposite.sel(radius=slice(None, split_radius))
-    ds_rain = ds_cloudcomposite.sel(radius=slice(split_radius, None))
 
+def fit_particle_size_distribution(
+    ds_cloudcomposite: xr.Dataset,
+    particle_split_radius: float = 45e-6,  # 45 micrometer
+) -> transfer.PSD_LnNormal:
+    """
+    Fits the particle size distribution (PSD) of cloud and rain droplets
+    idependently.
+
+    Note
+    ----
+    The PSD is fitted with a bimodal Lognormal distribution.
+    For the cloud droplets, the PSD is fitted with
+    - geometric mean between 0.1 micrometer and the split radius.
+    - geometric sigma between 0 and 1.7.
+    For the rain droplets, the PSD is fitted with
+    - geometric mean within the range of radius values provided.
+
+    Parameters
+    ----------
+    ds_cloudcomposite : xr.Dataset
+        Dataset containing the cloud composite data.
+    particle_split_radius : float, optional
+        The radius at which to split the data into cloud and rain droplets. Default is 45 micrometers.
+
+    Returns
+    -------
+    psd_fit : transfer.PSD_LnNormal
+        The fitted particle size distribution.
+    """
+
+    # Split data into cloud and rain
+    ds_small_droplets = ds_cloudcomposite.sel(radius=slice(None, particle_split_radius))
+    ds_rain_droplets = ds_cloudcomposite.sel(radius=slice(particle_split_radius, None))
+
+    # ======================================
+    # Fit the PSDs
+    # ======================================
+
+    # Use the PSD_LnNormal model
     psd_rain_fit = transfer.PSD_LnNormal()
     psd_cloud_fit = transfer.PSD_LnNormal()
 
-    # Drizzle and cloud droplets
-    data = ds_rain.particle_size_distribution
+    # ---------
+    # Rain
+    # ---------
+    data = ds_rain_droplets["particle_size_distribution"]
     radi2d = shape_dim_as_dataarray(da=data, output_dim="radius")
+    psd_model = psd_rain_fit.get_model()
 
+    # update geometric mean to be within range of the data
     psd_rain_fit.update_individual_model_parameters(
         lmfit.Parameter(
             name="geometric_means",
-            min=data.radius.min().data,
-            max=data.radius.max().data,
+            min=data["radius"].min().data,
+            max=data["radius"].max().data,
         )
     )
 
-    rain_model_result = psd_rain_fit.get_model().fit(
+    # fit model parameters and update them
+    model_result = psd_model.fit(
         data=data.data, radii=radi2d.data, params=psd_rain_fit.get_model_parameters(), nan_policy="omit"
     )
-    psd_rain_fit.lmfitParameterValues_to_dict(rain_model_result.params)
+    psd_rain_fit.lmfitParameterValues_to_dict(model_result.params)
 
-    data = ds_lower.particle_size_distribution
-    radi2d = shape_dim_as_dataarray(da=data, output_dim="radius")
-    psd_model = psd_cloud_fit.get_model()
+    # ---------
+    # Small cloud and drizzle
+    # ---------
+    # For this, the parameters need to be updated
 
+    # update geometric mean to be within range of 0.1 micrometer and the split radius
     psd_cloud_fit.update_individual_model_parameters(
         lmfit.Parameter(
             name="geometric_means",
             value=1e-5,
-            min=data.radius.min().data * 0.2e-1,
-            max=data.radius.max().data * 0.2e1,
+            min=0.1e-6,  # at least 0.1 micrometer
+            max=particle_split_radius,  # at most the split radius (default 45 micrometer)
         )
     )
+    # update geometric sigma to be within range of 0 and 1.7.
+    # NOTE: No real physical meaning, but it is a good range for the fit
     psd_cloud_fit.update_individual_model_parameters(
         lmfit.Parameter(
             name="geometric_sigmas",
@@ -251,18 +414,37 @@ def main(chosen_id):
         )
     )
 
-    # print(psd_cloud_fit.get_model_parameters())
+    data = ds_small_droplets["particle_size_distribution"]
+    radi2d = shape_dim_as_dataarray(da=data, output_dim="radius")
+    psd_model = psd_cloud_fit.get_model()
 
-    cloud_model_result = psd_model.fit(
+    # fit model parameters and update them
+    model_result = psd_model.fit(
         data=data.data, radii=radi2d.data, params=psd_cloud_fit.get_model_parameters(), nan_policy="omit"
     )
-    psd_cloud_fit.lmfitParameterValues_to_dict(cloud_model_result.params)
+    psd_cloud_fit.lmfitParameterValues_to_dict(model_result.params)
+
+    # --------
+    # Combine the fits
+    # --------
 
     psd_fit = psd_rain_fit + psd_cloud_fit
-    # print(psd_cloud_fit.get_parameters())
 
-    # Fit the ThermodynamicLinear models
-    thermodynamic_split_linear_dict = dict(
+    return psd_fit
+
+
+class ThermoDict(TypedDict):
+    air_temperature: Union[transfer.ThermodynamicLinear, transfer.ThermodynamicSplitLinear]
+    specific_humidity: Union[transfer.ThermodynamicLinear, transfer.ThermodynamicSplitLinear]
+    potential_temperature: Union[transfer.ThermodynamicLinear, transfer.ThermodynamicSplitLinear]
+    relative_humidity: Union[transfer.ThermodynamicLinear, transfer.ThermodynamicSplitLinear]
+    pressure: Union[transfer.ThermodynamicLinear, transfer.ThermodynamicSplitLinear]
+
+
+def fit_thermodynamics_default(
+    ds_dropsondes: xr.Dataset,
+) -> ThermoDict:
+    thermodynamic_split_linear_dict: ThermoDict = dict(
         air_temperature=transfer.ThermodynamicSplitLinear(),
         specific_humidity=transfer.ThermodynamicSplitLinear(),
         potential_temperature=transfer.ThermodynamicSplitLinear(),
@@ -283,7 +465,7 @@ def main(chosen_id):
     logging.info(f"Split level: {mean_x_split} m")
 
     # Fit the ThermodynamicLinear models
-    thermodynamic_split_linear_dict_fixed = dict(
+    thermodynamic_split_linear_dict_fixed: ThermoDict = dict(
         air_temperature=transfer.ThermodynamicSplitLinear(),
         specific_humidity=transfer.ThermodynamicSplitLinear(),
         potential_temperature=transfer.ThermodynamicSplitLinear(),
@@ -299,32 +481,31 @@ def main(chosen_id):
             x_split=mean_x_split,
         )
 
-    # # Export everything as yaml
+    return thermodynamic_split_linear_dict_fixed
+
+
+def save_config_yaml(
+    particle_size_distribution_fit: transfer.PSD_LnNormal,
+    thermodynamic_fits: ThermoDict,
+    cloud_information: dict,
+    version_control: dict,
+    output_dir: Path,
+    identification_type: str,
+    chosen_id: int,
+):
+    # Add the representers
     add_representer()
 
-    version_control = dict(
-        git_hash=get_git_revision_hash(),
-        date=datetime.datetime.now(datetime.UTC).strftime("%Y-%m-%d %H:%M:%S"),
-    )
-
-    thermodynamic_parameters = thermodynamic_split_linear_dict_fixed
-
     output_dictonary = dict(
-        particle_size_distribution=psd_fit,
-        thermodynamics=thermodynamic_parameters,
+        particle_size_distribution=particle_size_distribution_fit,
+        thermodynamics=thermodynamic_fits,
         cloud=cloud_information,
         version_control=version_control,
     )
 
-    # return output_dictonary
-
+    # write config to yaml file
     output_filepath = output_dir / f"{identification_type}_{chosen_id}.yaml"
-
     with open(output_filepath, "w") as file:
-        s = yaml.dump(output_dictonary)
-        file.write(s)
-
-    with open(subfig_path / "input_CLEO.yaml", "w") as file:
         s = yaml.dump(output_dictonary)
         file.write(s)
 
@@ -431,13 +612,48 @@ def add_representer() -> None:
 
 # %%
 
-# for id in identified_clouds.cloud_id.data:
-#     id = int(id)
-#     plt.close('all')
-#     try:
-#         main(id)
-#         logger.info(f"Created input for cloud {id}")
-#     except Exception as e:
-#         message = traceback.format_exception(None, e, e.__traceback__)
-#         logger.error(f'Failed to create input for cloud {id}: '+ repr(e) + '\n' + ''.join(message))
-#         continue
+for id in identified_clouds.cloud_id.data:
+    id = int(id)
+
+    # select individual datasets
+
+    try:
+        logger.info(f"Cloud {id} - select sub datasets")
+
+        ds_cloud, ds_cloudcomposite, ds_dropsondes, cloud_information = select_subdatasets_from_cloud_id(
+            chosen_id=id,
+            identified_clouds=identified_clouds,
+            cloud_composite=cloud_composite,
+            drop_sondes=drop_sondes,
+            distance_relation=distance_relation,
+            identification_type=identification_type,
+        )
+
+        # fit the particle size distribution
+        logger.info(f"Cloud {id} - fit particle size distribution")
+        particle_size_distribution_fit = fit_particle_size_distribution(
+            ds_cloudcomposite=ds_cloudcomposite,
+            particle_split_radius=cloud_information["split_radius"],
+        )
+
+        # fit the thermodynamics
+        logger.info(f"Cloud {id} - fit thermodynamics")
+        thermodynamic_fits = fit_thermodynamics_default(ds_dropsondes=ds_dropsondes)
+
+        # save the config to yaml
+        logger.info(f"Cloud {id} - save config to yaml")
+        save_config_yaml(
+            particle_size_distribution_fit=particle_size_distribution_fit,
+            thermodynamic_fits=thermodynamic_fits,
+            cloud_information=cloud_information,
+            version_control=version_control,
+            output_dir=output_dir,
+            identification_type=identification_type,
+            chosen_id=id,
+        )
+
+        logger.info(f"Created input for cloud {id}")
+    except Exception as e:
+        message = traceback.format_exception(None, e, e.__traceback__)
+        logger.error(f"Failed to create input for cloud {id}: " + repr(e) + "\n" + "".join(message))
+        continue
