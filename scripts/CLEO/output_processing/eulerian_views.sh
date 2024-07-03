@@ -52,22 +52,22 @@ env=/work/mh1126/m301096/conda/envs/sdm_pysd_env312
 python=${env}/bin/python
 source activate ${env}
 
-### ------------------ Create Eulerian View --------------- ###
-echo "CREATE EULERIAN VIEWS"
-for exp_folder in ${data_dir}/${subdir_pattern}*; do
-    echo "::::::::::::::::::::::::::::::::::::::::::::"
-    echo "Create eulerian views for experiment:"
-    echo "in ${exp_folder}"
-    {
-        ${python}  ${create_pythonscript} --data_dir ${exp_folder}
-    } || {
-        echo "--------------------------------------------"
-        echo "EXCECUTION ERROR: in ${exp_folder}"
-        echo "--------------------------------------------"
-    }
-    echo "::::::::::::::::::::::::::::::::::::::::::::"
-done
-### ---------------------------------------------------- ###
+# ### ------------------ Create Eulerian View --------------- ###
+# echo "CREATE EULERIAN VIEWS"
+# for exp_folder in ${data_dir}/${subdir_pattern}*; do
+#     echo "::::::::::::::::::::::::::::::::::::::::::::"
+#     echo "Create eulerian views for experiment:"
+#     echo "in ${exp_folder}"
+#     {
+#         ${python}  ${create_pythonscript} --data_dir ${exp_folder}
+#     } || {
+#         echo "--------------------------------------------"
+#         echo "EXCECUTION ERROR: in ${exp_folder}"
+#         echo "--------------------------------------------"
+#     }
+#     echo "::::::::::::::::::::::::::::::::::::::::::::"
+# done
+# ### ---------------------------------------------------- ###
 
 ### ------------------ Concatenate Eulerian View --------------- ###
 ${python}  ${concatenate_pythonscript} --data_dir ${data_dir} --output_dir ${output_dir} --result_file_name ${result_file_name}
