@@ -240,7 +240,7 @@ def adjust_lightness(color: str, amount: float = 0.75) -> str:
         return color  # Return the original color if conversion fails
 
 
-def adjust_lightness_array(colors: np.ndarray, amount=0.75) -> np.ndarray:
+def adjust_lightness_array(colors: Union[list, np.ndarray], amount: float = 0.75) -> np.ndarray:
     """
     Adjusts the lightness of an array of colors by the specified amount.
 
@@ -575,8 +575,8 @@ def symlog_from_array(
 def plot_thermodynamics(
     fig: mpl.figure.Figure,
     axs: np.ndarray,
-    drop_sondes: xr.Dataset,
-    fit_dict: dict,
+    drop_sondes: Union[xr.Dataset, None] = None,
+    fit_dict: Union[dict, None] = None,
     fig_title: str = "",
     default_colors: list = get_current_colors(),
     dark_colors: list = None,
@@ -599,14 +599,16 @@ def plot_thermodynamics(
     axs : np.ndarray
         The matplotlib Axes objects to plot on.
         This needs to be a 2x2 array of Axes objects.
-    drop_sondes : xr.Dataset
+    drop_sondes : xr.Dataset or None
         The dropsondes dataset containing the thermodynamic profiles.
         It should have the following variables:
         'specific_humidity', 'relative_humidity', 'air_temperature', 'potential_temperature'
         and the coordinate 'alt'.
-    fit_dict : dict
+        Default is None (no data is plotted).
+    fit_dict : dict or None
         A dictionary containing the fit functions for the thermodynamic profiles.
         The keys should be the variable names and the values should be the fit functions.
+        Default is None (no data is plotted).
     fig_title : str, optional
         The title of the figure. Default is an empty string.
     default_colors : list, optional
@@ -672,30 +674,48 @@ def plot_thermodynamics(
 
     for i, var in enumerate(plot_dict):
         ax = plot_dict[var]["ax"]
-        data = drop_sondes[var]
-        fit = fit_dict.get(var)
 
-        if var == "specific_humidity":
-            data = 1e3 * data
+        if drop_sondes is None:
+            pass
+        elif isinstance(drop_sondes, xr.Dataset):
+            data = drop_sondes[var]
 
-        ax.plot(
-            data.T,
-            drop_sondes["alt"].T,
-            color=default_colors[i],
-            **plot_kwargs,
-        )
-        if fit is not None:
-            fitted_data = fit.eval_func(drop_sondes["alt"])[0]
             if var == "specific_humidity":
-                fitted_data = 1e3 * fitted_data
+                data = 1e3 * data
+
             ax.plot(
-                fitted_data,
-                drop_sondes["alt"],
-                color=dark_colors[i],
-                label="fit",
-                **plot_fit_kwargs,
+                data.T,
+                drop_sondes["alt"].T,
+                color=default_colors[i],
+                **plot_kwargs,
             )
-            ax.axhline(fit.get_x_split(), color="black", linestyle="--", label="cloud base estimated")
+        else:
+            raise ValueError(f"drop_sondes should be a xr.Dataset but is {type(drop_sondes)}")
+
+    # plot fits if available
+    for i, var in enumerate(plot_dict):
+        ax = plot_dict[var]["ax"]
+        if fit_dict is None:
+            pass
+        elif isinstance(fit_dict, dict):
+            fit = fit_dict.get(var)
+
+            if fit != None:
+                fitted_data = fit.eval_func(drop_sondes["alt"])[0]
+                if var == "specific_humidity":
+                    fitted_data = 1e3 * fitted_data
+                ax.plot(
+                    fitted_data,
+                    drop_sondes["alt"],
+                    color=dark_colors[i],
+                    label="fit",
+                    **plot_fit_kwargs,
+                )
+                ax.axhline(
+                    fit.get_x_split(), color="black", linestyle="--", label="cloud base estimated"
+                )
+        else:
+            raise ValueError(f"fit_dict should be a dict but is {type(fit_dict)}")
 
         ax.xaxis.label.set_color(default_colors[i])  # Set the color of x-axis label
         ax.tick_params(axis="x", colors=default_colors[i])  # Set the color of x-axis ticks

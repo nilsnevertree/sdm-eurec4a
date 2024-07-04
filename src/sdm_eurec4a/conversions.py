@@ -1,5 +1,7 @@
 import warnings
 
+from typing import Union
+
 import numpy as np
 import xarray as xr
 
@@ -235,7 +237,9 @@ def lwc_from_psd(
     return lwc
 
 
-def saturation_vapour_pressure(temperature: np.ndarray) -> np.ndarray:
+def saturation_vapour_pressure(
+    temperature: Union[np.ndarray, xr.DataArray]
+) -> Union[np.ndarray, xr.DataArray]:
     """
     Calculate the saturation vapour pressure over water for a given
     temperature.
@@ -259,8 +263,10 @@ def saturation_vapour_pressure(temperature: np.ndarray) -> np.ndarray:
 
 
 def water_vapour_pressure(
-    specific_humidity: np.ndarray, pressure: np.ndarray, simplified: bool = False
-) -> np.ndarray:
+    specific_humidity: Union[np.ndarray, xr.DataArray],
+    pressure: Union[np.ndarray, xr.DataArray],
+    simplified: bool = False,
+) -> Union[np.ndarray, xr.DataArray]:
     """
     Calculate the water vapour pressure from the specific humidity and the
     pressure. This follows (2.80) from Introduction to Clouds: From the
@@ -304,7 +310,10 @@ def water_vapour_pressure(
     return e
 
 
-def relative_humidity(saturation_vapour_pressure: np.ndarray, vapour_pressure: np.ndarray) -> np.ndarray:
+def relative_humidity(
+    saturation_vapour_pressure: Union[np.ndarray, xr.DataArray],
+    vapour_pressure: Union[np.ndarray, xr.DataArray],
+) -> Union[np.ndarray, xr.DataArray]:
     """
     Calculate the relative humidity from the saturation vapour pressure and the
     vapour pressure.
@@ -327,11 +336,11 @@ def relative_humidity(saturation_vapour_pressure: np.ndarray, vapour_pressure: n
 
 
 def relative_humidity_from_tps(
-    temperature: np.ndarray,
-    pressure: np.ndarray,
-    specific_humidity: np.ndarray,
+    temperature: Union[np.ndarray, xr.DataArray],
+    pressure: Union[np.ndarray, xr.DataArray],
+    specific_humidity: Union[np.ndarray, xr.DataArray],
     simplified: bool = False,
-):
+) -> Union[np.ndarray, xr.DataArray]:
     """
     Calculate the relative humidity from the temperature, pressure and specific
     humidity.
@@ -360,7 +369,7 @@ def relative_humidity_from_tps(
     return rh
 
 
-def __rename_if_dataarray__(da, name):
+def __rename_if_dataarray__(da: Union[np.ndarray, xr.DataArray], name: str):
     if isinstance(da, xr.DataArray):
         print("rename dataarray")
         da.name = name
