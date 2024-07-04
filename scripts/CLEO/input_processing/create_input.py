@@ -1,7 +1,21 @@
+# %%
 import argparse
+import datetime
+import logging
+import sys
+import traceback
 
-from argparse import RawDescriptionHelpFormatter, RawTextHelpFormatter
+from argparse import RawTextHelpFormatter
 from pathlib import Path
+from typing import Tuple, TypedDict, Union
+
+import lmfit
+import numpy as np
+import xarray as xr
+import yaml
+
+
+develpoment = False
 
 
 __epilog__ = """
@@ -49,7 +63,7 @@ With this script the input yaml files are created to execute CLEO in a EUREC4A1D
 
 The input paths to the datasets can be relative!
 Then the script uses the repository path to find the datasets.
-This is done by using ``sdm_eurec4a.RepositoryPath(envciroment)`` where enviroment is by default "levante".
+This is done by using ``sdm_eurec4a.RepositoryPath(envciroment)`` where enviroment is by default "nils_levante".
 
 OUTPUT:
 -------
@@ -114,23 +128,14 @@ parser.add_argument(
     "-e",
     type=str,
     help="environment e.g. 'levante'",
-    default="levante",
+    default="nils_levante",
 )
 
-args = parser.parse_args()
 
-
-import datetime
-import logging
-import sys
-import traceback
-
-from typing import Tuple, TypedDict, Union
-
-import lmfit
-import numpy as np
-import xarray as xr
-import yaml
+if develpoment == True:
+    args = parser.parse_args(["--output-dir", "data/model/input/output_test_new/"])
+else:
+    args = parser.parse_args()
 
 from sdm_eurec4a import RepositoryPath, conversions, get_git_revision_hash
 from sdm_eurec4a.identifications import (
@@ -142,7 +147,7 @@ from sdm_eurec4a.input_processing import transfer
 from sdm_eurec4a.reductions import shape_dim_as_dataarray
 
 
-repo_path = RepositoryPath("levante")()
+repo_path = RepositoryPath("nils_levante").get_repo_dir()
 print(repo_path)
 
 
@@ -225,7 +230,6 @@ logging.info("Git hash: %s", get_git_revision_hash())
 logging.info("Date: %s", datetime.datetime.now(datetime.UTC).strftime("%Y-%m-%d %H:%M:%S"))
 logging.info("Output directory: %s", output_dir)
 logging.info("============================================================")
-input("all correct?")
 
 
 # ======================================
@@ -262,11 +266,10 @@ drop_sondes["relative_humidity"] = conversions.relative_humidity_from_tps(
 
 
 # ======================================
-# MAIN FUNCTION
+# FIT FUNCTION
 # ======================================
 
 
-# %%
 def select_subdatasets_from_cloud_id(
     chosen_id: int,
     identified_clouds: xr.Dataset,
@@ -278,6 +281,41 @@ def select_subdatasets_from_cloud_id(
     max_temporal_distance: np.timedelta64 = np.timedelta64(3, "h"),
     particle_split_radius: float = 45e-6,  # 45 micrometer
 ) -> Tuple[xr.Dataset, xr.Dataset, xr.Dataset, dict]:
+    """
+    Selects subdatasets related to a specific cloud ID.
+
+    Parameters
+    ----------
+    chosen_id : int
+        The ID of the cloud to select subdatasets for.
+    identified_clouds : xr.Dataset
+        Dataset containing identified clouds.
+    cloud_composite : xr.Dataset
+        Dataset containing cloud composite data.
+    drop_sondes : xr.Dataset
+        Dataset containing drop sondes data.
+    distance_relation : xr.Dataset
+        Dataset containing distance relation data.
+    identification_type : str
+        Type of cloud identification.
+    max_spatial_distance : int, optional
+        Maximum spatial distance for matching clouds and dropsondes. Defaults to 100.
+    max_temporal_distance : np.timedelta64, optional
+        Maximum temporal distance for matching clouds and dropsondes. Defaults to np.timedelta64(3, "h").
+    particle_split_radius : float, optional
+        Particle split radius. Defaults to 45e-6.
+
+    Returns
+    -------
+    Tuple[xr.Dataset, xr.Dataset, xr.Dataset, dict]
+        A tuple containing the selected subdatasets and cloud information.
+
+    Raises
+    ------
+    ValueError
+        If no cloudcomposite data is found for the cloud.
+    """
+
     cloud_information = dict(
         cloud_id=chosen_id,
         split_radius=particle_split_radius,
@@ -433,18 +471,10 @@ def fit_particle_size_distribution(
     return psd_fit
 
 
-class ThermoDict(TypedDict):
-    air_temperature: Union[transfer.ThermodynamicLinear, transfer.ThermodynamicSplitLinear]
-    specific_humidity: Union[transfer.ThermodynamicLinear, transfer.ThermodynamicSplitLinear]
-    potential_temperature: Union[transfer.ThermodynamicLinear, transfer.ThermodynamicSplitLinear]
-    relative_humidity: Union[transfer.ThermodynamicLinear, transfer.ThermodynamicSplitLinear]
-    pressure: Union[transfer.ThermodynamicLinear, transfer.ThermodynamicSplitLinear]
-
-
 def fit_thermodynamics_default(
     ds_dropsondes: xr.Dataset,
-) -> ThermoDict:
-    thermodynamic_split_linear_dict: ThermoDict = dict(
+) -> dict:
+    thermodynamic_split_linear_dict = dict(
         air_temperature=transfer.ThermodynamicSplitLinear(),
         specific_humidity=transfer.ThermodynamicSplitLinear(),
         potential_temperature=transfer.ThermodynamicSplitLinear(),
@@ -459,13 +489,18 @@ def fit_thermodynamics_default(
             x_split=None,
         )
 
-    mean_x_split = np.mean(
-        [thermodynamic_split_linear_dict[key].get_x_split() for key in thermodynamic_split_linear_dict]
+    mean_x_split = float(
+        np.mean(
+            [
+                thermodynamic_split_linear_dict[key].get_x_split()
+                for key in thermodynamic_split_linear_dict
+            ]
+        )
     )
     logging.info(f"Split level: {mean_x_split} m")
 
     # Fit the ThermodynamicLinear models
-    thermodynamic_split_linear_dict_fixed: ThermoDict = dict(
+    thermodynamic_split_linear_dict_fixed = dict(
         air_temperature=transfer.ThermodynamicSplitLinear(),
         specific_humidity=transfer.ThermodynamicSplitLinear(),
         potential_temperature=transfer.ThermodynamicSplitLinear(),
@@ -484,9 +519,14 @@ def fit_thermodynamics_default(
     return thermodynamic_split_linear_dict_fixed
 
 
+# ======================================
+# FIT FUNCTION
+# ======================================
+
+
 def save_config_yaml(
     particle_size_distribution_fit: transfer.PSD_LnNormal,
-    thermodynamic_fits: ThermoDict,
+    thermodynamic_fits: dict,
     cloud_information: dict,
     version_control: dict,
     output_dir: Path,
@@ -612,48 +652,108 @@ def add_representer() -> None:
 
 # %%
 
-for id in identified_clouds.cloud_id.data:
-    id = int(id)
+if __name__ == "__main__":
+    for cloud_id in identified_clouds.cloud_id.data[[0, 10]]:
+        cloud_id = int(cloud_id)
 
-    # select individual datasets
+        # select individual datasets
 
-    try:
-        logger.info(f"Cloud {id} - select sub datasets")
+        try:
+            logger.info(f"Cloud {cloud_id} - select sub datasets")
 
-        ds_cloud, ds_cloudcomposite, ds_dropsondes, cloud_information = select_subdatasets_from_cloud_id(
-            chosen_id=id,
-            identified_clouds=identified_clouds,
-            cloud_composite=cloud_composite,
-            drop_sondes=drop_sondes,
-            distance_relation=distance_relation,
-            identification_type=identification_type,
-        )
+            (
+                ds_cloud,
+                ds_cloudcomposite,
+                ds_dropsondes,
+                cloud_information,
+            ) = select_subdatasets_from_cloud_id(
+                chosen_id=cloud_id,
+                identified_clouds=identified_clouds,
+                cloud_composite=cloud_composite,
+                drop_sondes=drop_sondes,
+                distance_relation=distance_relation,
+                identification_type=identification_type,
+            )
 
-        # fit the particle size distribution
-        logger.info(f"Cloud {id} - fit particle size distribution")
-        particle_size_distribution_fit = fit_particle_size_distribution(
-            ds_cloudcomposite=ds_cloudcomposite,
-            particle_split_radius=cloud_information["split_radius"],
-        )
+            # fit the particle size distribution
+            logger.info(f"Cloud {id} - fit particle size distribution")
+            particle_size_distribution_fit = fit_particle_size_distribution(
+                ds_cloudcomposite=ds_cloudcomposite,
+                particle_split_radius=cloud_information["split_radius"],
+            )
 
-        # fit the thermodynamics
-        logger.info(f"Cloud {id} - fit thermodynamics")
-        thermodynamic_fits = fit_thermodynamics_default(ds_dropsondes=ds_dropsondes)
+            # fit the thermodynamics
+            logger.info(f"Cloud {cloud_id} - fit thermodynamics")
+            thermodynamic_fits = fit_thermodynamics_default(ds_dropsondes=ds_dropsondes)
 
-        # save the config to yaml
-        logger.info(f"Cloud {id} - save config to yaml")
-        save_config_yaml(
-            particle_size_distribution_fit=particle_size_distribution_fit,
-            thermodynamic_fits=thermodynamic_fits,
-            cloud_information=cloud_information,
-            version_control=version_control,
-            output_dir=output_dir,
-            identification_type=identification_type,
-            chosen_id=id,
-        )
+            # save the config to yaml
+            logger.info(f"Cloud {id} - save config to yaml")
+            save_config_yaml(
+                particle_size_distribution_fit=particle_size_distribution_fit,
+                thermodynamic_fits=thermodynamic_fits,
+                cloud_information=cloud_information,
+                version_control=version_control,
+                output_dir=output_dir,
+                identification_type=identification_type,
+                chosen_id=id,
+            )
 
-        logger.info(f"Created input for cloud {id}")
-    except Exception as e:
-        message = traceback.format_exception(None, e, e.__traceback__)
-        logger.error(f"Failed to create input for cloud {id}: " + repr(e) + "\n" + "".join(message))
-        continue
+            logger.info(f"Created input for cloud {id}")
+        except Exception as e:
+            message = traceback.format_exception(None, e, e.__traceback__)
+            logger.error(
+                f"Failed to create input for cloud {cloud_id}: " + repr(e) + "\n" + "".join(message)
+            )
+            continue
+
+# %%
+
+# thermodynamic_split_linear_dict = dict(
+#     air_temperature=transfer.ThermodynamicLinear(),
+#     specific_humidity=transfer.ThermodynamicLinear(),
+#     relative_humidity=transfer.ThermodynamicLinear(),
+#     pressure=transfer.ThermodynamicLinear(),
+# )
+# for var in thermodynamic_split_linear_dict:
+#     logging.info(f"Fitting {var}")
+#     thermodynamic_split_linear_dict[var] = transfer.fit_thermodynamics(
+#         da_thermo=ds_dropsondes[var].sel(alt = slice(200, 500)),
+#         thermo_fit=thermodynamic_split_linear_dict[var],
+#         dim="alt",
+#         x_split=None,
+#     )
+
+#     # mean_x_split = np.mean(
+#     #     [thermodynamic_split_linear_dict[key].get_x_split() for key in thermodynamic_split_linear_dict]
+#     # )
+#     # logging.info(f"Split level: {mean_x_split} m")
+
+#     # # Fit the ThermodynamicLinear models
+#     # thermodynamic_split_linear_dict_fixed = dict(
+#     #     air_temperature=transfer.ThermodynamicSplitLinear(),
+#     #     specific_humidity=transfer.ThermodynamicSplitLinear(),
+#     #     potential_temperature=transfer.ThermodynamicSplitLinear(),
+#     #     relative_humidity=transfer.ThermodynamicSplitLinear(),
+#     #     pressure=transfer.ThermodynamicLinear(),
+#     # )
+#     # for var in thermodynamic_split_linear_dict_fixed:
+#     #     logging.info(f"Fitting {var}")
+#     #     thermodynamic_split_linear_dict_fixed[var] = transfer.fit_thermodynamics(
+#     #         da_thermo=ds_dropsondes[var],
+#     #         thermo_fit=thermodynamic_split_linear_dict_fixed[var],
+#     #         dim="alt",
+#     #         x_split=mean_x_split,
+#     #     )
+
+# # %%
+
+# import matplotlib.pyplot as plt
+# from sdm_eurec4a import visulization
+
+# fig, axs = plt.subplots(2, 2, figsize=(12, 10))
+
+# fig, ax = visulization.plot_thermodynamics(
+#     fig = fig,
+#     axs = axs,
+#     fit_dict=thermodynamic_split_linear_dict,
+# )
