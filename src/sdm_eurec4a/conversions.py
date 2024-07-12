@@ -374,3 +374,37 @@ def __rename_if_dataarray__(da: Union[np.ndarray, xr.DataArray], name: str):
         print("rename dataarray")
         da.name = name
     return da
+
+
+def potential_temperature_from_tp(
+    air_temperature: Union[np.ndarray, xr.DataArray],
+    pressure: Union[np.ndarray, xr.DataArray],
+    pressure_reference: Union[
+        float, np.ndarray, xr.DataArray
+    ] = 100000,  # default value used for drop sondes dataset
+    R_over_cp: float = 0.286,
+):
+    """
+    Calculate the potential temperature from the air temperature and the
+    pressure.
+
+    Parameters
+    ----------
+    air_temperature : np.ndarray or xr.DataArray
+        The air temperature in Kelvin.
+    pressure : np.ndarray  or xr.DataArray
+        The pressure in Pa.
+    pressure_reference : float
+        The reference pressure in Pa.
+    R_over_cp : float, optional
+        The ratio of the gas constant of air to the specific heat capacity at
+        constant pressure. Default is 0.286.
+
+    Returns
+    -------
+    np.ndarray
+        The potential temperature in Kelvin.
+    """
+    theta = air_temperature * (pressure_reference / pressure) ** R_over_cp
+    theta = __rename_if_dataarray__(theta, "potential_temperature")
+    return theta

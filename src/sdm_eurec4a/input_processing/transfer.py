@@ -408,7 +408,7 @@ class ThermodynamicLinear(Input):
         )
         # For each mode, evaluate the model
 
-        return np.array(result)
+        return result
 
 
 class ThermodynamicSplitLinear(Input):
