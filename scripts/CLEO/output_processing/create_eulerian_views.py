@@ -78,12 +78,12 @@ def ak_differentiate(sa: supersdata.SupersAttribute) -> supersdata.SupersAttribu
         All metadata is copied and the long_name is appended with "difference".
     """
 
-    data = sa.data
+    data = sa.get_data()
 
     # It is very important, to concate the nan values at the END of the array, so that the last value is nan.
     # This makes sure, that the mass change is at the same timestep, as the original value.
     # With this, the evapoartion fraction can not exceed 1.
-    data = ak.concatenate([data, np.nan], axis=-1)
+    data: ak.Array = ak.concatenate([data, np.nan], axis=-1)
 
     # if the data has entries, which have only one value, append another nan value
     if ak.min(ak.num(data, axis=-1)) < 2:
@@ -104,6 +104,74 @@ def ak_differentiate(sa: supersdata.SupersAttribute) -> supersdata.SupersAttribu
     updated_metadata = sa.metadata.copy()
     try:
         updated_metadata["long_name"] = updated_metadata["long_name"] + " difference"
+    except KeyError:
+        pass
+    result.set_metadata(metadata=updated_metadata)
+
+    return result
+
+
+def ak_last(sa: supersdata.SupersAttribute) -> supersdata.SupersAttribute:
+    """
+    This function only keeps the last value along axis 1. The rest will be
+    replaced by nans.
+
+    Notes
+    -----
+    - The function is designed to work with awkward arrays
+    - It is intended to be used on relatively regular arrays, where the last axis has at least 1 value or best 2 values.
+
+    Parameters
+    ----------
+    sa : supersdata.SupersAttribute
+        The attribute, which should be lasted.
+        Assuming it has the shape (N, M, var), the last values is kept along the last axis.
+
+    Returns
+    -------
+    supersdata.SupersAttribute
+        The lasted attribute.
+        The output has the same shape as the input, but the last value along the last axis is nan.
+        The new name of the attribute is the old name with "_last" appended.
+        All metadata is copied and the long_name is appended with "last".
+    """
+
+    data = sa.get_data()
+
+    # in order to remove all values except the last one, we need to create a new array with the same shape
+    # data = [
+    #     [1, 2, 3, 4],
+    #     [5, 6, 7, 8],
+    #    ]
+    # after concatenate
+    # data = [
+    #     [n, n, n, n, 1],
+    #     [n, n, n, n, 1],
+    #    ]
+    # after multiplication
+    # data = [
+    #     [n, n, n, n, 4],
+    #     [n, n, n, n, 8],
+    #    ]
+    # after the slice, the result is
+    # data = [
+    #     [n, n, n, 4],
+    #     [n, n, n, 8],
+    #    ]
+
+    last = (ak.concatenate([data * np.nan, 1], axis=-1) * data[..., -1])[..., 1:]
+    # create a new attribute
+    result = supersdata.SupersAttribute(
+        name=sa.name + "_last",
+        data=last,
+        units=sa.units,
+        metadata=sa.metadata.copy(),
+    )
+
+    # update metadata
+    updated_metadata = sa.metadata.copy()
+    try:
+        updated_metadata["long_name"] = updated_metadata["long_name"] + " last"
     except KeyError:
         pass
     result.set_metadata(metadata=updated_metadata)
@@ -194,15 +262,15 @@ def create_lagrangian_dataset(dataset: supersdata.SupersDataNew) -> supersdata.S
     time_diff.set_units("s")
 
     # calculate the difference of the mass as the total mass change per second
-    mass_diff = mass_rep_diff / time_diff
-    mass_diff.set_metadata(
+    mass_rep_diff_time = mass_rep_diff / time_diff
+    mass_rep_diff_time.set_metadata(
         metadata={
             "long_name": "Mass difference",
             "notes": r"Mass here is mass represented by a superdroplet: $m = \xi \cdot m_{sd}$",
         }
     )
-    mass_diff.set_name("mass_difference")
-    dataset.set_attribute(mass_diff)
+    mass_rep_diff_time.set_name("mass_difference")
+    dataset.set_attribute(mass_rep_diff_time)
 
     # calculate the difference of the multiplicity per second
     xi_diff = ak_differentiate(dataset["xi"]) / time_diff
@@ -224,6 +292,43 @@ def create_lagrangian_dataset(dataset: supersdata.SupersDataNew) -> supersdata.S
     )
     evaporated_fraction.set_units("%")
     dataset.set_attribute(evaporated_fraction)
+
+    # number of superdroplets
+    counts = dataset.get_data("xi")
+    counts = counts * 0 + 1
+    number_superdroplets = supersdata.SupersAttribute(
+        name="number_superdroplets",
+        data=counts,
+        units="#",
+        metadata={
+            "long_name": "number of superdroplets",
+        },
+    )
+    dataset.set_attribute(number_superdroplets)
+
+    # calculate total mass which left domain
+    mass_left = ak_last(dataset["mass_represented"])
+    mass_left.set_name("mass_left")
+    mass_left.set_metadata(
+        metadata={
+            "long_name": "mass which left domain",
+            "note": r"this is the last represented mass which a super droplet has during the simulation.\nMass represented by a superdroplet: $m = \xi \cdot m_{sd}$",
+        }
+    )
+    mass_left.set_units("kg")
+    dataset.set_attribute(mass_left)
+
+    # calculate total number of superdroplets which left domain
+    counts_left = ak_last(dataset["number_superdroplets"])
+    counts_left.set_name("number_superdroplets_left")
+    counts_left.set_metadata(
+        metadata={
+            "long_name": "umber of superdroplets only 1 if left domain",
+            "note": r"This is the number of superdroplets leave domain has during the simulation.",
+        }
+    )
+    counts_left.set_units("#")
+    dataset.set_attribute(counts_left)
 
     return dataset
 
@@ -384,6 +489,8 @@ def create_eulerian_xr_dataset(
         - evaporated_fraction : The evaporated fraction per second in the bin
         - xi : The total multiplicity in the bin
         - number_superdroplets : The number of superdroplets in the bin
+        - mass_left : The mass which left the domain in the bin
+        - number_superdroplets_left : The number of superdroplets which left the domain in the bin
 
         It has the following coordinates:
         - gridbox : the gridbox index
@@ -414,6 +521,8 @@ def create_eulerian_xr_dataset(
         "evaporated_fraction": mean_reduction,
         "xi": sum_reduction,
         "number_superdroplets": sum_reduction,
+        "mass_left": sum_reduction,
+        "number_superdroplets_left": sum_reduction,
     }
 
     # create individual DataArrays
