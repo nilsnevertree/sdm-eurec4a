@@ -18,18 +18,6 @@ def is_notebook() -> bool:
         return False  # Probably standard Python interpreter
 
 
-if is_notebook() == False:
-    parser = argparse.ArgumentParser(
-        description="Create eulerian view for data_dir which contains zarr dir in ./eurec4a1d_sol.zarr and config files in ./config/eurec4a1d_setup.txt"
-    )
-
-    # Add arguments
-    parser.add_argument("-d", "--data_dir", type=str, help="Path to data directory", required=True)
-    # Parse arguments
-    args = parser.parse_args()
-
-    data_dir = Path(args.data_dir)
-
 import os
 import sys
 
@@ -40,11 +28,23 @@ import awkward as ak
 import numpy as np
 import xarray as xr
 
-from pySD.sdmout_src import pysetuptxt, supersdata
+from pySD.sdmout_src import pygbxsdat, pysetuptxt, supersdata
 
+
+# parser = argparse.ArgumentParser(
+#     description="Create eulerian view for data_dir which contains zarr dir in ./eurec4a1d_sol.zarr and config files in ./config/eurec4a1d_setup.txt"
+# )
+
+# # Add arguments
+# parser.add_argument("-d", "--data_dir", type=str, help="Path to data directory", required=True)
+# # Parse arguments
+# args = parser.parse_args()
+
+# data_dir = Path(args.data_dir)
+data_dir = Path("/home/m/m301096/CLEO/data/output_v3.5/condensation/clusters_222/")
 
 print(f"Enviroment: {sys.prefix}")
-print("Create eulerian view for all subdirectories in:")
+print("Create eulerian view in:")
 print(data_dir)
 
 
@@ -550,19 +550,184 @@ def create_eulerian_xr_dataset(
         return ds
 
 
+# %%
 eulerian_dataset_path = data_dir / "processed/"
 eulerian_dataset_path.mkdir(exist_ok=True)
 
 setupfile = data_dir / "config" / "eurec4a1d_setup.txt"
+statsfile = data_dir / "config" / "eurec4a1d_stats.txt"
 zarr_dataset = data_dir / "eurec4a1d_sol.zarr"
+gridfile = data_dir / "share/eurec4a1d_ddimlessGBxboundaries.dat"
+
+ds_zarr = xr.open_zarr(zarr_dataset, consolidated=False)
 
 # read in constants and intial setup from setup .txt file
-consts = pysetuptxt.get_consts(setupfile, isprint=False)
+config = pysetuptxt.get_config(str(setupfile), nattrs=3, isprint=False)
+consts = pysetuptxt.get_consts(str(setupfile), isprint=False)
+gridbox_dict = pygbxsdat.get_gridboxes(str(gridfile), consts["COORD0"], isprint=False)
+
+# %%
 dataset = supersdata.SupersDataNew(dataset=str(zarr_dataset), consts=consts)
 # create the eulerian dataset
-create_eulerian_xr_dataset(
+ds = create_eulerian_xr_dataset(
     dataset=dataset,
     radius_bins=np.logspace(-7, 7, 150),
-    output_path=eulerian_dataset_path / "eulerian_dataset.nc",
-    hand_out=False,
+    output_path=None,
+    hand_out=True,
 )
+
+ds_zarr = ds_zarr.rename({"gbxindex": "gridbox"})
+
+print("Eulerian dataset created")
+
+# %%
+from sdm_eurec4a.conversions import relative_humidity_from_tps
+
+
+# Add thermodynamic data to the dataset
+
+
+def add_thermodynamics(ds: xr.Dataset, ds_zarr: xr.Dataset) -> None:
+    """
+    This function adds the thermodynamic variables to the dataset. The
+    following variables are added:
+
+    - pressure : The pressure in Pascals
+    - air_temperature : The air temperature in Kelvin
+    - specific_mass_vapour : The specific mass of vapour in Kg/Kg
+    - relative_humidity : The relative humidity in percent
+
+    Parameters
+    ----------
+    ds : xr.Dataset
+        The dataset to which the variables should be added.
+    ds_zarr : xr.Dataset
+        The dataset which contains the thermodynamic variables.
+    """
+
+    ds["pressure"] = ds_zarr["press"].mean("time", keep_attrs=True)
+    ds["pressure"] = ds["pressure"] * 100  # convert from hectoPascals to Pascals
+    ds["pressure"].attrs["units"] = "Pa"
+
+    ds["air_temperature"] = ds_zarr["temp"].mean("time", keep_attrs=True)
+
+    ds["specific_mass_vapour"] = ds_zarr["qvap"].mean("time", keep_attrs=True)
+    ds["specific_mass_vapour"] = ds["specific_mass_vapour"] / 1000  # convert from g/Kg to Kg/Kg
+    ds["specific_mass_vapour"].attrs["units"] = "kg/kg"
+
+    ds["relative_humidity"] = relative_humidity_from_tps(
+        temperature=ds["air_temperature"],
+        pressure=ds["pressure"],
+        specific_humidity=ds["specific_mass_vapour"],
+    )
+
+
+def add_gridbox_properties(ds: xr.Dataset, gridbox_dict: dict, gridbox_key: str = "gridbox") -> None:
+    ds["gridbox_top"] = (("gridbox",), gridbox_dict["zhalf"][1:])
+    ds["gridbox_top"].attrs.update(
+        long_name="Gridbox top",
+        description=f"Gridbox top. Which is the upper bound of the gridbox for each gridbox.",
+        units="$m$",
+    )
+    ds["gridbox_bottom"] = (("gridbox",), gridbox_dict["zhalf"][:-1])
+    ds["gridbox_bottom"].attrs.update(
+        long_name="Gridbox bottom",
+        description=f"Gridbox bottom. Which is the lower bound of the gridbox for each gridbox.",
+        units="$m$",
+    )
+
+    ds["gridbox_coord3"] = (("gridbox",), gridbox_dict["zfull"])
+    ds["gridbox_coord3"].attrs.update(
+        long_name="Gridbox center coordinate 3",
+        units="$m$",
+    )
+
+    ds["surface_area"] = (
+        ("gridbox",),
+        np.full_like(ds["gridbox"], np.diff(gridbox_dict["xhalf"]) * np.diff(gridbox_dict["yhalf"])),
+    )
+    ds["surface_area"].attrs.update(
+        long_name="Gridbox center coordinate 3",
+        units="$m$",
+    )
+
+    ds["gridbx_coord3_norm"] = ds["gridbox_coord3"] / ds["gridbox_coord3"].max()
+    ds["gridbx_coord3_norm"].attrs.update(
+        long_name="Normalized gridbox center coordinate 3",
+        description="Normalized gridbox center coordinate 3.",
+        units="",
+    )
+
+    ds["gridbox_volume"] = (("gridbox",), gridbox_dict["gbxvols"][0, 0, :])
+    ds["gridbox_volume"].attrs.update(
+        long_name="Gridbox Volume",
+        description=f"Gridbox Volume",
+        units="$m^3$",
+    )
+
+
+def add_liquid_water_content(ds: xr.Dataset) -> None:
+    ds["liquid_water_content"] = ds["mass_represented"] / ds["gridbox_volume"]
+    ds["liquid_water_content"].attrs.update(
+        long_name="Liquid Water Content",
+        description="Liquid Water Content per gridbox",
+        units=r"$kg m^{-3}$",
+    )
+
+
+def add_vertical_profiles(ds: xr.Dataset, time_slice=slice(1500, None)):
+    ds["vertical_liquid_water_content"] = (
+        ds["liquid_water_content"].sel(time=time_slice).sum("radius_bins").mean("time")
+    )
+
+    ds["vertical_liquid_water_content"].attrs.update(
+        long_name="Vertical Liquid Water Content",
+        description=f"Vertical Profile of LWC. Sum over all radius bins and mean over time of the stationary state ({time_slice.start}-{time_slice.stop}).",
+        units=ds["liquid_water_content"].attrs["units"],
+    )
+
+    ds["mass_difference_per_volume"] = ds["mass_difference_timestep"] / ds["gridbox_volume"]
+    ds["mass_difference_per_volume"].attrs.update(
+        long_name="Mass Difference per volume",
+        description="Mass Difference per Volume. The mass difference is divided by the gridbox volume.",
+        units=r"$kg m^{-3} s^{-1}$",
+    )
+
+    ds["vertical_mass_difference_per_volume"] = (
+        ds["mass_difference_per_volume"].sel(time=time_slice).sum("radius_bins").mean("time")
+    )
+    ds["vertical_mass_difference_per_volume"].attrs.update(
+        long_name="Vertical mass difference per voluem",
+        description=f"Vertical Profile of mass difference per voluem. Sum over all radius bins and mean over time of the stationary state ({time_slice.start}-{time_slice.stop}).",
+        units=r"$kg m^{-3} s^{-1}$",
+    )
+
+
+def add_precipitation(ds):
+    """
+    Uses the mass_left variable in the dataset to calculate the precipitation
+    rate.
+
+    The precipitation rate is the ``mass_left`` in gridbox 0 divided by the time step.
+    To convert from kg to mm/h, the value is divided by the surface area of gridbox 0 and multiplied by 3600.
+    The result is added to the dataset as ``precipitation``.
+    """
+
+    precipitation_rate = ds["mass_left"].sel(gridbox=0) / ds["time"].diff("time").shift(time=-1)
+    # unit conversion from kg to mm/h
+    precipitation_rate = precipitation_rate / ds["surface_area"].sel(gridbox=0) * 3600
+    ds["precipitation"] = precipitation_rate
+    ds["precipitation"].attrs.update(
+        long_name="Precipitation",
+        description="Precipitation rate in mm/h",
+        units="mm/h",
+    )
+
+
+add_thermodynamics(ds, ds_zarr)
+add_gridbox_properties(ds, gridbox_dict)
+add_liquid_water_content(ds)
+add_vertical_profiles(ds)
+add_precipitation(ds)
+
+# %%
