@@ -97,7 +97,7 @@ subdirectories = [
     if os.path.isdir(os.path.join(data_dir, name)) and name.startswith("clusters_")
 ]
 
-dataset_list = []
+max_gridbox_list = []
 file_path_list = []
 cloud_id_list = []
 
@@ -113,7 +113,7 @@ for sub_dir_name in subdirectories:
 
         file_path_list.append(eulerian_dataset_path)
 
-        dataset_list.append(max_gridbox_temp)
+        max_gridbox_list.append(max_gridbox_temp)
         cloud_id_list.append(cloud_id)
 
         logger.info(f"Process {sub_dir_name}")
@@ -127,7 +127,7 @@ ds = xr.open_mfdataset(file_path_list, combine="nested", concat_dim=[cloud_id_in
 
 ds["cloud_id"].attrs.update(dict(long_name="Cloud identification number", units=""))
 
-max_gridbox = xr.concat(dataset_list, dim=cloud_id_index)
+max_gridbox = xr.concat(max_gridbox_list, dim=cloud_id_index)
 ds["max_gridbox"] = max_gridbox
 ds["max_gridbox"].attrs.update(
     dict(
@@ -145,6 +145,36 @@ ds.attrs.update(
         date=str(pd.Timestamp.now()),
     )
 )
+
+
+# add domain masks
+def add_domain_masks(ds: xr.Dataset) -> None:
+    # create domain mask and sub cloud layer mask
+    ds["domain_mask"] = ds["gridbox"] <= ds["max_gridbox"]
+    ds["domain_mask"].attrs.update(
+        long_name="Domain Mask",
+        description="Boolean mask indicating valid gridbox in the domain for each cloud",
+        units="1",
+    )
+
+    ds["cloud_layer_mask"] = ds["gridbox"] == ds["max_gridbox"]
+    ds["cloud_layer_mask"].attrs.update(
+        long_name="Cloud Layer Mask",
+        description="Boolean mask indicating if the gridbox is part of the cloud layer",
+        units="1",
+    )
+
+    ds["sub_cloud_layer_mask"] = ds["gridbox"] < ds["max_gridbox"]
+    ds["sub_cloud_layer_mask"].attrs.update(
+        long_name="Sub Cloud Layer Mask",
+        description="Boolean mask indicating if the gridbox is part of the sub cloud layer",
+        units="1",
+    )
+
+
+logging.info("Add domain masks")
+add_domain_masks(ds)
+
 
 logger.info(f"Attempt to save combined dataset to: {output_file_path}")
 ds.to_netcdf(output_file_path)

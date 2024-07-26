@@ -42,7 +42,8 @@ from sdm_eurec4a.conversions import relative_humidity_from_tps
 # args = parser.parse_args()
 
 # data_dir = Path(args.data_dir)
-data_dir = Path("/home/m/m301096/CLEO/data/output_v3.5/condensation/clusters_222/")
+
+data_dir = Path("/home/m/m301096/CLEO/data/output_v3.5/condensation/clusters_11")
 
 print(f"Enviroment: {sys.prefix}")
 print("Create eulerian view in:")
@@ -457,8 +458,6 @@ def create_eulerian_dataset(
 def create_eulerian_xr_dataset(
     dataset: supersdata.SupersDataNew,
     radius_bins: np.ndarray = np.logspace(-7, 7, 150),
-    output_path: Union[None, Path] = None,
-    hand_out: bool = True,
 ) -> xr.Dataset:
     """
     This function creates a eulerian view of the SupersDataset and transforms
@@ -486,11 +485,6 @@ def create_eulerian_xr_dataset(
         The dataset which should be transformed to a eulerian view.
     radius_bins : np.ndarray, optional
         The bins for the radius, by default np.logspace(-7, 7, 150)
-    output_path : Union[None, Path], optional
-        The path where the dataset should be saved, by default None
-        If None, the dataset is not saved.
-    hand_out : bool, optional
-        If True, the dataset is returned, by default True
 
     Returns
     -------
@@ -561,11 +555,7 @@ def create_eulerian_xr_dataset(
     ds["time"].attrs["long_name"] = "time"
     ds["time"].attrs["units"] = "s"
 
-    if output_path is not None:
-        # Save the dataset
-        ds.to_netcdf(output_path)
-    if hand_out is True:
-        return ds
+    return ds
 
 
 # Functions to add thermodynamic variables and gridbox properties to the dataset
@@ -670,7 +660,7 @@ def add_vertical_profiles(ds: xr.Dataset, time_slice=slice(1500, None)):
         units=ds["liquid_water_content"].attrs["units"],
     )
 
-    ds["mass_difference_per_volume"] = ds["mass_difference_timestep"] / ds["gridbox_volume"]
+    ds["mass_difference_per_volume"] = ds["mass_difference"] / ds["gridbox_volume"]
     ds["mass_difference_per_volume"].attrs.update(
         long_name="Mass Difference per volume",
         description="Mass Difference per Volume. The mass difference is divided by the gridbox volume.",
@@ -733,8 +723,6 @@ print("create the eulerian xarray.Dataset from the raw dataset")
 ds = create_eulerian_xr_dataset(
     dataset=dataset,
     radius_bins=np.logspace(-7, 7, 150),
-    output_path=None,
-    hand_out=True,
 )
 
 # %%
@@ -747,6 +735,17 @@ add_liquid_water_content(ds)
 add_vertical_profiles(ds)
 add_precipitation(ds)
 
+# add the monitor massdelta condensation
+ds["massdelta_condensation"] = (
+    1e18 * 1e-3 * ds_zarr["massdelta_cond"] / ds["time"].diff("time") / ds["gridbox_volume"]
+)
+ds["massdelta_condensation"].attrs.update(
+    long_name="Condensation mass",
+    description="Condensation mass as caputured by CLEOs condensation monitor. The massdelta condensation is converted from g to kg m-3 s-1.",
+    units=r"$kg m^{-3} s^{-1}$",
+)
+
+# %%
 print("-------------------------------")
 print(f"Save the dataset to: {output_path}")
 
