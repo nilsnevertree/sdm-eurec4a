@@ -1,9 +1,9 @@
 #!/bin/bash
-#SBATCH --job-name=e1d_eulerian_view
+#SBATCH --job-name=e1d_eulerian_create
 #SBATCH --partition=compute
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
-#SBATCH --mem=3G
+#SBATCH --mem=50G
 #SBATCH --time=00:10:00
 #SBATCH --mail-user=nils-ole.niebaumy@mpimet.mpg.de
 #SBATCH --mail-type=FAIL
@@ -31,32 +31,38 @@ echo "============================================"
 
 # Set microphysics setup
 # microphysics="null_microphysics"
-microphysics="condensation"
+# microphysics="condensation"
 # microphysics="collision_condensation"
 # microphysics="coalbure_condensation_small"
 # microphysics="coalbure_condensation_large"
 
-rawdirectory=${HOME}/CLEO/data/output_v3.5/${microphysics}/
+# path2data=${HOME}/CLEO/data/output_v3.5/${microphysics}/
+echo "Init path2data: ${path2data}"
+echo "Init python script: ${create_pythonscript}"
+echo "============================================"
 
-path2sdm_eurec4a=${HOME}/repositories/sdm-eurec4a
-subdir_pattern=clusters_
-
-create_pythonscript=${path2sdm_eurec4a}/scripts/CLEO/output_processing/create_eulerian_views.py
+if [ ! -d "$path2data" ]; then
+    echo "Invalid path to data"
+    exit 1
+elif [ ! -f "$create_pythonscript" ]; then
+    echo "Python script not found: ${create_pythonscript}"
+    exit 1
+else
+    echo "All paths are valid"
+fi
+echo "============================================"
 
 ### ------------------ Load Modules -------------------- ###
 env=/work/mh1126/m301096/conda/envs/sdm_pysd_env312
 python=${env}/bin/python
 source activate ${env}
 
-
-directories=($(find ${rawdirectory} -maxdepth 1 -type d -name 'clusters*' -printf '%P\n' | sort))
-
-#echo "Directories: ${directories[@]}"
+# select the directory to process
+directories=($(find ${path2data} -maxdepth 1 -type d -name 'clusters*' -printf '%P\n' | sort))
+path2inddir=${path2data}/${directories[${SLURM_ARRAY_TASK_ID}]}
 echo "Number of directories: ${#directories[@]}"
 echo "Current array task ID: ${SLURM_ARRAY_TASK_ID}"
-echo "Current directory: ${directories[${SLURM_ARRAY_TASK_ID}]}"
-
-path2inddir=${rawdirectory}/${directories[${SLURM_ARRAY_TASK_ID}]}
+echo "Current directory: ${path2inddir}"
 
 
 ### ------------------ Create Eulerian View --------------- ###

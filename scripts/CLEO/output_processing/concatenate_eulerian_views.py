@@ -148,4 +148,4 @@ ds.attrs.update(
 
 logger.info(f"Attempt to save combined dataset to: {output_file_path}")
 ds.to_netcdf(output_file_path)
-logger.info(f"Save combined dataset to: {output_file_path}")
+logger.info(f"Saved combined dataset to: {output_file_path}")
