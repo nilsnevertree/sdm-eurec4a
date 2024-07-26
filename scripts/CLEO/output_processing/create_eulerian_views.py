@@ -29,6 +29,7 @@ import numpy as np
 import xarray as xr
 
 from pySD.sdmout_src import pygbxsdat, pysetuptxt, supersdata
+from sdm_eurec4a.conversions import relative_humidity_from_tps
 
 
 # parser = argparse.ArgumentParser(
@@ -550,41 +551,7 @@ def create_eulerian_xr_dataset(
         return ds
 
 
-# %%
-eulerian_dataset_path = data_dir / "processed/"
-eulerian_dataset_path.mkdir(exist_ok=True)
-
-setupfile = data_dir / "config" / "eurec4a1d_setup.txt"
-statsfile = data_dir / "config" / "eurec4a1d_stats.txt"
-zarr_dataset = data_dir / "eurec4a1d_sol.zarr"
-gridfile = data_dir / "share/eurec4a1d_ddimlessGBxboundaries.dat"
-
-ds_zarr = xr.open_zarr(zarr_dataset, consolidated=False)
-
-# read in constants and intial setup from setup .txt file
-config = pysetuptxt.get_config(str(setupfile), nattrs=3, isprint=False)
-consts = pysetuptxt.get_consts(str(setupfile), isprint=False)
-gridbox_dict = pygbxsdat.get_gridboxes(str(gridfile), consts["COORD0"], isprint=False)
-
-# %%
-dataset = supersdata.SupersDataNew(dataset=str(zarr_dataset), consts=consts)
-# create the eulerian dataset
-ds = create_eulerian_xr_dataset(
-    dataset=dataset,
-    radius_bins=np.logspace(-7, 7, 150),
-    output_path=None,
-    hand_out=True,
-)
-
-ds_zarr = ds_zarr.rename({"gbxindex": "gridbox"})
-
-print("Eulerian dataset created")
-
-# %%
-from sdm_eurec4a.conversions import relative_humidity_from_tps
-
-
-# Add thermodynamic data to the dataset
+# Functions to add thermodynamic variables and gridbox properties to the dataset
 
 
 def add_thermodynamics(ds: xr.Dataset, ds_zarr: xr.Dataset) -> None:
@@ -724,10 +691,44 @@ def add_precipitation(ds):
     )
 
 
+# %%
+output_path = data_dir / "processed/eulerian_dataset.nc"
+output_path.parent.mkdir(exist_ok=True)
+
+setupfile_path = data_dir / "config" / "eurec4a1d_setup.txt"
+statsfile_path = data_dir / "config" / "eurec4a1d_stats.txt"
+zarr_path = data_dir / "eurec4a1d_sol.zarr"
+gridfile_path = data_dir / "share/eurec4a1d_ddimlessGBxboundaries.dat"
+
+# read in constants and intial setup from setup .txt file
+config = pysetuptxt.get_config(str(setupfile_path), nattrs=3, isprint=False)
+consts = pysetuptxt.get_consts(str(setupfile_path), isprint=False)
+gridbox_dict = pygbxsdat.get_gridboxes(str(gridfile_path), consts["COORD0"], isprint=False)
+
+# %%
+ds_zarr = xr.open_zarr(zarr_path, consolidated=False)
+ds_zarr = ds_zarr.rename({"gbxindex": "gridbox"})
+
+# Use the SupersDataNew class to read the dataset
+dataset = supersdata.SupersDataNew(dataset=str(zarr_path), consts=consts)
+print("-------------------------------")
+print("create the eulerian xarray.Dataset from the raw dataset")
+ds = create_eulerian_xr_dataset(
+    dataset=dataset,
+    radius_bins=np.logspace(-7, 7, 150),
+    output_path=None,
+    hand_out=True,
+)
+print("-------------------------------")
+print("Add thermodynamic variables and gridbox properties to the dataset")
+
 add_thermodynamics(ds, ds_zarr)
 add_gridbox_properties(ds, gridbox_dict)
 add_liquid_water_content(ds)
 add_vertical_profiles(ds)
 add_precipitation(ds)
 
-# %%
+print("-------------------------------")
+print(f"Save the dataset to: {output_path}")
+
+ds.to_netcdf(output_path)
