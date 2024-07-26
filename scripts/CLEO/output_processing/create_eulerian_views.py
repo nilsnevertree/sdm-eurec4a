@@ -79,8 +79,8 @@ def ak_differentiate(sa: supersdata.SupersAttribute) -> supersdata.SupersAttribu
         All metadata is copied and the long_name is appended with "difference".
     """
 
-    data = sa.get_data()
-
+    data = sa.data
+    # print(data)
     # It is very important, to concate the nan values at the END of the array, so that the last value is nan.
     # This makes sure, that the mass change is at the same timestep, as the original value.
     # With this, the evapoartion fraction can not exceed 1.
@@ -242,6 +242,15 @@ def create_lagrangian_dataset(dataset: supersdata.SupersDataNew) -> supersdata.S
     # bin by the superdroplet id and calcuate the difference of the mass
     dataset.index_by_indexer(index=dataset["sdId"])
 
+    time_diff = ak_differentiate(dataset["time"])
+    time_diff.set_metadata(
+        metadata={
+            "long_name": "Time difference per timestep",
+        }
+    )
+    time_diff.set_name("time_difference")
+    time_diff.set_units("s")
+
     # calculate the difference of the mass as the total mass change per timestep
     mass_rep_diff = ak_differentiate(dataset["mass_represented"])
     mass_rep_diff.set_metadata(
@@ -253,28 +262,20 @@ def create_lagrangian_dataset(dataset: supersdata.SupersDataNew) -> supersdata.S
     mass_rep_diff.set_name("mass_difference_timestep")
     dataset.set_attribute(mass_rep_diff)
 
-    time_diff = ak_differentiate(dataset["time"])
-    time_diff.set_metadata(
-        metadata={
-            "long_name": "Time difference per timestep",
-        }
-    )
-    time_diff.set_name("time_difference")
-    time_diff.set_units("s")
-
     # calculate the difference of the mass as the total mass change per second
-    mass_rep_diff_time = mass_rep_diff / time_diff
-    mass_rep_diff_time.set_metadata(
+    mass_rep_diff_per_second = mass_rep_diff / time_diff
+    mass_rep_diff_per_second.set_metadata(
         metadata={
-            "long_name": "Mass difference",
+            "long_name": "Mass difference per second",
             "notes": r"Mass here is mass represented by a superdroplet: $m = \xi \cdot m_{sd}$",
         }
     )
-    mass_rep_diff_time.set_name("mass_difference")
-    dataset.set_attribute(mass_rep_diff_time)
+    mass_rep_diff_per_second.set_name("mass_difference")
+    dataset.set_attribute(mass_rep_diff_per_second)
 
     # calculate the difference of the multiplicity per second
     xi_diff = ak_differentiate(dataset["xi"]) / time_diff
+    xi_diff.set_name("xi_difference")
     xi_diff.set_metadata(
         metadata={
             "long_name": "Multiplicity difference per second",
@@ -318,6 +319,18 @@ def create_lagrangian_dataset(dataset: supersdata.SupersDataNew) -> supersdata.S
     )
     mass_left.set_units("kg")
     dataset.set_attribute(mass_left)
+
+    # calculate total mass which left domain
+    xi_left = ak_last(dataset["xi"])
+    xi_left.set_name("xi_left")
+    xi_left.set_metadata(
+        metadata={
+            "long_name": "multiplicity of droplets, which left domain",
+            "note": r"this is the last represented multiplicity which a super droplet has during the simulation.",
+        }
+    )
+    xi_left.set_units("kg")
+    dataset.set_attribute(xi_left)
 
     # calculate total number of superdroplets which left domain
     counts_left = ak_last(dataset["number_superdroplets"])
@@ -515,14 +528,18 @@ def create_eulerian_xr_dataset(
     )
 
     reduction_map = {
-        "mass_difference": sum_reduction,
-        "mass_difference_timestep": sum_reduction,
-        "mass_represented": sum_reduction,
+        # basic attributes and variables
         "radius": mean_reduction,
-        "evaporated_fraction": mean_reduction,
         "xi": sum_reduction,
         "number_superdroplets": sum_reduction,
+        "mass_represented": sum_reduction,
+        # differentiated attributes
+        "mass_difference": sum_reduction,
+        "mass_difference_timestep": sum_reduction,
+        "evaporated_fraction": mean_reduction,
+        # left attributes
         "mass_left": sum_reduction,
+        "xi_left": sum_reduction,
         "number_superdroplets_left": sum_reduction,
     }
 
@@ -719,6 +736,8 @@ ds = create_eulerian_xr_dataset(
     output_path=None,
     hand_out=True,
 )
+
+# %%
 print("-------------------------------")
 print("Add thermodynamic variables and gridbox properties to the dataset")
 
