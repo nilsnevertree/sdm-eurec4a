@@ -8,8 +8,8 @@
 #SBATCH --mail-user=nils-ole.niebaumy@mpimet.mpg.de
 #SBATCH --mail-type=FAIL
 #SBATCH --account=mh1126
-#SBATCH --output=./logfiles/eulerian_view/%j/%j_out.out
-#SBATCH --error=./logfiles/eulerian_view/%j/%j_err.out
+#SBATCH --output=./logfiles/eulerian_view/master/%j/%j_out.out
+#SBATCH --error=./logfiles/eulerian_view/master/%j/%j_err.out
 
 
 ### ---------------------------------------------------- ###
@@ -28,14 +28,14 @@ echo "git branch: $(git symbolic-ref --short HEAD)"
 echo "============================================"
 
 # Set microphysics setup
-# microphysics="null_microphysics"
+microphysics="null_microphysics"
 # microphysics="condensation"
 # microphysics="collision_condensation"
 # microphysics="coalbure_condensation_small"
-microphysics="coalbure_condensation_large"
+# microphysics="coalbure_condensation_large"
 
 
-create=true
+create=false
 concatenate=true
 
 path2sdm_eurec4a=${HOME}/repositories/sdm-eurec4a

@@ -8,8 +8,8 @@
 #SBATCH --mail-user=nils-ole.niebaumy@mpimet.mpg.de
 #SBATCH --mail-type=FAIL
 #SBATCH --account=mh1126
-#SBATCH --output=./logfiles/eulerian_view/%j/%j_out.out
-#SBATCH --error=./logfiles/eulerian_view/%j/%j_err.out
+#SBATCH --output=./logfiles/eulerian_view/concatenate/%j/%j_out.out
+#SBATCH --error=./logfiles/eulerian_view/concatenate/%j/%j_err.out
 
 
 
