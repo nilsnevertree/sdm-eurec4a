@@ -18,18 +18,6 @@ def is_notebook() -> bool:
         return False  # Probably standard Python interpreter
 
 
-if is_notebook() == False:
-    parser = argparse.ArgumentParser(
-        description="Create eulerian view for data_dir which contains zarr dir in ./eurec4a1d_sol.zarr and config files in ./config/eurec4a1d_setup.txt"
-    )
-
-    # Add arguments
-    parser.add_argument("-d", "--data_dir", type=str, help="Path to data directory", required=True)
-    # Parse arguments
-    args = parser.parse_args()
-
-    data_dir = Path(args.data_dir)
-
 import os
 import sys
 
@@ -40,11 +28,24 @@ import awkward as ak
 import numpy as np
 import xarray as xr
 
-from pySD.sdmout_src import pysetuptxt, supersdata
+from pySD.sdmout_src import pygbxsdat, pysetuptxt, supersdata
+from sdm_eurec4a.conversions import relative_humidity_from_tps
 
+
+# parser = argparse.ArgumentParser(
+#     description="Create eulerian view for data_dir which contains zarr dir in ./eurec4a1d_sol.zarr and config files in ./config/eurec4a1d_setup.txt"
+# )
+
+# # Add arguments
+# parser.add_argument("-d", "--data_dir", type=str, help="Path to data directory", required=True)
+# # Parse arguments
+# args = parser.parse_args()
+
+# data_dir = Path(args.data_dir)
+data_dir = Path("/home/m/m301096/CLEO/data/output_v3.5/condensation/clusters_222/")
 
 print(f"Enviroment: {sys.prefix}")
-print("Create eulerian view for all subdirectories in:")
+print("Create eulerian view in:")
 print(data_dir)
 
 
@@ -79,11 +80,11 @@ def ak_differentiate(sa: supersdata.SupersAttribute) -> supersdata.SupersAttribu
     """
 
     data = sa.data
-
+    # print(data)
     # It is very important, to concate the nan values at the END of the array, so that the last value is nan.
     # This makes sure, that the mass change is at the same timestep, as the original value.
     # With this, the evapoartion fraction can not exceed 1.
-    data = ak.concatenate([data, np.nan], axis=-1)
+    data: ak.Array = ak.concatenate([data, np.nan], axis=-1)
 
     # if the data has entries, which have only one value, append another nan value
     if ak.min(ak.num(data, axis=-1)) < 2:
@@ -104,6 +105,74 @@ def ak_differentiate(sa: supersdata.SupersAttribute) -> supersdata.SupersAttribu
     updated_metadata = sa.metadata.copy()
     try:
         updated_metadata["long_name"] = updated_metadata["long_name"] + " difference"
+    except KeyError:
+        pass
+    result.set_metadata(metadata=updated_metadata)
+
+    return result
+
+
+def ak_last(sa: supersdata.SupersAttribute) -> supersdata.SupersAttribute:
+    """
+    This function only keeps the last value along axis 1. The rest will be
+    replaced by nans.
+
+    Notes
+    -----
+    - The function is designed to work with awkward arrays
+    - It is intended to be used on relatively regular arrays, where the last axis has at least 1 value or best 2 values.
+
+    Parameters
+    ----------
+    sa : supersdata.SupersAttribute
+        The attribute, which should be lasted.
+        Assuming it has the shape (N, M, var), the last values is kept along the last axis.
+
+    Returns
+    -------
+    supersdata.SupersAttribute
+        The lasted attribute.
+        The output has the same shape as the input, but the last value along the last axis is nan.
+        The new name of the attribute is the old name with "_last" appended.
+        All metadata is copied and the long_name is appended with "last".
+    """
+
+    data = sa.get_data()
+
+    # in order to remove all values except the last one, we need to create a new array with the same shape
+    # data = [
+    #     [1, 2, 3, 4],
+    #     [5, 6, 7, 8],
+    #    ]
+    # after concatenate
+    # data = [
+    #     [n, n, n, n, 1],
+    #     [n, n, n, n, 1],
+    #    ]
+    # after multiplication
+    # data = [
+    #     [n, n, n, n, 4],
+    #     [n, n, n, n, 8],
+    #    ]
+    # after the slice, the result is
+    # data = [
+    #     [n, n, n, 4],
+    #     [n, n, n, 8],
+    #    ]
+
+    last = (ak.concatenate([data * np.nan, 1], axis=-1) * data[..., -1])[..., 1:]
+    # create a new attribute
+    result = supersdata.SupersAttribute(
+        name=sa.name + "_last",
+        data=last,
+        units=sa.units,
+        metadata=sa.metadata.copy(),
+    )
+
+    # update metadata
+    updated_metadata = sa.metadata.copy()
+    try:
+        updated_metadata["long_name"] = updated_metadata["long_name"] + " last"
     except KeyError:
         pass
     result.set_metadata(metadata=updated_metadata)
@@ -173,6 +242,15 @@ def create_lagrangian_dataset(dataset: supersdata.SupersDataNew) -> supersdata.S
     # bin by the superdroplet id and calcuate the difference of the mass
     dataset.index_by_indexer(index=dataset["sdId"])
 
+    time_diff = ak_differentiate(dataset["time"])
+    time_diff.set_metadata(
+        metadata={
+            "long_name": "Time difference per timestep",
+        }
+    )
+    time_diff.set_name("time_difference")
+    time_diff.set_units("s")
+
     # calculate the difference of the mass as the total mass change per timestep
     mass_rep_diff = ak_differentiate(dataset["mass_represented"])
     mass_rep_diff.set_metadata(
@@ -184,28 +262,20 @@ def create_lagrangian_dataset(dataset: supersdata.SupersDataNew) -> supersdata.S
     mass_rep_diff.set_name("mass_difference_timestep")
     dataset.set_attribute(mass_rep_diff)
 
-    time_diff = ak_differentiate(dataset["time"])
-    time_diff.set_metadata(
-        metadata={
-            "long_name": "Time difference per timestep",
-        }
-    )
-    time_diff.set_name("time_difference")
-    time_diff.set_units("s")
-
     # calculate the difference of the mass as the total mass change per second
-    mass_diff = mass_rep_diff / time_diff
-    mass_diff.set_metadata(
+    mass_rep_diff_per_second = mass_rep_diff / time_diff
+    mass_rep_diff_per_second.set_metadata(
         metadata={
-            "long_name": "Mass difference",
+            "long_name": "Mass difference per second",
             "notes": r"Mass here is mass represented by a superdroplet: $m = \xi \cdot m_{sd}$",
         }
     )
-    mass_diff.set_name("mass_difference")
-    dataset.set_attribute(mass_diff)
+    mass_rep_diff_per_second.set_name("mass_difference")
+    dataset.set_attribute(mass_rep_diff_per_second)
 
     # calculate the difference of the multiplicity per second
     xi_diff = ak_differentiate(dataset["xi"]) / time_diff
+    xi_diff.set_name("xi_difference")
     xi_diff.set_metadata(
         metadata={
             "long_name": "Multiplicity difference per second",
@@ -224,6 +294,55 @@ def create_lagrangian_dataset(dataset: supersdata.SupersDataNew) -> supersdata.S
     )
     evaporated_fraction.set_units("%")
     dataset.set_attribute(evaporated_fraction)
+
+    # number of superdroplets
+    counts = dataset.get_data("xi")
+    counts = counts * 0 + 1
+    number_superdroplets = supersdata.SupersAttribute(
+        name="number_superdroplets",
+        data=counts,
+        units="#",
+        metadata={
+            "long_name": "number of superdroplets",
+        },
+    )
+    dataset.set_attribute(number_superdroplets)
+
+    # calculate total mass which left domain
+    mass_left = ak_last(dataset["mass_represented"])
+    mass_left.set_name("mass_left")
+    mass_left.set_metadata(
+        metadata={
+            "long_name": "mass which left domain",
+            "note": r"this is the last represented mass which a super droplet has during the simulation.\nMass represented by a superdroplet: $m = \xi \cdot m_{sd}$",
+        }
+    )
+    mass_left.set_units("kg")
+    dataset.set_attribute(mass_left)
+
+    # calculate total mass which left domain
+    xi_left = ak_last(dataset["xi"])
+    xi_left.set_name("xi_left")
+    xi_left.set_metadata(
+        metadata={
+            "long_name": "multiplicity of droplets, which left domain",
+            "note": r"this is the last represented multiplicity which a super droplet has during the simulation.",
+        }
+    )
+    xi_left.set_units("kg")
+    dataset.set_attribute(xi_left)
+
+    # calculate total number of superdroplets which left domain
+    counts_left = ak_last(dataset["number_superdroplets"])
+    counts_left.set_name("number_superdroplets_left")
+    counts_left.set_metadata(
+        metadata={
+            "long_name": "umber of superdroplets only 1 if left domain",
+            "note": r"This is the number of superdroplets leave domain has during the simulation.",
+        }
+    )
+    counts_left.set_units("#")
+    dataset.set_attribute(counts_left)
 
     return dataset
 
@@ -384,6 +503,8 @@ def create_eulerian_xr_dataset(
         - evaporated_fraction : The evaporated fraction per second in the bin
         - xi : The total multiplicity in the bin
         - number_superdroplets : The number of superdroplets in the bin
+        - mass_left : The mass which left the domain in the bin
+        - number_superdroplets_left : The number of superdroplets which left the domain in the bin
 
         It has the following coordinates:
         - gridbox : the gridbox index
@@ -407,13 +528,19 @@ def create_eulerian_xr_dataset(
     )
 
     reduction_map = {
-        "mass_difference": sum_reduction,
-        "mass_difference_timestep": sum_reduction,
-        "mass_represented": sum_reduction,
+        # basic attributes and variables
         "radius": mean_reduction,
-        "evaporated_fraction": mean_reduction,
         "xi": sum_reduction,
         "number_superdroplets": sum_reduction,
+        "mass_represented": sum_reduction,
+        # differentiated attributes
+        "mass_difference": sum_reduction,
+        "mass_difference_timestep": sum_reduction,
+        "evaporated_fraction": mean_reduction,
+        # left attributes
+        "mass_left": sum_reduction,
+        "xi_left": sum_reduction,
+        "number_superdroplets_left": sum_reduction,
     }
 
     # create individual DataArrays
@@ -441,19 +568,186 @@ def create_eulerian_xr_dataset(
         return ds
 
 
-eulerian_dataset_path = data_dir / "processed/"
-eulerian_dataset_path.mkdir(exist_ok=True)
+# Functions to add thermodynamic variables and gridbox properties to the dataset
 
-setupfile = data_dir / "config" / "eurec4a1d_setup.txt"
-zarr_dataset = data_dir / "eurec4a1d_sol.zarr"
+
+def add_thermodynamics(ds: xr.Dataset, ds_zarr: xr.Dataset) -> None:
+    """
+    This function adds the thermodynamic variables to the dataset. The
+    following variables are added:
+
+    - pressure : The pressure in Pascals
+    - air_temperature : The air temperature in Kelvin
+    - specific_mass_vapour : The specific mass of vapour in Kg/Kg
+    - relative_humidity : The relative humidity in percent
+
+    Parameters
+    ----------
+    ds : xr.Dataset
+        The dataset to which the variables should be added.
+    ds_zarr : xr.Dataset
+        The dataset which contains the thermodynamic variables.
+    """
+
+    ds["pressure"] = ds_zarr["press"].mean("time", keep_attrs=True)
+    ds["pressure"] = ds["pressure"] * 100  # convert from hectoPascals to Pascals
+    ds["pressure"].attrs["units"] = "Pa"
+
+    ds["air_temperature"] = ds_zarr["temp"].mean("time", keep_attrs=True)
+
+    ds["specific_mass_vapour"] = ds_zarr["qvap"].mean("time", keep_attrs=True)
+    ds["specific_mass_vapour"] = ds["specific_mass_vapour"] / 1000  # convert from g/Kg to Kg/Kg
+    ds["specific_mass_vapour"].attrs["units"] = "kg/kg"
+
+    ds["relative_humidity"] = relative_humidity_from_tps(
+        temperature=ds["air_temperature"],
+        pressure=ds["pressure"],
+        specific_humidity=ds["specific_mass_vapour"],
+    )
+
+
+def add_gridbox_properties(ds: xr.Dataset, gridbox_dict: dict, gridbox_key: str = "gridbox") -> None:
+    ds["gridbox_top"] = (("gridbox",), gridbox_dict["zhalf"][1:])
+    ds["gridbox_top"].attrs.update(
+        long_name="Gridbox top",
+        description=f"Gridbox top. Which is the upper bound of the gridbox for each gridbox.",
+        units="$m$",
+    )
+    ds["gridbox_bottom"] = (("gridbox",), gridbox_dict["zhalf"][:-1])
+    ds["gridbox_bottom"].attrs.update(
+        long_name="Gridbox bottom",
+        description=f"Gridbox bottom. Which is the lower bound of the gridbox for each gridbox.",
+        units="$m$",
+    )
+
+    ds["gridbox_coord3"] = (("gridbox",), gridbox_dict["zfull"])
+    ds["gridbox_coord3"].attrs.update(
+        long_name="Gridbox center coordinate 3",
+        units="$m$",
+    )
+
+    ds["surface_area"] = (
+        ("gridbox",),
+        np.full_like(ds["gridbox"], np.diff(gridbox_dict["xhalf"]) * np.diff(gridbox_dict["yhalf"])),
+    )
+    ds["surface_area"].attrs.update(
+        long_name="Gridbox center coordinate 3",
+        units="$m$",
+    )
+
+    ds["gridbx_coord3_norm"] = ds["gridbox_coord3"] / ds["gridbox_coord3"].max()
+    ds["gridbx_coord3_norm"].attrs.update(
+        long_name="Normalized gridbox center coordinate 3",
+        description="Normalized gridbox center coordinate 3.",
+        units="",
+    )
+
+    ds["gridbox_volume"] = (("gridbox",), gridbox_dict["gbxvols"][0, 0, :])
+    ds["gridbox_volume"].attrs.update(
+        long_name="Gridbox Volume",
+        description=f"Gridbox Volume",
+        units="$m^3$",
+    )
+
+
+def add_liquid_water_content(ds: xr.Dataset) -> None:
+    ds["liquid_water_content"] = ds["mass_represented"] / ds["gridbox_volume"]
+    ds["liquid_water_content"].attrs.update(
+        long_name="Liquid Water Content",
+        description="Liquid Water Content per gridbox",
+        units=r"$kg m^{-3}$",
+    )
+
+
+def add_vertical_profiles(ds: xr.Dataset, time_slice=slice(1500, None)):
+    ds["vertical_liquid_water_content"] = (
+        ds["liquid_water_content"].sel(time=time_slice).sum("radius_bins").mean("time")
+    )
+
+    ds["vertical_liquid_water_content"].attrs.update(
+        long_name="Vertical Liquid Water Content",
+        description=f"Vertical Profile of LWC. Sum over all radius bins and mean over time of the stationary state ({time_slice.start}-{time_slice.stop}).",
+        units=ds["liquid_water_content"].attrs["units"],
+    )
+
+    ds["mass_difference_per_volume"] = ds["mass_difference_timestep"] / ds["gridbox_volume"]
+    ds["mass_difference_per_volume"].attrs.update(
+        long_name="Mass Difference per volume",
+        description="Mass Difference per Volume. The mass difference is divided by the gridbox volume.",
+        units=r"$kg m^{-3} s^{-1}$",
+    )
+
+    ds["vertical_mass_difference_per_volume"] = (
+        ds["mass_difference_per_volume"].sel(time=time_slice).sum("radius_bins").mean("time")
+    )
+    ds["vertical_mass_difference_per_volume"].attrs.update(
+        long_name="Vertical mass difference per voluem",
+        description=f"Vertical Profile of mass difference per voluem. Sum over all radius bins and mean over time of the stationary state ({time_slice.start}-{time_slice.stop}).",
+        units=r"$kg m^{-3} s^{-1}$",
+    )
+
+
+def add_precipitation(ds):
+    """
+    Uses the mass_left variable in the dataset to calculate the precipitation
+    rate.
+
+    The precipitation rate is the ``mass_left`` in gridbox 0 divided by the time step.
+    To convert from kg to mm/h, the value is divided by the surface area of gridbox 0 and multiplied by 3600.
+    The result is added to the dataset as ``precipitation``.
+    """
+
+    precipitation_rate = ds["mass_left"].sel(gridbox=0) / ds["time"].diff("time").shift(time=-1)
+    # unit conversion from kg to mm/h
+    precipitation_rate = precipitation_rate / ds["surface_area"].sel(gridbox=0) * 3600
+    ds["precipitation"] = precipitation_rate
+    ds["precipitation"].attrs.update(
+        long_name="Precipitation",
+        description="Precipitation rate in mm/h",
+        units="mm/h",
+    )
+
+
+# %%
+output_path = data_dir / "processed/eulerian_dataset.nc"
+output_path.parent.mkdir(exist_ok=True)
+
+setupfile_path = data_dir / "config" / "eurec4a1d_setup.txt"
+statsfile_path = data_dir / "config" / "eurec4a1d_stats.txt"
+zarr_path = data_dir / "eurec4a1d_sol.zarr"
+gridfile_path = data_dir / "share/eurec4a1d_ddimlessGBxboundaries.dat"
 
 # read in constants and intial setup from setup .txt file
-consts = pysetuptxt.get_consts(setupfile, isprint=False)
-dataset = supersdata.SupersDataNew(dataset=str(zarr_dataset), consts=consts)
-# create the eulerian dataset
-create_eulerian_xr_dataset(
+config = pysetuptxt.get_config(str(setupfile_path), nattrs=3, isprint=False)
+consts = pysetuptxt.get_consts(str(setupfile_path), isprint=False)
+gridbox_dict = pygbxsdat.get_gridboxes(str(gridfile_path), consts["COORD0"], isprint=False)
+
+# %%
+ds_zarr = xr.open_zarr(zarr_path, consolidated=False)
+ds_zarr = ds_zarr.rename({"gbxindex": "gridbox"})
+
+# Use the SupersDataNew class to read the dataset
+dataset = supersdata.SupersDataNew(dataset=str(zarr_path), consts=consts)
+print("-------------------------------")
+print("create the eulerian xarray.Dataset from the raw dataset")
+ds = create_eulerian_xr_dataset(
     dataset=dataset,
     radius_bins=np.logspace(-7, 7, 150),
-    output_path=eulerian_dataset_path / "eulerian_dataset.nc",
-    hand_out=False,
+    output_path=None,
+    hand_out=True,
 )
+
+# %%
+print("-------------------------------")
+print("Add thermodynamic variables and gridbox properties to the dataset")
+
+add_thermodynamics(ds, ds_zarr)
+add_gridbox_properties(ds, gridbox_dict)
+add_liquid_water_content(ds)
+add_vertical_profiles(ds)
+add_precipitation(ds)
+
+print("-------------------------------")
+print(f"Save the dataset to: {output_path}")
+
+ds.to_netcdf(output_path)

@@ -30,6 +30,15 @@ echo "============================================"
 
 path2sdmeurec4a=${HOME}/repositories/sdm-eurec4a/
 
+output_dir=${path2sdmeurec4a}/data/model/input/output_test_new
+
+identified_cloud_path=${path2sdmeurec4a}/data/observation/cloud_composite/processed/identified_clouds/identified_clusters_rain_mask_5.nc
+distance_relation_path=${path2sdmeurec4a}/data/observation/combined/distance_relations/distance_dropsondes_identified_clusters_rain_mask_5.nc
+cloud_composite_path=${path2sdmeurec4a}/data/observation/cloud_composite/processed/cloud_composite_si_units.nc
+drop_sonde_path=${path2sdmeurec4a}/data/observation/dropsonde/processed/drop_sondes.nc
+identification_type=clusters
+environment=nils_levante
+
 pythonscript=${path2sdmeurec4a}/scripts/CLEO/initalize/create_input.py
 
 ### ------------------ Load Modules -------------------- ###
@@ -38,4 +47,12 @@ python=${env}/bin/python
 source activate ${env}
 
 ### ------------------ Run Python Script --------------- ###
-${python}  ${pythonscript}
+${python} \
+    ${pythonscript} \
+    --output_dir ${output_dir} \
+    --identified_cloud_path ${identified_cloud_path} \
+    --distance_relation_path ${distance_relation_path} \
+    --cloud_composite_path ${cloud_composite_path} \
+    --drop_sonde_path ${drop_sonde_path} \
+    --identification_type ${identification_type} \
+    --environment ${environment}

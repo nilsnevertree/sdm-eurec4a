@@ -1,5 +1,7 @@
 import warnings
 
+from typing import Union
+
 import numpy as np
 import xarray as xr
 
@@ -235,7 +237,9 @@ def lwc_from_psd(
     return lwc
 
 
-def saturation_vapour_pressure(temperature: np.ndarray) -> np.ndarray:
+def saturation_vapour_pressure(
+    temperature: Union[np.ndarray, xr.DataArray]
+) -> Union[np.ndarray, xr.DataArray]:
     """
     Calculate the saturation vapour pressure over water for a given
     temperature.
@@ -259,8 +263,10 @@ def saturation_vapour_pressure(temperature: np.ndarray) -> np.ndarray:
 
 
 def water_vapour_pressure(
-    specific_humidity: np.ndarray, pressure: np.ndarray, simplified: bool = False
-) -> np.ndarray:
+    specific_humidity: Union[np.ndarray, xr.DataArray],
+    pressure: Union[np.ndarray, xr.DataArray],
+    simplified: bool = False,
+) -> Union[np.ndarray, xr.DataArray]:
     """
     Calculate the water vapour pressure from the specific humidity and the
     pressure. This follows (2.80) from Introduction to Clouds: From the
@@ -304,7 +310,10 @@ def water_vapour_pressure(
     return e
 
 
-def relative_humidity(saturation_vapour_pressure: np.ndarray, vapour_pressure: np.ndarray) -> np.ndarray:
+def relative_humidity(
+    saturation_vapour_pressure: Union[np.ndarray, xr.DataArray],
+    vapour_pressure: Union[np.ndarray, xr.DataArray],
+) -> Union[np.ndarray, xr.DataArray]:
     """
     Calculate the relative humidity from the saturation vapour pressure and the
     vapour pressure.
@@ -327,11 +336,11 @@ def relative_humidity(saturation_vapour_pressure: np.ndarray, vapour_pressure: n
 
 
 def relative_humidity_from_tps(
-    temperature: np.ndarray,
-    pressure: np.ndarray,
-    specific_humidity: np.ndarray,
+    temperature: Union[np.ndarray, xr.DataArray],
+    pressure: Union[np.ndarray, xr.DataArray],
+    specific_humidity: Union[np.ndarray, xr.DataArray],
     simplified: bool = False,
-):
+) -> Union[np.ndarray, xr.DataArray]:
     """
     Calculate the relative humidity from the temperature, pressure and specific
     humidity.
@@ -360,8 +369,42 @@ def relative_humidity_from_tps(
     return rh
 
 
-def __rename_if_dataarray__(da, name):
+def __rename_if_dataarray__(da: Union[np.ndarray, xr.DataArray], name: str):
     if isinstance(da, xr.DataArray):
         print("rename dataarray")
         da.name = name
     return da
+
+
+def potential_temperature_from_tp(
+    air_temperature: Union[np.ndarray, xr.DataArray],
+    pressure: Union[np.ndarray, xr.DataArray],
+    pressure_reference: Union[
+        float, np.ndarray, xr.DataArray
+    ] = 100000,  # default value used for drop sondes dataset
+    R_over_cp: float = 0.286,
+):
+    """
+    Calculate the potential temperature from the air temperature and the
+    pressure.
+
+    Parameters
+    ----------
+    air_temperature : np.ndarray or xr.DataArray
+        The air temperature in Kelvin.
+    pressure : np.ndarray  or xr.DataArray
+        The pressure in Pa.
+    pressure_reference : float
+        The reference pressure in Pa.
+    R_over_cp : float, optional
+        The ratio of the gas constant of air to the specific heat capacity at
+        constant pressure. Default is 0.286.
+
+    Returns
+    -------
+    np.ndarray
+        The potential temperature in Kelvin.
+    """
+    theta = air_temperature * (pressure_reference / pressure) ** R_over_cp
+    theta = __rename_if_dataarray__(theta, "potential_temperature")
+    return theta

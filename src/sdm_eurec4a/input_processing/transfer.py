@@ -408,7 +408,7 @@ class ThermodynamicLinear(Input):
         )
         # For each mode, evaluate the model
 
-        return np.array(result)
+        return result
 
 
 class ThermodynamicSplitLinear(Input):
@@ -1036,6 +1036,7 @@ def fit_linear_thermodynamics(
     thermo_fit: Union[ThermodynamicLinear, None] = None,
     dim: str = "radius",
     f0_boundaries: bool = True,
+    da_weights: Union[xr.DataArray, None] = None,
 ) -> ThermodynamicLinear:
     """
     Fit a linear or split linear function to the thermodynamic data.
@@ -1065,8 +1066,15 @@ def fit_linear_thermodynamics(
     if thermo_fit is None:
         thermo_fit = ThermodynamicLinear()
 
-    # get the dimension
-    da_dim = da_thermo[dim]
+    if da_weights == None:
+        weights = None
+    elif isinstance(da_weights, xr.DataArray):
+        weights = da_weights.data
+    else:
+        raise TypeError(
+            "The type of da_weights is not supported. It needs to be a xr.DataArray or None. None is the default value."
+        )
+
     # expand the dimension to the same shape as the data
     da_dim_expanded = shape_dim_as_dataarray(da=da_thermo, output_dim=dim)
 
@@ -1085,6 +1093,7 @@ def fit_linear_thermodynamics(
         result = thermo_fit.get_model().fit(
             data=da_thermo.data,
             x=da_dim_expanded.data,
+            weights=weights,
             params=thermo_fit.get_model_parameters(),
             nan_policy="omit",
         )
@@ -1190,6 +1199,7 @@ def fit_thermodynamics(
     f0_boundaries: bool = True,
     x_split: Union[float, None] = None,
     x_split_boundaries: bool = True,
+    da_weights: Union[xr.DataArray, None] = None,
 ) -> Union[ThermodynamicSplitLinear, ThermodynamicLinear]:
     """
     Fit a linear or split linear function to the thermodynamic data.
@@ -1232,6 +1242,7 @@ def fit_thermodynamics(
             thermo_fit=thermo_fit,
             dim=dim,
             f0_boundaries=f0_boundaries,
+            da_weights=da_weights,
         )
     else:
         raise TypeError(
