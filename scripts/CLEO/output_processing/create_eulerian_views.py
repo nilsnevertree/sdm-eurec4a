@@ -32,18 +32,16 @@ from pySD.sdmout_src import pygbxsdat, pysetuptxt, supersdata
 from sdm_eurec4a.conversions import relative_humidity_from_tps
 
 
-# parser = argparse.ArgumentParser(
-#     description="Create eulerian view for data_dir which contains zarr dir in ./eurec4a1d_sol.zarr and config files in ./config/eurec4a1d_setup.txt"
-# )
+parser = argparse.ArgumentParser(
+    description="Create eulerian view for data_dir which contains zarr dir in ./eurec4a1d_sol.zarr and config files in ./config/eurec4a1d_setup.txt"
+)
 
-# # Add arguments
-# parser.add_argument("-d", "--data_dir", type=str, help="Path to data directory", required=True)
-# # Parse arguments
-# args = parser.parse_args()
+# Add arguments
+parser.add_argument("-d", "--data_dir", type=str, help="Path to data directory", required=True)
+# Parse arguments
+args = parser.parse_args()
 
-# data_dir = Path(args.data_dir)
-
-data_dir = Path("/home/m/m301096/CLEO/data/output_v3.5/condensation/clusters_11")
+data_dir = Path(args.data_dir)
 
 print(f"Enviroment: {sys.prefix}")
 print("Create eulerian view in:")
