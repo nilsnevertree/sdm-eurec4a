@@ -532,7 +532,7 @@ def match_clouds_and_dropsondes(
 
 
 def match_clouds_and_cloudcomposite(
-    ds_clouds: xr.DataArray,
+    ds_clouds: xr.Dataset,
     ds_cloudcomposite: xr.Dataset,
     dim: str = "time",
     var_name_start: str = "start",

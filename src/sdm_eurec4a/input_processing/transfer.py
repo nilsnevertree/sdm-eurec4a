@@ -7,10 +7,16 @@ from typing import Dict, Tuple, Union
 
 import lmfit
 import numpy as np
+import xarray as xr
 import yaml
 
 from scipy.optimize import curve_fit
-from sdm_eurec4a.input_processing.models import lnnormaldist, split_linear_func
+from sdm_eurec4a.input_processing.models import (
+    linear_func,
+    lnnormaldist,
+    split_linear_func,
+)
+from sdm_eurec4a.reductions import shape_dim_as_dataarray
 
 
 class Input:
@@ -322,6 +328,85 @@ class Input:
         result = dict()
         for key in parameters:
             result[key] = parameters[key].stderr
+
+        return result
+
+
+class ThermodynamicLinear(Input):
+    """Class to handle the thermodynamic input."""
+
+    def __init__(
+        self,
+        f_0: np.ndarray = np.empty(0),
+        slope: np.ndarray = np.empty(0),
+    ) -> None:
+        """
+        Initialize the PSD_LnNormal class.
+
+        This class is a subclass of the ParticleSizeDistributionInput class.
+        It is used to handle the particle size distribution input of the type "LnNormal".
+
+        Parameters
+        ----------
+        f_0 : float
+            The y-intercept.
+        slope : float
+            The slope of the linear function.
+
+
+        Returns
+        -------
+        None
+        """
+
+        params = dict(
+            f_0=f_0,
+            slope=slope,
+        )
+        super().__init__(
+            type="Linear",
+            func=linear_func,
+            independent_vars=["x"],
+            parameters=params,
+        )
+
+        self.__autoupdate_parameters__()
+
+    def get_f_0(self):
+        return self.get_parameters()["f_0"]
+
+    def get_slope(self):
+        return self.get_parameters()["slope"]
+
+    def __str__(self):
+        f_0 = f"intercept = {self.get_f_0()}"
+        slope = f"slope = {self.get_slope()}"
+        return "\n".join([f_0, slope])
+
+    def eval_func(self, x: np.ndarray) -> Tuple[np.ndarray]:
+        """
+        Evaluate the model of the particle size distribution.
+
+        Parameters
+        ----------
+        **kwargs : dict
+            The keyword arguments for the model function.
+            See also the lmfit.model.Model.eval.
+            https://lmfit.github.io/lmfit-py/model.html#lmfit.model.Model.eval
+
+        Returns
+        -------
+        np.ndarray
+            The evaluated model of the particle size distribution.
+        """
+        params = self.get_parameters()
+
+        result = self.func(
+            x=x,
+            f_0=params["f_0"][0],
+            slope=params["slope"][0],
+        )
+        # For each mode, evaluate the model
 
         return result
 
@@ -861,3 +946,307 @@ class PSD_LnNormal(Input):
         # For each mode, evaluate the model
 
         return result
+
+
+def fit_lnnormal_for_psd(da: xr.DataArray, dim: str = "radius") -> PSD_LnNormal:
+    """
+    Fit a lognormal distribution to the PSD.
+
+    Parameters
+    ----------
+    da : xr.DataArray
+        The PSD to fit.
+    dim : str
+        The dimension to fit the PSD.
+        Default is 'radius'.
+
+    Returns
+    -------
+    PSD_LnNormal
+        The fitted PSD.
+        If there is no finite data, the PSD is not fitted and an empty PSD_LnNormal object is returned.
+    """
+    psd_fit = PSD_LnNormal()
+
+    # get the dimension
+    da_dim = da[dim]
+    # expand the dimension to the same shape as the data
+    da_dim_expanded = shape_dim_as_dataarray(da=da, output_dim=dim)
+
+    if (np.isfinite(da)).sum() > 0:
+        # do not allow the mean of the lognormal to be furter than the min and max of the data
+        psd_fit.update_individual_model_parameters(
+            lmfit.Parameter(
+                name="geometric_means",
+                min=da_dim.min().data,
+                max=da_dim.max().data,
+            )
+        )
+
+        result = psd_fit.get_model().fit(
+            data=da.data,
+            radii=da_dim_expanded.data,
+            params=psd_fit.get_model_parameters(),
+            nan_policy="omit",
+        )
+        psd_fit.lmfitParameterValues_to_dict(result.params)
+
+    return psd_fit
+
+
+def fit_2lnnormal_for_psd(da_psd: xr.DataArray, dim: str = "radius", split_value=45e-6) -> PSD_LnNormal:
+    """
+    Fit a lognormal distribution to the PSD.
+
+    Parameters
+    ----------
+    da_psd : xr.DataArray
+        The PSD to fit.
+    dim : str
+        The dimension to fit the PSD.
+        Default is 'radius'.
+    split_value : float
+        The value along the dimension to split the PSD.
+        If PSD is given in m, then the split radius should alon be in m.
+        Default is 45e-6.
+
+    Returns
+    -------
+    PSD_LnNormal
+        The fitted PSD and the sum of the two fitted lognormal PSDs for the lower and upper split value.
+        If there is no finite data, the PSD is not fitted and an empty PSD_LnNormal object is returned.
+        If only one side of the split value has finite data, only one lognormal PSD is fitted.
+    """
+    # initialize the PSD
+    psd_fit = PSD_LnNormal()
+
+    da_lower = da_psd.sel(radius=slice(None, split_value))
+    da_upper = da_psd.sel(radius=slice(split_value, None))
+
+    psd_lower = fit_lnnormal_for_psd(da=da_lower, dim=dim)
+    psd_upper = fit_lnnormal_for_psd(da=da_upper, dim=dim)
+
+    psd_fit = psd_fit + psd_lower + psd_upper
+
+    return psd_fit
+
+
+def fit_linear_thermodynamics(
+    da_thermo: xr.DataArray,
+    thermo_fit: Union[ThermodynamicLinear, None] = None,
+    dim: str = "radius",
+    f0_boundaries: bool = True,
+    da_weights: Union[xr.DataArray, None] = None,
+) -> ThermodynamicLinear:
+    """
+    Fit a linear or split linear function to the thermodynamic data.
+
+    Parameters
+    ----------
+    da_thermo : xr.DataArray
+        The thermodynamic data to fit.
+    thermo_fit : Union[ThermodynamicLinear, None], optional
+        The thermodynamic data to fit.
+        If None, a new ThermodynamicLinear object is created.
+        Default is None.
+    dim : str, optional
+        The dimension to fit the thermodynamic data.
+        Default is 'radius'.
+    f0_boundaries : bool, optional
+        If True, the y-intercept is bounded by the min and max of the data.
+        Default is True.
+
+    Returns
+    -------
+    Union[ThermodynamicLinear, ThermodynamicSplitLinear]
+        The fitted thermodynamic data.
+        If there is no finite data, the thermodynamic data is not fitted and an empty ThermodynamicLinear or ThermodynamicSplitLinear object is returned.
+    """
+    # initialize the PSD
+    if thermo_fit is None:
+        thermo_fit = ThermodynamicLinear()
+
+    if da_weights == None:
+        weights = None
+    elif isinstance(da_weights, xr.DataArray):
+        weights = da_weights.data
+    else:
+        raise TypeError(
+            "The type of da_weights is not supported. It needs to be a xr.DataArray or None. None is the default value."
+        )
+
+    # expand the dimension to the same shape as the data
+    da_dim_expanded = shape_dim_as_dataarray(da=da_thermo, output_dim=dim)
+
+    if (np.isfinite(da_thermo)).sum() > 0:
+        if f0_boundaries == True:
+            # make sure the
+            thermo_fit.update_individual_model_parameters(
+                lmfit.Parameter(
+                    name="f_0",
+                    min=da_thermo.min().data,
+                    max=da_thermo.max().data,
+                )
+            )
+
+        # fit the data to the model
+        result = thermo_fit.get_model().fit(
+            data=da_thermo.data,
+            x=da_dim_expanded.data,
+            weights=weights,
+            params=thermo_fit.get_model_parameters(),
+            nan_policy="omit",
+        )
+        # update the model parameters
+        thermo_fit.lmfitParameterValues_to_dict(result.params)
+
+    return thermo_fit
+
+
+def fit_splitlinear_thermodynamics(
+    da_thermo: xr.DataArray,
+    thermo_fit: Union[ThermodynamicSplitLinear, None] = None,
+    dim: str = "radius",
+    f0_boundaries: bool = True,
+    x_split: Union[float, None] = None,
+    x_split_boundaries: bool = True,
+) -> ThermodynamicSplitLinear:
+    """
+    Fit a linear or split linear function to the thermodynamic data.
+
+    Parameters
+    ----------
+    da_thermo : xr.DataArray
+        The thermodynamic data to fit.
+    thermo_fit : Union[ThermodynamicLinear, None], optional
+        The thermodynamic data to fit.
+        If None, a new ThermodynamicLinear object is created.
+        Default is None.
+    dim : str, optional
+        The dimension to fit the thermodynamic data.
+        Default is 'radius'.
+    f0_boundaries : bool, optional
+        If True, the y-intercept is bounded by the min and max of the data.
+        Default is True.
+    x_split : float or None
+        The split level of the split linear function.
+        If None, the split level is not prescribed and ``x_split_boundaries`` will be evaluated.
+    x_split_boundaries : bool, optional
+        If True, the split level is bounded by the 150 and the max of the data.
+        Default is True.
+
+    Returns
+    -------
+    Union[ThermodynamicLinear, ThermodynamicSplitLinear]
+        The thermodynamic fit.
+        If there is no finite data, the thermodynamic data is not fitted and an empty ThermodynamicLinear or ThermodynamicSplitLinear object is returned.
+    """
+    # initialize the PSD
+    if thermo_fit is None:
+        thermo_fit = ThermodynamicSplitLinear()
+
+    # get the dimension
+    da_dim = da_thermo[dim]
+    # expand the dimension to the same shape as the data
+    da_dim_expanded = shape_dim_as_dataarray(da=da_thermo, output_dim=dim)
+
+    if (np.isfinite(da_thermo)).sum() > 0:
+        if f0_boundaries == True:
+            # make sure the
+            thermo_fit.update_individual_model_parameters(
+                lmfit.Parameter(
+                    name="f_0",
+                    min=da_thermo.min().data,
+                    max=da_thermo.max().data,
+                )
+            )
+        if x_split is not None:
+            # make sure the split level is the prescribed value
+            thermo_fit.update_individual_model_parameters(
+                lmfit.Parameter(
+                    name="x_split",
+                    value=x_split,
+                    vary=False,
+                )
+            )
+        elif x_split_boundaries == True:
+            # only allow the split level to be between 150m and max of the data
+            thermo_fit.update_individual_model_parameters(
+                lmfit.Parameter(
+                    name="x_split",
+                    min=150,
+                    max=float(da_dim.max()),
+                )
+            )
+
+        # fit the data to the model
+        result = thermo_fit.get_model().fit(
+            data=da_thermo.data,
+            x=da_dim_expanded.data,
+            params=thermo_fit.get_model_parameters(),
+            nan_policy="omit",
+        )
+        # update the model parameters
+        thermo_fit.lmfitParameterValues_to_dict(result.params)
+
+    return thermo_fit
+
+
+def fit_thermodynamics(
+    da_thermo: xr.DataArray,
+    thermo_fit: Union[ThermodynamicSplitLinear, ThermodynamicLinear],
+    dim: str = "radius",
+    f0_boundaries: bool = True,
+    x_split: Union[float, None] = None,
+    x_split_boundaries: bool = True,
+    da_weights: Union[xr.DataArray, None] = None,
+) -> Union[ThermodynamicSplitLinear, ThermodynamicLinear]:
+    """
+    Fit a linear or split linear function to the thermodynamic data.
+
+    Parameters
+    ----------
+    da_thermo : xr.DataArray
+        The thermodynamic data to fit.
+    thermo_fit : Union[ThermodynamicLinear, ThermodynamicSplitLinear]
+        The thermodynamic fit type.
+        This can be either ThermodynamicLinear or ThermodynamicSplitLinear.
+    dim : str, optional
+        The dimension to fit the thermodynamic data.
+        Default is 'radius'.
+    f0_boundaries : bool, optional
+        If True, the y-intercept is bounded by the min and max of the data.
+        Default is True.
+    x_split_boundaries : bool, optional
+        If True, the split level is bounded by 150 min and max of the dimension.
+        Default is True.
+
+    Returns
+    -------
+    Union[ThermodynamicSplitLinear, ThermodynamicLinear]
+        The thermodynamic fit .
+    """
+
+    if isinstance(thermo_fit, ThermodynamicSplitLinear):
+        fit_func = fit_splitlinear_thermodynamics(
+            da_thermo=da_thermo,
+            thermo_fit=thermo_fit,
+            dim=dim,
+            f0_boundaries=f0_boundaries,
+            x_split=x_split,
+            x_split_boundaries=x_split_boundaries,
+        )
+    elif isinstance(thermo_fit, ThermodynamicLinear):
+        fit_func = fit_linear_thermodynamics(
+            da_thermo=da_thermo,
+            thermo_fit=thermo_fit,
+            dim=dim,
+            f0_boundaries=f0_boundaries,
+            da_weights=da_weights,
+        )
+    else:
+        raise TypeError(
+            "The type of the input must be either ThermodynamicLinear or ThermodynamicSplitLinear."
+        )
+
+    return fit_func

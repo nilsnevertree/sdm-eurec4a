@@ -19,6 +19,12 @@ repos:
       - id: file-contents-sorter
         files: requirements-dev.txt
 
+  - repo: https://github.com/compilerla/conventional-pre-commit
+    rev: v3.2.0
+    hooks:
+    -   id: conventional-pre-commit
+        stages: [commit-msg]
+        args: []
     # Enforce that notebooks outputs are cleared
   - repo: https://github.com/kynan/nbstripout
     rev: 0.6.1

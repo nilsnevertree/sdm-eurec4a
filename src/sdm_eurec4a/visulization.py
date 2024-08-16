@@ -21,6 +21,18 @@ from matplotlib.legend_handler import (
 from matplotlib.patches import Polygon
 
 
+# Use colorblind-safe colors
+_default_colors = [
+    "#CC6677",
+    "#6E9CB3",
+    "#CA8727",
+    "#44AA99",
+    "#AA4499",
+    "#D6BE49",
+    "#A494F5",
+]
+
+
 def set_custom_rcParams():
     """
     Set the default configuration parameters for matplotlib. The colorblind-
@@ -81,18 +93,23 @@ def set_custom_rcParams():
         ),
     )
 
-    # Use colorblind-safe colors
-    colors = [
-        "#CC6677",
-        "#6E9CB3",
-        "#CA8727",
-        "#44AA99",
-        "#AA4499",
-        "#D6BE49",
-        "#A494F5",
-    ]
-    plt.rcParams["axes.prop_cycle"] = plt.cycler(color=colors)
-    return colors
+    plt.rcParams["axes.prop_cycle"] = plt.cycler(color=_default_colors)
+    return _default_colors
+
+
+def get_current_colors():
+    """
+    Get the current color cycle of the matplotlib rcParams.
+
+    Returns:
+    --------
+    colors (np.ndarray) Array containing the current colors in HEX format
+
+    Examples:
+    ---------
+        >>> colors = get_current_colors()
+    """
+    return plt.rcParams["axes.prop_cycle"].by_key()["color"]
 
 
 def plot_colors(colors):
@@ -223,7 +240,7 @@ def adjust_lightness(color: str, amount: float = 0.75) -> str:
         return color  # Return the original color if conversion fails
 
 
-def adjust_lightness_array(colors: np.ndarray, amount=0.75) -> np.ndarray:
+def adjust_lightness_array(colors: Union[list, np.ndarray], amount: float = 0.75) -> np.ndarray:
     """
     Adjusts the lightness of an array of colors by the specified amount.
 
@@ -255,6 +272,9 @@ def adjust_lightness_array(colors: np.ndarray, amount=0.75) -> np.ndarray:
           https://stackoverflow.com/a/49601444/16372843
     """
     return np.array([adjust_lightness(color, amount) for color in colors])
+
+
+_dark_colors = adjust_lightness_array(_default_colors, 0.5)
 
 
 def __set_handler_alpha_to_1__(handle, orig):
@@ -550,3 +570,196 @@ def symlog_from_array(
     return mpl.scale.SymmetricalLogScale(
         axes, base=base, linthresh=linthresh, subs=subs, linscale=linscale
     )
+
+
+def plot_thermodynamics(
+    fig: mpl.figure.Figure,
+    axs: np.ndarray,
+    drop_sondes: Union[xr.Dataset, None] = None,
+    fit_dict: Union[dict, None] = None,
+    fig_title: str = "",
+    default_colors: list = get_current_colors(),
+    dark_colors: list = None,
+    plot_kwargs: dict = dict(alpha=0.75, linewidth=0.7),
+    plot_fit_kwargs: dict = dict(alpha=0.75, linewidth=1.5),
+):
+    """
+    Plot the thermodynamic profiles of the dropsondes. This will plot the
+    following variables:
+
+    - Specific humidity
+    - Relative humidity
+    - Air temperature
+    - Potential temperature
+
+    Parameters:
+    -----------
+    fig : plt.Figure
+        The matplotlib Figure object to plot on.
+    axs : np.ndarray
+        The matplotlib Axes objects to plot on.
+        This needs to be a 2x2 array of Axes objects.
+    drop_sondes : xr.Dataset or None
+        The dropsondes dataset containing the thermodynamic profiles.
+        It should have the following variables:
+        'specific_humidity', 'relative_humidity', 'air_temperature', 'potential_temperature'
+        and the coordinate 'alt'.
+        Default is None (no data is plotted).
+    fit_dict : dict or None
+        A dictionary containing the fit functions for the thermodynamic profiles.
+        The keys should be the variable names and the values should be the fit functions.
+        Default is None (no data is plotted).
+    fig_title : str, optional
+        The title of the figure. Default is an empty string.
+    default_colors : list, optional
+        The default colors to use for the plot. Default is the current color cycle.
+    dark_colors : list, optional
+        The darkened colors to use for the fit lines. Default is None.
+    plot_kwargs : dict, optional
+        Additional keyword arguments for the plot function. Default is {'alpha': 0.75, 'linewidth': 0.7}.
+    plot_fit_kwargs : dict, optional
+        Additional keyword arguments for the plot function of the fit lines. Default is {'alpha': 0.75, 'linewidth': 1.5}.
+
+    Returns:
+    --------
+    fig : plt.Figure
+        The matplotlib Figure object.
+    axs : np.ndarray
+        The matplotlib Axes objects.
+
+    Examples:
+    ---------
+        >>> fig, axs = plot_thermodynamics(fig, drop_sondes, fit_dict, fig_title)
+    """
+
+    if dark_colors is None:
+        dark_colors = adjust_lightness_array(default_colors, 0.5)
+
+    assert axs.shape == (2, 2), "The number of subplots should be 2x2"
+
+    ax_q, ax_ta = axs[0]
+    ax_rh, ax_theta = axs[1]
+    ax_q.set_xlim(0, 20)
+    ax_rh.set_xlim(30, 110)
+    ax_ta.set_xlim(285, 305)
+    ax_theta.set_xlim(295, 308)
+
+    plot_dict = {
+        "specific_humidity": dict(
+            title="Specific humidity [g/kg]",
+            xlabel="Specific humidity [g/kg]",
+            ylabel="alt [m]",
+            ax=ax_q,
+            multiplier=1e3,
+        ),
+        "relative_humidity": dict(
+            title="Relative humidity [%]",
+            xlabel="Relative humidity [%]",
+            ylabel="alt [m]",
+            ax=ax_rh,
+        ),
+        "air_temperature": dict(
+            title="Air temperature [K]",
+            xlabel="Air temperature [K]",
+            ylabel="alt [m]",
+            ax=ax_ta,
+        ),
+        "potential_temperature": dict(
+            title="Potential temperature [K]",
+            xlabel="Potential temperature [K]",
+            ylabel="alt [m]",
+            ax=ax_theta,
+        ),
+    }
+
+    for i, var in enumerate(plot_dict):
+        ax = plot_dict[var]["ax"]
+
+        if drop_sondes is None:
+            pass
+        elif isinstance(drop_sondes, xr.Dataset):
+            data = drop_sondes[var]
+
+            if var == "specific_humidity":
+                data = 1e3 * data
+
+            ax.plot(
+                data.T,
+                drop_sondes["alt"].T,
+                color=default_colors[i],
+                **plot_kwargs,
+            )
+        else:
+            raise ValueError(f"drop_sondes should be a xr.Dataset but is {type(drop_sondes)}")
+
+    # plot fits if available
+    for i, var in enumerate(plot_dict):
+        ax = plot_dict[var]["ax"]
+        if fit_dict is None:
+            pass
+        elif isinstance(fit_dict, dict):
+            fit = fit_dict.get(var)
+
+            if fit != None:
+                fitted_data = fit.eval_func(drop_sondes["alt"])[0]
+                if var == "specific_humidity":
+                    fitted_data = 1e3 * fitted_data
+                ax.plot(
+                    fitted_data,
+                    drop_sondes["alt"],
+                    color=dark_colors[i],
+                    label="fit",
+                    **plot_fit_kwargs,
+                )
+                ax.axhline(
+                    fit.get_x_split(), color="black", linestyle="--", label="cloud base estimated"
+                )
+        else:
+            raise ValueError(f"fit_dict should be a dict but is {type(fit_dict)}")
+
+        ax.xaxis.label.set_color(default_colors[i])  # Set the color of x-axis label
+        ax.tick_params(axis="x", colors=default_colors[i])  # Set the color of x-axis ticks
+        ax.set_title(plot_dict[var]["title"])
+        ax.set_xlabel(plot_dict[var]["xlabel"])
+        ax.set_ylabel(plot_dict[var]["ylabel"])
+
+    for ax in axs.flatten():
+        ax.legend(handler_map=handler_map_alpha())
+        ax.tick_params(axis="x", labelrotation=-33)
+
+    fig.suptitle(fig_title)
+
+    return fig, axs
+
+
+def set_xticks_time(ax):
+    xticks = [0, 500, 1000]
+    ax.set_xticks(xticks)
+
+
+def set_yticks_height(ax):
+    yticks = [0, 500, 1000, 1500, 2000]
+    ax.set_yticks(yticks)
+
+
+def set_yticks_height_km(ax):
+    yticks = [0, 0.5, 1, 1.5, 2]
+    ax.set_yticks(yticks)
+
+
+def set_logxticks_meter(ax):
+    xticks = [1e-6, 1e-3]
+    xticklabels = [r"$10^{-6}$", r"$10^{-3}$"]
+    ax.set_xticks(xticks, xticklabels)
+
+
+def set_logxticks_micrometer(ax):
+    xticks = [1e-3, 1e0, 1e3]
+    xticklabels = [r"$10^{-3}$", r"$10^{0}$", r"$10^{3}$"]
+    ax.set_xticks(xticks, xticklabels)
+
+
+def set_logtyticks_psd(ax):
+    yticks = [1e0, 1e6]
+    yticklabels = [r"$10^0$", r"$10^6$"]
+    ax.set_yticks(yticks, yticklabels)
