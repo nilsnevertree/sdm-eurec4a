@@ -28,11 +28,11 @@ echo "git branch: $(git symbolic-ref --short HEAD)"
 echo "============================================"
 
 # Set microphysics setup
-microphysics="null_microphysics"
+# microphysics="null_microphysics"
 # microphysics="condensation"
 # microphysics="collision_condensation"
 # microphysics="coalbure_condensation_small"
-# microphysics="coalbure_condensation_large"
+microphysics="coalbure_condensation_large"
 
 
 create=false
@@ -55,18 +55,11 @@ max_number=$(($number_of_dirs - 1))
 #echo "Directories: ${directories[@]}"
 echo "Number of directories: ${#directories[@]}"
 
-echo "Update create eulerian views script"
-# Update --array=0-max_number
-sed -i "s/#SBATCH --array=.*/#SBATCH --array=0-${max_number}/" "$create_script_path"
-# Update --ntasks-per-node=1
-sed -i "s/#SBATCH --ntasks-per-node=.*/#SBATCH --ntasks-per-node=1/" "$create_script_path"
-
 
 echo "============================================"
 echo "path2data: ${path2data}"
 echo "microphysics: ${microphysics}"
 
-echo "============================================"
 if [ ! -d "$path2data" ]; then
     echo "Invalid path to data"
     exit 1
@@ -79,6 +72,12 @@ fi
 echo "============================================"
 
 if [ "$create" = true ]; then
+    echo "Update create eulerian views script"
+    # Update --array=0-max_number
+    sed -i "s/#SBATCH --array=.*/#SBATCH --array=0-${max_number}/" "$create_script_path"
+    # Update --ntasks-per-node=1
+    sed -i "s/#SBATCH --ntasks-per-node=.*/#SBATCH --ntasks-per-node=1/" "$create_script_path"
+
     echo "Create eulerian views"
     JOBID_create=$(\
         sbatch --export=create_pythonscript=${create_pythonscript},path2data=${path2data} \
@@ -96,7 +95,7 @@ if [ "$concatenate" = true ] && [ "$create" = true ]; then
         sbatch --dependency=afterany:${JOBID_create##* } --export=concatenate_pythonscript=${concatenate_pythonscript},path2data=${path2data} \
         ${concatenate_script_path}\
         )
-    echo "JOBID: ${JOBID_concatenate}"
+    echo "JOBID_concatenate: ${JOBID_concatenate}"
     echo "============================================"
 elif [ "$concatenate" = true ] && [ "$create" = false ]; then
     echo "Concatenate Eulerian Views"
@@ -104,7 +103,7 @@ elif [ "$concatenate" = true ] && [ "$create" = false ]; then
         sbatch --export=concatenate_pythonscript=${concatenate_pythonscript},path2data=${path2data} \
         ${concatenate_script_path}\
         )
-    echo "JOBID: ${JOBID_concatenate}"
+    echo "JOBID_concatenate: ${JOBID_concatenate}"
     echo "============================================"
 fi
 echo "============================================"
