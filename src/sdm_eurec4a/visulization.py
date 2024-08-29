@@ -1,3 +1,4 @@
+import textwrap
 import warnings
 
 from colorsys import hls_to_rgb, rgb_to_hls
@@ -763,3 +764,71 @@ def set_logtyticks_psd(ax):
     yticks = [1e0, 1e6]
     yticklabels = [r"$10^0$", r"$10^6$"]
     ax.set_yticks(yticks, yticklabels)
+
+
+def label_from_attrs(
+    da: xr.DataArray,
+    return_name: bool = True,
+    return_units: bool = True,
+    linebreak: bool = False,
+    name_width: Union[int, None] = None,
+) -> str:
+    """
+    This function creates a label from the attributes of a DataArray. It
+    assumes the attributes 'long_name' and 'units' are present. If 'long_name'
+    are not present, it uses the name of the DataArray. If 'units' are not
+    present, it uses '[???]'.
+
+    Parameters:
+    -----------
+    da : xr.DataArray
+        The DataArray for which to create the label.
+    return_name : bool, optional
+        Whether to return the name. Default is True.
+    return_units : bool, optional
+        Whether to return the units. Default is True.
+    linebreak : bool, optional
+        Whether to insert a linebreak between the name and units. Default is False.
+    name_width : int, optional
+        The maximum width of the name. Default is None.
+        This can be set to a specific value to wrap the name to a specific width.
+        The units will still be on the same line as the last part of the name.
+        To give it a linebreak, set `linebreak` to True.
+
+    Returns:
+    --------
+    str : The label created from the attributes of the DataArray of the form 'name $[units]$'.
+    """
+    try:
+        name = f"{da.attrs['long_name']}"
+    except KeyError:
+        name = f"{da.name}"
+
+    if "units" in da.attrs:
+        units = f"{da.attrs['units']}"
+        if "$" not in units:
+            units = f"${units}$"
+
+        units = units.replace("$", " ")
+        units = rf"$\left[ {units} \right]$"
+    else:
+        units = "[???]"
+
+    if return_name == True:
+        if name_width == None:
+            name = name
+        else:
+            name = textwrap.fill(name, name_width)
+
+    if return_name == True and return_units == True:
+        if linebreak == True:
+            return f"{name}\n{units}"
+        else:
+            return f"{name} {units}"
+
+    elif return_name == True and return_units == False:
+        return f"{name}"
+    elif return_name == False and return_units == True:
+        return f"{units}"
+    else:
+        return ""
