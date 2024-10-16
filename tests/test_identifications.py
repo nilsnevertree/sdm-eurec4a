@@ -195,8 +195,8 @@ def test_consecutive_events_xr(min_duration, axis, expected, ds_mask=da_mask()):
 
 def test_match_clouds_and_cloudcomposite():
     """
-    Tests the match_clouds_and_cloudcomposite function For this a cloud
-    composite and a cloud mask are created.
+    Tests the match_clouds_and_cloudcomposite function For this a cloud composite and a
+    cloud mask are created.
 
     The cloud composite dataset has the following dates:
     - 2020-01-01 03:00:00
@@ -318,11 +318,7 @@ def ds_distance():
 
 
 def selected_dropsondes_5h_3km():
-    """
-    Should result for
-    max_temporal_distance = 5 hours
-    max_spatial_distance = 3 km
-    """
+    """Should result for max_temporal_distance = 5 hours max_spatial_distance = 3 km."""
     return xr.Dataset(
         {
             "temp": (("time",), [1, 2, 5, 6]),
@@ -339,11 +335,7 @@ def selected_dropsondes_5h_3km():
 
 
 def selected_dropsondes_1h_10km():
-    """
-    Should result for
-    max_temporal_distance = 5 hours
-    max_spatial_distance = 3 km
-    """
+    """Should result for max_temporal_distance = 5 hours max_spatial_distance = 3 km."""
     return xr.Dataset(
         {
             "temp": (("time",), [1, 6]),
@@ -358,11 +350,7 @@ def selected_dropsondes_1h_10km():
 
 
 def selected_dropsondes_0h_0km():
-    """
-    Should result for
-    max_temporal_distance = 0 hours
-    max_spatial_distance = 0 km
-    """
+    """Should result for max_temporal_distance = 0 hours max_spatial_distance = 0 km."""
     return xr.Dataset(
         {
             "temp": (("time",), []),
@@ -383,8 +371,8 @@ def selected_dropsondes_0h_0km():
 )
 def test_match_clouds_and_dropsondes(max_temporal_distance, max_spatial_distance, expected):
     """
-    Tests the match_clouds_and_dropsondes function. It uses a cloud dataset and
-    a dropsonde dataset.
+    Tests the match_clouds_and_dropsondes function. It uses a cloud dataset and a
+    dropsonde dataset.
 
     Example visualisation
         >>> # Example setup
@@ -421,8 +409,8 @@ def test_match_clouds_and_dropsondes(max_temporal_distance, max_spatial_distance
 
 
 def test_match_clouds_and_dropsondes_fails():
-    """Checks for correct fails with ValueError is not all values from ds_cloud
-    are in ds_distance."""
+    """Checks for correct fails with ValueError is not all values from ds_cloud are in
+    ds_distance."""
 
     # Test 1:
     # Fails if values from ds_clouds arent in ds_distance

@@ -1,4 +1,5 @@
 """Module to transfer the fitted observations to CLEO."""
+
 from __future__ import annotations
 
 import warnings
@@ -72,8 +73,7 @@ class Input:
 
     def add_parameters(self, parameters: Dict) -> None:
         """
-        Add the model parameters to the parameters of the particle size
-        distribution.
+        Add the model parameters to the parameters of the particle size distribution.
 
         Parameters
         ----------
@@ -116,8 +116,7 @@ class Input:
 
     def __autoupdate_parameters__(self) -> None:
         """
-        Autoupdate all dependent parameters. The default method changes
-        nothing.
+        Autoupdate all dependent parameters. The default method changes nothing.
 
         Parameters
         ----------
@@ -193,10 +192,10 @@ class Input:
 
     def set_model(self, **kwargs: dict()) -> None:
         """
-        Set the model of the particle size distribution. It uses the
-        lmfit.model.Model class. The function to be used for this is the
-        function set in the set_func method. The function cannot be provided as
-        a parameter to this method! It is set in the set_func method.
+        Set the model of the particle size distribution. It uses the lmfit.model.Model
+        class. The function to be used for this is the function set in the set_func
+        method. The function cannot be provided as a parameter to this method! It is set
+        in the set_func method.
 
         The Model can be used to fit the particle size distribution to the data.
 
@@ -238,8 +237,8 @@ class Input:
 
     def __update_model__(self) -> None:
         """
-        Update the model of the particle size distribution. The default method
-        changes nothing.
+        Update the model of the particle size distribution. The default method changes
+        nothing.
 
         Parameters
         ----------
@@ -286,8 +285,8 @@ class Input:
 
     def update_model_parameters(self) -> None:
         """
-        Update the model parameters of the particle size distribution. The
-        default method changes nothing.
+        Update the model parameters of the particle size distribution. The default
+        method changes nothing.
 
         Parameters
         ----------
@@ -569,8 +568,8 @@ class ThermodynamicSplitLinear(Input):
 
 class PSD_LnNormal(Input):
     """
-    A class used to represent the particle size distribution input using a
-    lognormal distribution.
+    A class used to represent the particle size distribution input using a lognormal
+    distribution.
 
     This class is a subclass of the ParticleSizeDistributionInput class and is used to handle the particle size distribution input of the type "LnNormal". It provides methods to set and get geometric means, geometric sigmas, scale factors, mode number, and number concentration. It also provides methods to update model parameters and auto-update all dependent parameters.
 
@@ -833,8 +832,8 @@ class PSD_LnNormal(Input):
 
     def update_model_parameters(self, params: Union[lmfit.Parameters, None] = None) -> None:
         """
-        Update the model parameters of the particle size distribution. The
-        default method updates the following.
+        Update the model parameters of the particle size distribution. The default
+        method updates the following.
 
         params["geometrical_means"].set(value=3.77e-06, min=0)
         params["geometrical_sigmas"].set(value=1.38e+00, min=0)
@@ -867,8 +866,7 @@ class PSD_LnNormal(Input):
 
     def __autoupdate_parameters__(self) -> None:
         """
-        Autoupdate all dependent parameters. The default method changes
-        nothing.
+        Autoupdate all dependent parameters. The default method changes nothing.
 
         Parameters
         ----------

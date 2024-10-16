@@ -52,10 +52,9 @@ print(data_dir)
 def ak_differentiate(sa: supersdata.SupersAttribute) -> supersdata.SupersAttribute:
     """
     This function calculates the difference of the data in the
-    supersdata.SupersAttribute along the last axis. The difference is
-    calculated as the difference of the next value minus the current value. The
-    last value is set to nan, to make sure, that the mass change is at the same
-    timestep, as the original value.
+    supersdata.SupersAttribute along the last axis. The difference is calculated as the
+    difference of the next value minus the current value. The last value is set to nan,
+    to make sure, that the mass change is at the same timestep, as the original value.
 
     Notes
     -----
@@ -113,8 +112,8 @@ def ak_differentiate(sa: supersdata.SupersAttribute) -> supersdata.SupersAttribu
 
 def ak_last(sa: supersdata.SupersAttribute) -> supersdata.SupersAttribute:
     """
-    This function only keeps the last value along axis 1. The rest will be
-    replaced by nans.
+    This function only keeps the last value along axis 1. The rest will be replaced by
+    nans.
 
     Notes
     -----
@@ -181,8 +180,8 @@ def ak_last(sa: supersdata.SupersAttribute) -> supersdata.SupersAttribute:
 
 def create_lagrangian_dataset(dataset: supersdata.SupersDataNew) -> supersdata.SupersDataNew:
     """
-    This function creates a lagrangian view of the SupersDataset. Within this
-    setup, the following variables are calculated and added to the dataset:
+    This function creates a lagrangian view of the SupersDataset. Within this setup, the
+    following variables are calculated and added to the dataset:
 
     - mass_difference : The mass difference per second
     - mass_difference_timestep : The mass difference per timestep
@@ -350,9 +349,9 @@ def create_eulerian_dataset(
     dataset: supersdata.SupersDataNew, radius_bins: np.ndarray = np.logspace(-7, 7, 150)
 ) -> supersdata.SupersDataNew:
     """
-    This function creates a eulerian view of the SupersDataset. First, a
-    lagrangian view is created by binning the data by the superdroplet id.
-    Within this setup, the following variables are calculated:
+    This function creates a eulerian view of the SupersDataset. First, a lagrangian view
+    is created by binning the data by the superdroplet id. Within this setup, the
+    following variables are calculated:
 
     - mass_difference : The mass difference per second
     - mass_difference_timestep : The mass difference per timestep
@@ -458,9 +457,9 @@ def create_eulerian_xr_dataset(
     radius_bins: np.ndarray = np.logspace(-7, 7, 150),
 ) -> xr.Dataset:
     """
-    This function creates a eulerian view of the SupersDataset and transforms
-    it to a xarray dataset. For this, the function create_eulerian_dataset is
-    used to create the eulerian view.
+    This function creates a eulerian view of the SupersDataset and transforms it to a
+    xarray dataset. For this, the function create_eulerian_dataset is used to create the
+    eulerian view.
 
     Note
     ----
@@ -677,8 +676,7 @@ def add_vertical_profiles(ds: xr.Dataset, time_slice=slice(1500, None)):
 
 def add_precipitation(ds):
     """
-    Uses the mass_left variable in the dataset to calculate the precipitation
-    rate.
+    Uses the mass_left variable in the dataset to calculate the precipitation rate.
 
     The precipitation rate is the ``mass_left`` in gridbox 0 divided by the time step.
     To convert from kg to mm/h, the value is divided by the surface area of gridbox 0 and multiplied by 3600.

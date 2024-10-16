@@ -51,9 +51,8 @@ logging.info("Destination filename: %s", DESTINATION_FILENAME)
 
 def add_flight_number(ds: xr.Dataset) -> xr.Dataset:
     """
-    Add flight number to dataset based on filename ending. This function is
-    used as a pre-processing step when opening the files of the cloud composite
-    dataset.
+    Add flight number to dataset based on filename ending. This function is used as a
+    pre-processing step when opening the files of the cloud composite dataset.
 
     Coutris, P. (2021).  SAFIRE
     ATR42: PMA/Cloud composite dataset.  [Dataset].  Aeris.

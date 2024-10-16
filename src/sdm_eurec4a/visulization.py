@@ -328,8 +328,8 @@ def handler_map_alpha():
 
 def ncols_nrows_from_N(N: int) -> Dict[str, int]:
     """
-    Calculate the number of columns and rows for a grid based on the total
-    number of elements.
+    Calculate the number of columns and rows for a grid based on the total number of
+    elements.
 
     Given the total number of elements `N`, this function calculates the optimal number of
     columns and rows for a grid layout that can accommodate all the elements.
@@ -524,9 +524,9 @@ def symlog_from_array(
     offset: float = -1,
 ) -> mpl.scale.SymmetricalLogScale:
     """
-    Create a symlog scale for the given data array. The scale is based on the
-    minimum value of the data array. Round to next power of ten as the lowest
-    value in the logaritmic part of the scale. The base of the scale is 10.
+    Create a symlog scale for the given data array. The scale is based on the minimum
+    value of the data array. Round to next power of ten as the lowest value in the
+    logaritmic part of the scale. The base of the scale is 10.
 
     Parameters
     ----------
@@ -780,10 +780,9 @@ def label_from_attrs(
     units_appendix: Union[str, None] = None,
 ) -> str:
     """
-    This function creates a label from the attributes of a DataArray. It
-    assumes the attributes 'long_name' and 'units' are present. If 'long_name'
-    are not present, it uses the name of the DataArray. If 'units' are not
-    present, it uses '[???]'.
+    This function creates a label from the attributes of a DataArray. It assumes the
+    attributes 'long_name' and 'units' are present. If 'long_name' are not present, it
+    uses the name of the DataArray. If 'units' are not present, it uses '[???]'.
 
     Parameters:
     -----------

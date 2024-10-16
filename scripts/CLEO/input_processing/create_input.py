@@ -368,8 +368,7 @@ def fit_particle_size_distribution(
     particle_split_radius: float = 45e-6,  # 45 micrometer
 ) -> transfer.PSD_LnNormal:
     """
-    Fits the particle size distribution (PSD) of cloud and rain droplets
-    idependently.
+    Fits the particle size distribution (PSD) of cloud and rain droplets idependently.
 
     Note
     ----
@@ -670,8 +669,7 @@ def psdfit_representer(dumper: yaml.Dumper, obj: transfer.PSD_LnNormal) -> yaml.
 
 def add_representer() -> None:
     """Adds custom representers for numpy ndarrays, numpy float64s,
-    ThermodynamicSplitLinear objects, and PSD_LnNormal objects to the YAML
-    dumper."""
+    ThermodynamicSplitLinear objects, and PSD_LnNormal objects to the YAML dumper."""
     yaml.add_representer(np.ndarray, ndarray_representer)
     yaml.add_representer(np.float64, float64_representer)
     yaml.add_representer(transfer.ThermodynamicSplitLinear, thermofit_split_linear_representer)

@@ -1,8 +1,7 @@
 """
-This script identifies cloud clusters in the cloud composite dataset.
-It uses one of the masks from the original dataset to identify clouds.
-This mask can be selected by setting the variable ``mask_name``.
-All np.nan values in the rain_mask are set to 0/False.
+This script identifies cloud clusters in the cloud composite dataset. It uses one of the
+masks from the original dataset to identify clouds. This mask can be selected by setting
+the variable ``mask_name``. All np.nan values in the rain_mask are set to 0/False.
 
 A new dataset is created which looks like this:
 <xarray.Dataset>
@@ -39,6 +38,7 @@ author: Nils Niebaum
 email: nils-ole.niebaum@mpimet.mpg.de
 github_username: nilsnevertree
 """
+
 # %%
 
 import datetime

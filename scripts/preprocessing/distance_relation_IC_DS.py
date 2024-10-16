@@ -1,13 +1,12 @@
 """
-This script computes a dataset which stores the spatial and temporal distance
-between the identified clouds and the dropsondes.
+This script computes a dataset which stores the spatial and temporal distance between
+the identified clouds and the dropsondes.
 
 The identified clouds dataset path is hardcoded in the script.
     'data/observation/cloud_composite/processed/identified_clouds_more.nc'
 The dropsondes dataset path is hardcoded in the script.
     'data/observation/dropsonde/Level_3/EUREC4A_JOANNE_Dropsonde-RD41_Level_3_v2.0.0.nc'
 """
-
 
 import datetime
 import logging
