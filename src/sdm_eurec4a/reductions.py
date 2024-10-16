@@ -10,11 +10,11 @@ from shapely.geometry import Point, Polygon
 
 def polygon2mask(lon, lat, pg, lat_name="lat", lon_name="lon"):
     """
-    This funciton creates a mask for a given DataArray or DataSet based on a
-    shapely Polygon or MultiPolygon. Polygon points are expected be (lon, lat)
-    tuples. To fit the polygon to the dobj coords, "polygon_split_arbitrary"
-    function is used. The dobj is expected to have lon values in [0E, 360E)
-    coords and lat values in [90S, 90N] coords.
+    This funciton creates a mask for a given DataArray or DataSet based on a shapely
+    Polygon or MultiPolygon. Polygon points are expected be (lon, lat) tuples. To fit
+    the polygon to the dobj coords, "polygon_split_arbitrary" function is used. The dobj
+    is expected to have lon values in [0E, 360E) coords and lat values in [90S, 90N]
+    coords.
 
     Parameters
     ----------
@@ -71,10 +71,9 @@ def rectangle_spatial_mask(
     include_boundary: bool = True,
 ) -> xr.DataArray:
     """
-    Select a region from a xarray dataset based on a given area. The area can
-    be defined as a dictionary with keys ['lon_min', 'lon_max', 'lat_min',
-    'lat_max'] or as a list of four values [lon_min, lon_max, lat_min,
-    lat_max].
+    Select a region from a xarray dataset based on a given area. The area can be defined
+    as a dictionary with keys ['lon_min', 'lon_max', 'lat_min', 'lat_max'] or as a list
+    of four values [lon_min, lon_max, lat_min, lat_max].
 
     The ``lon_name`` and ``lat_name`` parameters can be used to specify the names of the coords or variables where the
     longitude and latitude values are stored. By default, the function assumes that the longitude and latitude values
@@ -177,8 +176,8 @@ def latlon_dict_to_polygon(area):
 
 def x_y_flatten(da: xr.DataArray, axis: str):
     """
-    Flatten a 2D data array along the specified axis. The data array is
-    flattened in Fortran order after the DataArray is transposed properly.
+    Flatten a 2D data array along the specified axis. The data array is flattened in
+    Fortran order after the DataArray is transposed properly.
 
     Note
     ----
@@ -252,8 +251,9 @@ def x_y_flatten(da: xr.DataArray, axis: str):
 
 def shape_dim_as_dataarray(da, output_dim: str):
     """
-    Reshapes the dimension ``output_dim`` to the same shape as the given DataArray ``da``.
-    Therefore the dimension ``output_dim`` is expanded to the same shape as the DataArray ``da``.
+    Reshapes the dimension ``output_dim`` to the same shape as the given DataArray
+    ``da``. Therefore the dimension ``output_dim`` is expanded to the same shape as the
+    DataArray ``da``.
 
     Parameters
     ----------
@@ -321,8 +321,7 @@ def shape_dim_as_dataarray(da, output_dim: str):
 
 def validate_datasets_same_attrs(datasets: list, skip_attrs: list = []) -> bool:
     """
-    Check if all datasets have the same attributes except for the ones in
-    skip_attrs.
+    Check if all datasets have the same attributes except for the ones in skip_attrs.
 
     Args:
         datasets (list): list of datasets

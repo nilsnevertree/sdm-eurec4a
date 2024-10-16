@@ -1,15 +1,20 @@
+import string
+import textwrap
 import warnings
 
 from colorsys import hls_to_rgb, rgb_to_hls
-from typing import Tuple, Union
+from typing import Dict, Tuple, Union
 from warnings import warn
 
 import matplotlib as mpl
+import matplotlib.axes as mpl_axes
 import matplotlib.colors as colors
+import matplotlib.figure as mpl_figure
 import matplotlib.pyplot as plt
 import numpy as np
 import xarray as xr
 
+from cycler import cycler
 from matplotlib.axes import Axes
 from matplotlib.collections import PathCollection
 from matplotlib.colors import cnames, to_hex, to_rgb
@@ -18,6 +23,7 @@ from matplotlib.legend_handler import (
     HandlerPathCollection,
     HandlerPolyCollection,
 )
+from matplotlib.lines import Line2D
 from matplotlib.patches import Polygon
 
 
@@ -33,7 +39,7 @@ _default_colors = [
 ]
 
 
-def set_custom_rcParams():
+def set_custom_rcParams() -> list:
     """
     Set the default configuration parameters for matplotlib. The colorblind-
     save colors were chosen with the help of
@@ -61,22 +67,22 @@ def set_custom_rcParams():
     BIGGER_SIZE = 15
     HUGHER_SIZE = 18
     plt.rc("font", size=MEDIUM_SIZE)  # Default text sizes
-    plt.rc("figure", titlesize=BIGGER_SIZE)  # Axes title size
+    plt.rc("figure", titlesize=BIGGER_SIZE)  # Figure title size
     plt.rc("figure", labelsize=MEDIUM_SIZE)  # X and Y labels size
-    plt.rc("axes", titlesize=BIGGER_SIZE)  # Axes title size
+
+    plt.rc("axes", titlesize=MEDIUM_SIZE)  # Axes title size
     plt.rc("axes", labelsize=MEDIUM_SIZE)  # X and Y labels size
     plt.rc("xtick", labelsize=SMALL_SIZE)  # X tick labels size
     plt.rc("ytick", labelsize=SMALL_SIZE)  # Y tick labels size
     plt.rc("legend", fontsize=MEDIUM_SIZE)  # Legend fontsize
-    plt.rc("figure", titlesize=BIGGER_SIZE)  # Figure title size
 
     # Set axis spines visibility
     plt.rc(
         "axes.spines",
         **{
-            "left": True,
+            "left": False,
             "right": False,
-            "bottom": True,
+            "bottom": False,
             "top": False,
         },
     )
@@ -93,11 +99,11 @@ def set_custom_rcParams():
         ),
     )
 
-    plt.rcParams["axes.prop_cycle"] = plt.cycler(color=_default_colors)
+    plt.rcParams["axes.prop_cycle"] = cycler(color=_default_colors)
     return _default_colors
 
 
-def get_current_colors():
+def get_current_colors() -> list:
     """
     Get the current color cycle of the matplotlib rcParams.
 
@@ -112,7 +118,7 @@ def get_current_colors():
     return plt.rcParams["axes.prop_cycle"].by_key()["color"]
 
 
-def plot_colors(colors):
+def plot_colors(colors) -> Tuple[mpl_figure.Figure, mpl_axes.Axes]:
     """
     Plot a scatter plot of colors.
 
@@ -315,15 +321,15 @@ def handler_map_alpha():
     """
     return {
         PathCollection: HandlerPathCollection(update_func=__set_handler_alpha_to_1__),
-        plt.Line2D: HandlerLine2D(update_func=__set_handler_alpha_to_1__),
+        Line2D: HandlerLine2D(update_func=__set_handler_alpha_to_1__),
         Polygon: HandlerPolyCollection(update_func=__set_handler_alpha_to_1__),
     }
 
 
-def ncols_nrows_from_N(N):
+def ncols_nrows_from_N(N: int) -> Dict[str, int]:
     """
-    Calculate the number of columns and rows for a grid based on the total
-    number of elements.
+    Calculate the number of columns and rows for a grid based on the total number of
+    elements.
 
     Given the total number of elements `N`, this function calculates the optimal number of
     columns and rows for a grid layout that can accommodate all the elements.
@@ -398,7 +404,7 @@ def symmetrize_axis(axes: Axes, axis: Union[int, str]) -> None:
         axes.set_ylim(ymin=-maxi, ymax=maxi)
 
 
-def gen_color(cmap, n, reverse=False):
+def colorlist_from_cmap(cmap, n, reverse=False) -> list:
     """
     From https://github.com/binodbhttr/mycolorpy.
 
@@ -431,7 +437,7 @@ def gen_color(cmap, n, reverse=False):
     return colorlist
 
 
-def gen_color_normalized(cmap, data_arr, reverse=False, vmin=0, vmax=0):
+def colorlist_from_cmap_normalized(cmap, data_arr, reverse=False, vmin=0, vmax=0) -> list:
     """
     From https://github.com/binodbhttr/mycolorpy.
 
@@ -510,23 +516,23 @@ def gen_color_normalized(cmap, data_arr, reverse=False, vmin=0, vmax=0):
 
 def symlog_from_array(
     a: np.ndarray,
-    axes: mpl.axes.Axes = mpl.axes.Axes,
+    axes: mpl_axes.Axes,
     base: int = 10,
-    linthresh: int = None,
-    subs: int = None,
-    linscale: int = 0.2,
-    offset: int = -1,
-):
+    linthresh: Union[int, None] = None,
+    subs: Union[int, None] = None,
+    linscale: float = 0.2,
+    offset: float = -1,
+) -> mpl.scale.SymmetricalLogScale:
     """
-    Create a symlog scale for the given data array. The scale is based on the
-    minimum value of the data array. Round to next power of ten as the lowest
-    value in the logaritmic part of the scale. The base of the scale is 10.
+    Create a symlog scale for the given data array. The scale is based on the minimum
+    value of the data array. Round to next power of ten as the lowest value in the
+    logaritmic part of the scale. The base of the scale is 10.
 
     Parameters
     ----------
     a : np.ndarray
         The data array for which the scale is created.
-    axes : mpl.Axes
+    axes : mpl.axes.Axes
         The axes for which the scale is created. Default is mpl.Axes.
     base : int, optional
         The base of the scale. Default is 10.
@@ -535,9 +541,9 @@ def symlog_from_array(
         If None, the threshold is set to the next power of ten of the minimum value of the data array.
     subs : int, optional
         The number of subdivisions of the scale. Default is None.
-    linscale : int, optional
+    linscale : float, optional
         The scale of the linear part of the scale. Default is 0.2.
-    offset : int, optional
+    offset : float, optional
         The offset of the scale. Default is -1.
 
     Returns
@@ -573,7 +579,7 @@ def symlog_from_array(
 
 
 def plot_thermodynamics(
-    fig: mpl.figure.Figure,
+    fig: mpl_figure.Figure,
     axs: np.ndarray,
     drop_sondes: Union[xr.Dataset, None] = None,
     fit_dict: Union[dict, None] = None,
@@ -582,7 +588,7 @@ def plot_thermodynamics(
     dark_colors: list = None,
     plot_kwargs: dict = dict(alpha=0.75, linewidth=0.7),
     plot_fit_kwargs: dict = dict(alpha=0.75, linewidth=1.5),
-):
+) -> Tuple[mpl_figure.Figure, np.ndarray]:
     """
     Plot the thermodynamic profiles of the dropsondes. This will plot the
     following variables:
@@ -763,3 +769,179 @@ def set_logtyticks_psd(ax):
     yticks = [1e0, 1e6]
     yticklabels = [r"$10^0$", r"$10^6$"]
     ax.set_yticks(yticks, yticklabels)
+
+
+def label_from_attrs(
+    da: xr.DataArray,
+    return_name: bool = True,
+    return_units: bool = True,
+    linebreak: bool = False,
+    name_width: Union[int, None] = None,
+    units_appendix: Union[str, None] = None,
+) -> str:
+    """
+    This function creates a label from the attributes of a DataArray. It assumes the
+    attributes 'long_name' and 'units' are present. If 'long_name' are not present, it
+    uses the name of the DataArray. If 'units' are not present, it uses '[???]'.
+
+    Parameters:
+    -----------
+    da : xr.DataArray
+        The DataArray for which to create the label.
+    return_name : bool, optional
+        Whether to return the name. Default is True.
+    return_units : bool, optional
+        Whether to return the units. Default is True.
+    linebreak : bool, optional
+        Whether to insert a linebreak between the name and units. Default is False.
+    name_width : int, optional
+        The maximum width of the name. Default is None.
+        This can be set to a specific value to wrap the name to a specific width.
+        The units will still be on the same line as the last part of the name.
+        To give it a linebreak, set `linebreak` to True.
+    units_appendix : str, optional
+        An additional string to append to the units. Default is None.
+
+    Returns:
+    --------
+    str : The label created from the attributes of the DataArray of the form 'name $[units]$'.
+    """
+    try:
+        name = f"{da.attrs['long_name']}"
+    except KeyError:
+        name = f"{da.name}"
+
+    if "units" in da.attrs:
+        units = f"{da.attrs['units']}"
+        if "$" not in units:
+            units = f"${units}$"
+
+        units = units.replace("$", " ")
+    else:
+        units = "???"
+
+    if units_appendix != None:
+        units = f"{units} {units_appendix}"
+
+    # create latex string
+    units = rf"$\left[ {units} \right]$"
+
+    if return_name == True:
+        if name_width == None:
+            name = name
+        else:
+            name = textwrap.fill(name, name_width)
+
+    if return_name == True and return_units == True:
+        if linebreak == True:
+            return f"{name}\n{units}"
+        else:
+            return f"{name} {units}"
+
+    elif return_name == True and return_units == False:
+        return f"{name}"
+    elif return_name == False and return_units == True:
+        return f"{units}"
+    else:
+        return ""
+
+
+def add_subplotlabel(
+    axs: np.ndarray,
+    location: str = "upper left",
+    labels=string.ascii_lowercase,
+    prefix: str = "(",
+    suffix: str = ")",
+    count_offset: int = 0,
+    **kwargs,
+) -> None:
+    """
+    Add subplot labels to a grid of subplots.
+
+    Parameters
+    ----------
+    axs : np.ndarray
+        The matplotlib Axes objects to add labels to.
+    location : str, optional
+        The location of the labels. Default is "upper left".
+        The available locations for height are:
+        - "upper"
+        - "lower"
+        - "middle"
+        The available locations for width are:
+        - "left"
+        - "right"
+        - "center"
+        Also the location can be set to "title" to the left of the title. Problems with long titles.
+    labels : list, optional
+        The labels to add to the subplots.
+        Default is the lowercase alphabet.
+    prefix : str, optional
+        The prefix to add to the labels. Default is '('.
+    suffix : str, optional
+        The suffix to add to the labels. Default is ')'.
+    count_offset : int, optional
+        The offset to add to the count. Default is 0.
+        With this, the count can be started at a different number.
+        For instance 'count = 2' will start the count at '(c)'.
+
+    **kwargs : dict, optional
+        Additional keyword arguments for the text function.
+
+    Returns
+    --------
+    None
+
+    Examples:
+    ---------
+        >>> fig, axs = plt.subplots(2, 2)
+        >>> add_subplotlabel(axs, location="upper left")
+    """
+
+    xlocation = None
+    xoffset = None
+    ylocation = None
+    yoffset = None
+    at_title = False
+
+    if "left" in location:
+        xlocation = 0.05
+        xoffset = 0.5
+    elif "right" in location:
+        xlocation = 0.95
+        xoffset = -0.5
+    elif "center" in location:
+        xlocation = 0.5
+        xoffset = 0.0
+    if "upper" in location:
+        ylocation = 0.95
+        yoffset = -0.5
+    elif "lower" in location:
+        ylocation = 0.05
+        yoffset = 0.5
+    elif "middle" in location:
+        ylocation = 0.5
+        yoffset = 0.0
+
+    if xlocation == None or ylocation == None:
+        if "title" in location:
+            at_title = True
+        else:
+            raise ValueError(f"Invalid location: {location}")
+
+    for i, ax in enumerate(axs.flatten()):
+        i += count_offset
+        label = f"{prefix}{labels[i]}{suffix}"
+
+        if at_title == True:
+            label = f"  {label}"
+            ax.set_title(label, loc="left", **kwargs)
+        else:
+            ax.annotate(
+                label,
+                xy=(xlocation, ylocation),
+                xycoords="axes fraction",
+                xytext=(xoffset, yoffset),
+                textcoords="offset fontsize",
+                **kwargs,
+            )

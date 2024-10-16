@@ -31,11 +31,11 @@ echo "============================================"
 # microphysics="null_microphysics"
 # microphysics="condensation"
 # microphysics="collision_condensation"
-# microphysics="coalbure_condensation_small"
-microphysics="coalbure_condensation_large"
+microphysics="coalbure_condensation_small"
+# microphysics="coalbure_condensation_large"
 
 
-create=false
+create=true
 concatenate=true
 
 path2sdm_eurec4a=${HOME}/repositories/sdm-eurec4a

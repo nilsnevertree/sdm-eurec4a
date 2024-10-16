@@ -531,7 +531,7 @@ ax.plot(
     linewidth=0.7,
     marker=".",
     color="b",
-    label="median"
+    label="median",
     # label = f'individual measurements {q*100:.0f}th percentile based on LWC'
 )
 
@@ -542,7 +542,7 @@ ax.plot(
     linewidth=0.7,
     marker=".",
     color="r",
-    label="mean"
+    label="mean",
     # label = f'individual measurements {q*100:.0f}th percentile based on LWC'
 )
 
