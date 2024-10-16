@@ -16,5 +16,9 @@ jobs:
 
     - name: Pre-commit run
       uses: pre-commit/action@v3.0.1
+    - uses: pre-commit-ci/lite-action@v1.1.0
+      if: always()
+      with:
+        msg: apply code formatting
       # with:
       #   extra_args: run --all-files

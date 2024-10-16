@@ -40,14 +40,13 @@ repos:
             --max-size=1k
           ]
 
-    # Docformatter to format docstrings
-  - repo: https://github.com/PyCQA/docformatter
-    rev: v1.7.5
-    hooks:
-      - id: docformatter
-        additional_dependencies: [tomli]
-        args: [--config=./pyproject.toml]
-
+  #   # Docformatter to format docstrings
+  # - repo: https://github.com/PyCQA/docformatter
+  #   rev: v1.7.5
+  #   hooks:
+  #     - id: docformatter
+  #       additional_dependencies: [tomli]
+  #       args: [--config=./pyproject.toml]
 
   - repo: https://github.com/asottile/seed-isort-config
     rev: v2.2.0
