@@ -648,15 +648,15 @@ def add_liquid_water_content(ds: xr.Dataset) -> None:
 
 
 def add_vertical_profiles(ds: xr.Dataset, time_slice=slice(1500, None)):
-    ds["vertical_liquid_water_content"] = (
-        ds["liquid_water_content"].sel(time=time_slice).sum("radius_bins").mean("time")
-    )
+    # ds["vertical_liquid_water_content"] = (
+    #     ds["liquid_water_content"].sel(time=time_slice).sum("radius_bins").mean("time")
+    # )
 
-    ds["vertical_liquid_water_content"].attrs.update(
-        long_name="Vertical Liquid Water Content",
-        description=f"Vertical Profile of LWC. Sum over all radius bins and mean over time of the stationary state ({time_slice.start}-{time_slice.stop}).",
-        units=ds["liquid_water_content"].attrs["units"],
-    )
+    # ds["vertical_liquid_water_content"].attrs.update(
+    #     long_name="Vertical Liquid Water Content",
+    #     description=f"Vertical Profile of LWC. Sum over all radius bins and mean over time of the stationary state ({time_slice.start}-{time_slice.stop}).",
+    #     units=ds["liquid_water_content"].attrs["units"],
+    # )
 
     ds["mass_difference_per_volume"] = ds["mass_difference"] / ds["gridbox_volume"]
     ds["mass_difference_per_volume"].attrs.update(
@@ -665,14 +665,14 @@ def add_vertical_profiles(ds: xr.Dataset, time_slice=slice(1500, None)):
         units=r"$kg m^{-3} s^{-1}$",
     )
 
-    ds["vertical_mass_difference_per_volume"] = (
-        ds["mass_difference_per_volume"].sel(time=time_slice).sum("radius_bins").mean("time")
-    )
-    ds["vertical_mass_difference_per_volume"].attrs.update(
-        long_name="Vertical mass difference per voluem",
-        description=f"Vertical Profile of mass difference per voluem. Sum over all radius bins and mean over time of the stationary state ({time_slice.start}-{time_slice.stop}).",
-        units=r"$kg m^{-3} s^{-1}$",
-    )
+    # ds["vertical_mass_difference_per_volume"] = (
+    #     ds["mass_difference_per_volume"].sel(time=time_slice).sum("radius_bins").mean("time")
+    # )
+    # ds["vertical_mass_difference_per_volume"].attrs.update(
+    #     long_name="Vertical mass difference per voluem",
+    #     description=f"Vertical Profile of mass difference per voluem. Sum over all radius bins and mean over time of the stationary state ({time_slice.start}-{time_slice.stop}).",
+    #     units=r"$kg m^{-3} s^{-1}$",
+    # )
 
 
 def add_precipitation(ds):
