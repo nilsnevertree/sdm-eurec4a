@@ -1,6 +1,6 @@
 """
-This script shall help to analyse the relation bewteen the different
-measurements. It is used to create a dataset which contains the.
+This script shall help to analyse the relation bewteen the different measurements. It is
+used to create a dataset which contains the.
 
 - spatial distance between the ART measurements and the dropsondes release locations. For this it uses the great_circle_distance_np function from src/sdm_eurec4a/calculations.py
 - temporal distance between the ART measurements and the dropsondes release times. For this it uses the difference between the ART measurements and the dropsondes release times.

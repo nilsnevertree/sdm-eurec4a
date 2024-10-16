@@ -23,8 +23,7 @@ import numpy as np
 
 
 class MonoAttrGen:
-    """Method to generate superdroplets with an attribute all equal to
-    attr0."""
+    """Method to generate superdroplets with an attribute all equal to attr0."""
 
     def __init__(self, attr0):
         self.attr0 = attr0
@@ -41,8 +40,8 @@ class MonoAttrGen:
 
 
 class SampleLog10RadiiGen:
-    """method to generate superdroplet radii by randomly sampling from bins
-    that are linearly spaced in log10(r) between rspan[0] and rspan[1]"""
+    """Method to generate superdroplet radii by randomly sampling from bins that are
+    linearly spaced in log10(r) between rspan[0] and rspan[1]"""
 
     def __init__(self, rspan):
         self.rspan = rspan
@@ -56,9 +55,8 @@ class SampleLog10RadiiGen:
         """
         Divide rspan [m] into evenly spaced bins in log10(r).
 
-        If edges=True, return values of radii at edges of bins. Else
-        sample each bin randomly to obtain the radius of 'nsupers' no.
-        of superdroplets
+        If edges=True, return values of radii at edges of bins. Else sample each bin
+        randomly to obtain the radius of 'nsupers' no. of superdroplets
         """
 
         if nbins:
@@ -73,8 +71,8 @@ class SampleLog10RadiiGen:
             return np.array([])
 
     def randomlysample_log10rbins(self, nbins, log10redgs):
-        """given the bin edges, randomly sample each bin of log10(radius /m)
-        and return the resultant radii [m]"""
+        """Given the bin edges, randomly sample each bin of log10(radius /m) and return
+        the resultant radii [m]"""
 
         log10r_binwidth = (log10redgs[-1] - log10redgs[0]) / nbins
 

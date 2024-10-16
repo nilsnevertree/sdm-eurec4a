@@ -66,8 +66,7 @@ def add_flight_number(ds: xr.Dataset) -> xr.Dataset:
 
 def validate_datasets_same_attrs(datasets: list, skip_attrs: list = []) -> bool:
     """
-    Check if all datasets have the same attributes except for the ones in
-    skip_attrs.
+    Check if all datasets have the same attributes except for the ones in skip_attrs.
 
     Args:
         datasets (list): list of datasets

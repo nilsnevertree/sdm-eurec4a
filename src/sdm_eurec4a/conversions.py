@@ -84,9 +84,9 @@ def msd_from_psd(
     radius_given: bool = True,
 ) -> xr.DataArray:
     """
-    Calculate the mass size distribution from the particle size distribution.
-    A constant density of water droplets is assumed to be rho_water = 1000 kg/m^3.
-    Spherical droplets are assumed.
+    Calculate the mass size distribution from the particle size distribution. A constant
+    density of water droplets is assumed to be rho_water = 1000 kg/m^3. Spherical
+    droplets are assumed.
 
     MSD = rho_water * PSD * 4/3 * pi * r^3
         = rho_water * VSD
@@ -164,9 +164,9 @@ def lwc_from_psd(
     radius_given: bool = True,
 ) -> xr.DataArray:
     """
-    Calculate the liquid water content from the particle size distribution.
-    A constant density of water droplets is assumed to be rho_water = 1000 kg/m^3.
-    Spherical droplets are assumed.
+    Calculate the liquid water content from the particle size distribution. A constant
+    density of water droplets is assumed to be rho_water = 1000 kg/m^3. Spherical
+    droplets are assumed.
 
     LWC = sum over all diameters of (rho_water * PSD * 4/3 * pi * r^3)
         = sum over all diameters of * MSD
@@ -241,8 +241,7 @@ def saturation_vapour_pressure(
     temperature: Union[np.ndarray, xr.DataArray]
 ) -> Union[np.ndarray, xr.DataArray]:
     """
-    Calculate the saturation vapour pressure over water for a given
-    temperature.
+    Calculate the saturation vapour pressure over water for a given temperature.
 
     Parameters
     ----------
@@ -268,9 +267,8 @@ def water_vapour_pressure(
     simplified: bool = False,
 ) -> Union[np.ndarray, xr.DataArray]:
     """
-    Calculate the water vapour pressure from the specific humidity and the
-    pressure. This follows (2.80) from Introduction to Clouds: From the
-    Microscale to Climate.
+    Calculate the water vapour pressure from the specific humidity and the pressure.
+    This follows (2.80) from Introduction to Clouds: From the Microscale to Climate.
 
     Simplified version uses:
     q_v = (epsilon * e) /  p
@@ -315,8 +313,8 @@ def relative_humidity(
     vapour_pressure: Union[np.ndarray, xr.DataArray],
 ) -> Union[np.ndarray, xr.DataArray]:
     """
-    Calculate the relative humidity from the saturation vapour pressure and the
-    vapour pressure.
+    Calculate the relative humidity from the saturation vapour pressure and the vapour
+    pressure.
 
     Parameters
     ----------
@@ -385,8 +383,7 @@ def potential_temperature_from_tp(
     R_over_cp: float = 0.286,
 ):
     """
-    Calculate the potential temperature from the air temperature and the
-    pressure.
+    Calculate the potential temperature from the air temperature and the pressure.
 
     Parameters
     ----------

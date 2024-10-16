@@ -142,8 +142,8 @@ def xarray_coverage_prob(
     dim: str = "time",
 ) -> xr.DataArray:
     """
-    Calculate the coverage probability of a prediction interval. Note that x
-    and y should contain the same dimensions and should be of same shape.
+    Calculate the coverage probability of a prediction interval. Note that x and y
+    should contain the same dimensions and should be of same shape.
 
     Parameters:
     -----------
@@ -231,8 +231,8 @@ def gaussian_kernel_1D(
     same_output_shape: bool = False,
 ) -> np.ndarray:
     """
-    Creates a Gaussian weights for a N dimensional array x centered at index
-    center_idx along specified axis.
+    Creates a Gaussian weights for a N dimensional array x centered at index center_idx
+    along specified axis.
 
     Parameters
     ----------
@@ -399,8 +399,8 @@ def autocorr(ds: xr.DataArray, lag: int = 0, dim: str = "time"):
 
 def crosscorr(ds1: xr.DataArray, ds2: xr.DataArray, lag: int = 0, dim: str = "time"):
     """
-    Compute the lag-N cross-correlation using Pearson correlation coefficient of ds1 on ds2.
-    ds2 will be shihfted by ``lag`` timesteps.
+    Compute the lag-N cross-correlation using Pearson correlation coefficient of ds1 on
+    ds2. ds2 will be shihfted by ``lag`` timesteps.
 
     Parameters:
         ds1 (xr.DataArray): First array for the cross-correlation.

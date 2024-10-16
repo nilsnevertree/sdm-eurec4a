@@ -30,8 +30,7 @@ from scipy.optimize import curve_fit
 
 
 class CombinedRadiiProbDistribs:
-    """Probability of radius from the sum of several probability
-    distributions."""
+    """Probability of radius from the sum of several probability distributions."""
 
     def __init__(self, probdistribs, scalefacs):
         self.probdistribs = probdistribs
@@ -42,8 +41,8 @@ class CombinedRadiiProbDistribs:
             raise ValueError(errmsg)
 
     def __call__(self, radii):
-        """Returns distribution for radii given by the sum of the distributions
-        in probdistribs list."""
+        """Returns distribution for radii given by the sum of the distributions in
+        probdistribs list."""
 
         probs = np.zeros(radii.shape)
         for distrib, sf in zip(self.probdistribs, self.scalefacs):
@@ -53,22 +52,20 @@ class CombinedRadiiProbDistribs:
 
 
 class DiracDelta:
-    """Probability of radius nonzero if it is closest value in sample of radii
-    to r0."""
+    """Probability of radius nonzero if it is closest value in sample of radii to r0."""
 
     def __init__(self, r0):
         self.r0 = r0
 
     def __call__(self, radii):
         """
-        Returns probability of radius in radii sample for discrete version of
-        dirac delta function centred on value of r in radii closest to r0.
+        Returns probability of radius in radii sample for discrete version of dirac
+        delta function centred on value of r in radii closest to r0.
 
-        For each radius in radii,
-        probability of that radius = 0 if it's not the closest value
-        in radii to r0. If it is the closest, the probability is maximal
-        (ie. prob = 1 and is then re-normalised such that sum of the
-        probalilities over the sample = 1)
+        For each radius in radii, probability of that radius = 0 if it's not the closest
+        value in radii to r0. If it is the closest, the probability is maximal (ie. prob
+        = 1 and is then re-normalised such that sum of the probalilities over the sample
+        = 1)
         """
 
         if radii.any():
@@ -83,8 +80,8 @@ class DiracDelta:
 
 class VolExponential:
     """
-    probability of radius given by exponential in volume distribution as
-    defined by Shima et al.
+    Probability of radius given by exponential in volume distribution as defined by
+    Shima et al.
 
     (2009)
     """
@@ -95,9 +92,9 @@ class VolExponential:
 
     def __call__(self, radii):
         """
-        Returns probability of eaach radius in radii according to distribution
-        where probability of volume is exponential and bins for radii are
-        evently spaced in ln(r).
+        Returns probability of eaach radius in radii according to distribution where
+        probability of volume is exponential and bins for radii are evently spaced in
+        ln(r).
 
         typical parameter values:
         radius0 = 30.531e-6 # [m]
@@ -138,8 +135,8 @@ class LnNormal:
             self.scalefacs = scalefacs
 
     def __call__(self, radii):
-        """Returns probability of each radius in radii derived from
-        superposition of Logarithmic (in e) Normal Distributions."""
+        """Returns probability of each radius in radii derived from superposition of
+        Logarithmic (in e) Normal Distributions."""
 
         probs = np.zeros(radii.shape)
         for n in range(self.nmodes):
@@ -151,9 +148,9 @@ class LnNormal:
         self, radii: ArrayLike, scalefac: float, geomean: float, geosig: float
     ) -> ArrayLike:
         """
-        Calculate probability of radii given the paramters of a lognormal
-        distribution according to equation 5.8 of "An Introduction to clouds
-        from the Microscale to Climate" by Lohmann, Luond and Mahrt.
+        Calculate probability of radii given the paramters of a lognormal distribution
+        according to equation 5.8 of "An Introduction to clouds from the Microscale to
+        Climate" by Lohmann, Luond and Mahrt.
 
         Note
         ----
@@ -248,8 +245,8 @@ class LnNormal:
 
 class ClouddropsHansenGamma:
     """
-    probability of radius according to gamma distribution for shallow cumuli
-    cloud droplets from Poertge et al.
+    Probability of radius according to gamma distribution for shallow cumuli cloud
+    droplets from Poertge et al.
 
     2023
     """
@@ -260,8 +257,8 @@ class ClouddropsHansenGamma:
 
     def __call__(self, radii):
         """
-        return gamma distribution for cloud droplets given radius [m] using
-        parameters from Poertge et al.
+        Return gamma distribution for cloud droplets given radius [m] using parameters
+        from Poertge et al.
 
         2023 for shallow cumuli (figure 12).
         typical values:
@@ -283,8 +280,8 @@ class ClouddropsHansenGamma:
 
 class RaindropsGeoffroyGamma:
     """
-    probability of radius given gamma distribution for shallow cumuli rain
-    droplets from Geoffroy et al.
+    Probability of radius given gamma distribution for shallow cumuli rain droplets from
+    Geoffroy et al.
 
     2014
     """
@@ -296,8 +293,8 @@ class RaindropsGeoffroyGamma:
 
     def __call__(self, radii):
         """
-        returns probability of each radius according to a gamma distribution
-        for rain droplets using parameters from Geoffroy et al.
+        Returns probability of each radius according to a gamma distribution for rain
+        droplets using parameters from Geoffroy et al.
 
         2014 for precipitating shallow
         cumuli RICO (see figure 3 and equations 2,3 and 5).
