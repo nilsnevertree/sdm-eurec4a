@@ -8,8 +8,8 @@ def consecutive_events_xr(
     axis: str = "time",
 ) -> xr.DataArray:
     """
-    This function calculates the mask of consecutive events with a duration of
-    at least ´´min_duration´´(default 1) It runs full on xarray and numpy.
+    This function calculates the mask of consecutive events with a duration of at least
+    ´´min_duration´´(default 1) It runs full on xarray and numpy.
 
     Parameters
     ----------
@@ -113,8 +113,8 @@ def consecutive_events_np(
     axis: int = 0,
 ) -> np.ndarray:
     """
-    This function calculates the mask of consecutive events with a duration of
-    at least ´´min_duration´´(default 1) It runs full on numpy.
+    This function calculates the mask of consecutive events with a duration of at least
+    ´´min_duration´´(default 1) It runs full on numpy.
 
     Note
     ----
@@ -224,8 +224,9 @@ def select_individual_cloud_by_id(
     chosen_id: int,
 ):
     """
-    Select an individual cloud from the individual cloud dataset based on its ``cloud_id``
-    The data for the individual cloud is extracted from the clouds dataset ``ds_clouds``.
+    Select an individual cloud from the individual cloud dataset based on its
+    ``cloud_id`` The data for the individual cloud is extracted from the clouds dataset
+    ``ds_clouds``.
 
     Parameters
     ----------
@@ -256,9 +257,9 @@ def __select_allowed_dropsonde_by_time__(
     name_dx: str,
 ) -> xr.DataArray:
     """
-    Returns the allowed times of the dropsondes for a given cloud time. The
-    allowed times are the times of the dropsondes that are within the maximum
-    temporal and spatial distance of the cloud.
+    Returns the allowed times of the dropsondes for a given cloud time. The allowed
+    times are the times of the dropsondes that are within the maximum temporal and
+    spatial distance of the cloud.
 
     Parameters
     ----------
@@ -329,10 +330,10 @@ def match_clouds_and_dropsondes(
     dask_compute: bool = True,
 ):
     """
-    Returns the Subdataset of dropsondes based on their spatial and temporal
-    distances to the individual cloud. The data for the individual clouds can
-    be extracted from the individual clouds dataset. The dropsonde dataset is
-    the Level 3 dropsonde dataset.
+    Returns the Subdataset of dropsondes based on their spatial and temporal distances
+    to the individual cloud. The data for the individual clouds can be extracted from
+    the individual clouds dataset. The dropsonde dataset is the Level 3 dropsonde
+    dataset.
 
     Note
     ----
@@ -532,7 +533,7 @@ def match_clouds_and_dropsondes(
 
 
 def match_clouds_and_cloudcomposite(
-    ds_clouds: xr.DataArray,
+    ds_clouds: xr.Dataset,
     ds_cloudcomposite: xr.Dataset,
     dim: str = "time",
     var_name_start: str = "start",
@@ -540,9 +541,9 @@ def match_clouds_and_cloudcomposite(
     dask_compute: bool = True,
 ):
     """
-    Returns the subdataset of the cloud composite dataset which is part of
-    multiple individual cloud. The selection is performed purely based on the
-    start and end time of the individual cloud.
+    Returns the subdataset of the cloud composite dataset which is part of multiple
+    individual cloud. The selection is performed purely based on the start and end time
+    of the individual cloud.
 
     Parameters
     ----------

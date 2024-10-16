@@ -1,4 +1,4 @@
-from typing import Union
+from typing import Tuple, Union
 
 import numpy as np
 import pandas as pd
@@ -10,11 +10,11 @@ from shapely.geometry import Point, Polygon
 
 def polygon2mask(lon, lat, pg, lat_name="lat", lon_name="lon"):
     """
-    This funciton creates a mask for a given DataArray or DataSet based on a
-    shapely Polygon or MultiPolygon. Polygon points are expected be (lon, lat)
-    tuples. To fit the polygon to the dobj coords, "polygon_split_arbitrary"
-    function is used. The dobj is expected to have lon values in [0E, 360E)
-    coords and lat values in [90S, 90N] coords.
+    This funciton creates a mask for a given DataArray or DataSet based on a shapely
+    Polygon or MultiPolygon. Polygon points are expected be (lon, lat) tuples. To fit
+    the polygon to the dobj coords, "polygon_split_arbitrary" function is used. The dobj
+    is expected to have lon values in [0E, 360E) coords and lat values in [90S, 90N]
+    coords.
 
     Parameters
     ----------
@@ -71,10 +71,9 @@ def rectangle_spatial_mask(
     include_boundary: bool = True,
 ) -> xr.DataArray:
     """
-    Select a region from a xarray dataset based on a given area. The area can
-    be defined as a dictionary with keys ['lon_min', 'lon_max', 'lat_min',
-    'lat_max'] or as a list of four values [lon_min, lon_max, lat_min,
-    lat_max].
+    Select a region from a xarray dataset based on a given area. The area can be defined
+    as a dictionary with keys ['lon_min', 'lon_max', 'lat_min', 'lat_max'] or as a list
+    of four values [lon_min, lon_max, lat_min, lat_max].
 
     The ``lon_name`` and ``lat_name`` parameters can be used to specify the names of the coords or variables where the
     longitude and latitude values are stored. By default, the function assumes that the longitude and latitude values
@@ -177,8 +176,8 @@ def latlon_dict_to_polygon(area):
 
 def x_y_flatten(da: xr.DataArray, axis: str):
     """
-    Flatten a 2D data array along the specified axis. The data array is
-    flattened in Fortran order after the DataArray is transposed properly.
+    Flatten a 2D data array along the specified axis. The data array is flattened in
+    Fortran order after the DataArray is transposed properly.
 
     Note
     ----
@@ -252,8 +251,9 @@ def x_y_flatten(da: xr.DataArray, axis: str):
 
 def shape_dim_as_dataarray(da, output_dim: str):
     """
-    Reshapes the dimension ``output_dim`` to the same shape as the given DataArray ``da``.
-    Therefore the dimension ``output_dim`` is expanded to the same shape as the DataArray ``da``.
+    Reshapes the dimension ``output_dim`` to the same shape as the given DataArray
+    ``da``. Therefore the dimension ``output_dim`` is expanded to the same shape as the
+    DataArray ``da``.
 
     Parameters
     ----------
@@ -321,8 +321,7 @@ def shape_dim_as_dataarray(da, output_dim: str):
 
 def validate_datasets_same_attrs(datasets: list, skip_attrs: list = []) -> bool:
     """
-    Check if all datasets have the same attributes except for the ones in
-    skip_attrs.
+    Check if all datasets have the same attributes except for the ones in skip_attrs.
 
     Args:
         datasets (list): list of datasets
@@ -338,3 +337,81 @@ def validate_datasets_same_attrs(datasets: list, skip_attrs: list = []) -> bool:
     attrs = attrs.drop(columns=skip_attrs)
     nunique_attrs = attrs.nunique()
     return np.all(nunique_attrs == 1)
+
+
+def mean_and_stderror_of_mean(
+    data: xr.DataArray,
+    dims: Tuple[str],
+    min_sample_size: int = 1,
+    data_std: Union[xr.DataArray, None] = None,
+) -> Tuple[xr.DataArray, xr.DataArray]:
+    """
+    Calculate the standard error of the mean as given by the Central Limit Theorem.
+    The formular for the std error of the mean is given by:
+    .. math::
+        SEM = \frac{std(data)}{\sqrt{N}}
+    where :math:`N` is the number of samples in the data.
+
+    For mulitple dimension, error propagation is used to calculate the standard error of the mean.
+    The error propagation is given by:
+    .. math::
+        SEM = \sqrt{\frac{std(data)^2}{N} + \sum_{i=1}^{n} \frac{std(data_i)^2}{N^2}}
+
+    The initial standard error of the data can be provided using ``data_std``.
+
+    Parameters
+    ----------
+    data : xr.DataArray
+        The input data array.
+        Dimensions of the ``data`` array must contain at least the dimensions in the ``dims`` list.
+    dims : list[str]
+        List of dimensions along which the mean is calculated.
+    min_sample_size : int, optional
+        Minimum number of samples required to calculate the mean. Default is 1.
+    data_std : xr.DataArray, optional
+        Standard error of the data.
+        Needs to be of the same shape as the ``data`` array.
+        Default is None for no standard error of the data.
+
+    Returns
+    -------
+    xr.DataArray
+        Mean of the data array along the specified dimensions.
+    xr.DataArray
+        Standard error of the mean of the data array.
+        As propagated error of the mean.
+
+
+    Reference
+    ---------
+    https://en.wikipedia.org/wiki/Standard_error
+    https://en.wikipedia.org/wiki/Central_limit_theorem
+    """
+
+    if not isinstance(dims, (list, tuple)):
+        raise TypeError("dims must be a list of strings")
+
+    dim = dims[0]
+    m = data.mean(dim=dim)
+    sample_size = (~data.isnull()).sum(dim)
+    sample_size = sample_size.where(sample_size >= min_sample_size, other=1)
+    if data_std is None:
+        s = data.std(dim=dim) / np.sqrt(sample_size)
+    else:
+        s: xr.DataArray = np.sqrt(
+            data.std(dim=dim) ** 2 / sample_size + (data_std**2).sum(dim=dim) / sample_size**2
+        )
+
+    if len(dims) > 1:
+        for dim in dims[1:]:
+            mm = m.mean(dim)
+            sample_size = (~m.isnull()).sum(dim)
+            sample_size = sample_size.where(sample_size >= min_sample_size, other=1)
+            ss: xr.DataArray = np.sqrt(
+                m.std(dim=dim) ** 2 / sample_size + (s**2).sum(dim=dim) / sample_size**2
+            )
+            m = mm
+            s = ss
+    else:
+        pass
+    return m, s

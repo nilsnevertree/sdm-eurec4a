@@ -1,5 +1,7 @@
 import warnings
 
+from typing import Union
+
 import numpy as np
 import xarray as xr
 
@@ -82,9 +84,9 @@ def msd_from_psd(
     radius_given: bool = True,
 ) -> xr.DataArray:
     """
-    Calculate the mass size distribution from the particle size distribution.
-    A constant density of water droplets is assumed to be rho_water = 1000 kg/m^3.
-    Spherical droplets are assumed.
+    Calculate the mass size distribution from the particle size distribution. A constant
+    density of water droplets is assumed to be rho_water = 1000 kg/m^3. Spherical
+    droplets are assumed.
 
     MSD = rho_water * PSD * 4/3 * pi * r^3
         = rho_water * VSD
@@ -162,9 +164,9 @@ def lwc_from_psd(
     radius_given: bool = True,
 ) -> xr.DataArray:
     """
-    Calculate the liquid water content from the particle size distribution.
-    A constant density of water droplets is assumed to be rho_water = 1000 kg/m^3.
-    Spherical droplets are assumed.
+    Calculate the liquid water content from the particle size distribution. A constant
+    density of water droplets is assumed to be rho_water = 1000 kg/m^3. Spherical
+    droplets are assumed.
 
     LWC = sum over all diameters of (rho_water * PSD * 4/3 * pi * r^3)
         = sum over all diameters of * MSD
@@ -233,3 +235,173 @@ def lwc_from_psd(
     lwc.name = "liquid_water_content"
     # warnings.warn("units is set to kg/m^3. Make sure to check the units and otherwise set the value!")
     return lwc
+
+
+def saturation_vapour_pressure(
+    temperature: Union[np.ndarray, xr.DataArray]
+) -> Union[np.ndarray, xr.DataArray]:
+    """
+    Calculate the saturation vapour pressure over water for a given temperature.
+
+    Parameters
+    ----------
+    temperature : np.ndarray
+        The temperature in Kelvin.
+
+    Returns
+    -------
+    np.ndarray
+        The saturation vapour pressure in Pa.
+    """
+    T = temperature
+    A_w = 2.543e11  # Pa
+    B_w = 5420  # K
+    es = A_w * np.exp(-B_w / T)
+    es = __rename_if_dataarray__(es, "saturation_vapour_pressure")
+    return es
+
+
+def water_vapour_pressure(
+    specific_humidity: Union[np.ndarray, xr.DataArray],
+    pressure: Union[np.ndarray, xr.DataArray],
+    simplified: bool = False,
+) -> Union[np.ndarray, xr.DataArray]:
+    """
+    Calculate the water vapour pressure from the specific humidity and the pressure.
+    This follows (2.80) from Introduction to Clouds: From the Microscale to Climate.
+
+    Simplified version uses:
+    q_v = (epsilon * e) /  p
+    e = q_v * p / epsilon
+
+    Non simplified version uses:
+    q_v = (epsilon * e) / (p - e + epsilon * e)
+    e = q_v * p / (epsilon + q_v - epsilon * q_v)
+
+
+    Citation
+    --------
+    (2.80) from Introduction to Clouds: From the Microscale to Climate
+    Ulrike Lohmann, Felix Lüönd, Fabian Mahrt, and Gregor Feingold
+    ISBN: 978-1-107-01822-8 978-1-139-08751-3
+
+
+    Parameters
+    ----------
+    specific_humidity : np.ndarray
+        The specific humidity in kg/kg.
+    pressure : np.ndarray
+        The pressure in Pa.
+
+    Returns
+    -------
+    np.ndarray
+        The vapour pressure in Pa.
+    """
+    q_v = specific_humidity
+    p = pressure
+    epsilon = 0.622
+    if simplified:
+        e = q_v * p / epsilon
+    else:
+        e = q_v * p / (epsilon + q_v - epsilon * q_v)
+    return e
+
+
+def relative_humidity(
+    saturation_vapour_pressure: Union[np.ndarray, xr.DataArray],
+    vapour_pressure: Union[np.ndarray, xr.DataArray],
+) -> Union[np.ndarray, xr.DataArray]:
+    """
+    Calculate the relative humidity from the saturation vapour pressure and the vapour
+    pressure.
+
+    Parameters
+    ----------
+    saturation_vapour_pressure : np.ndarray
+        The saturation vapour pressure in Pa.
+    vapour_pressure : np.ndarray
+        The vapour pressure in Pa.
+
+    Returns
+    -------
+    np.ndarray
+        The relative humidity in %.
+    """
+    rh = 100 * vapour_pressure / saturation_vapour_pressure
+    rh = __rename_if_dataarray__(rh, "relative_humidity")
+    return rh
+
+
+def relative_humidity_from_tps(
+    temperature: Union[np.ndarray, xr.DataArray],
+    pressure: Union[np.ndarray, xr.DataArray],
+    specific_humidity: Union[np.ndarray, xr.DataArray],
+    simplified: bool = False,
+) -> Union[np.ndarray, xr.DataArray]:
+    """
+    Calculate the relative humidity from the temperature, pressure and specific
+    humidity.
+
+    Parameters
+    ----------
+    temperature : np.ndarray
+        The temperature in Kelvin.
+    pressure : np.ndarray
+        The pressure in Pa.
+    specific_humidity : np.ndarray
+        The specific humidity in kg/kg.
+    simplified : bool, optional
+        If set to True, the simplified version is used.
+        Default is False.
+
+    Returns
+    -------
+    np.ndarray
+        The relative humidity in %.
+    """
+    es = saturation_vapour_pressure(temperature)
+    e = water_vapour_pressure(specific_humidity, pressure, simplified)
+    rh = relative_humidity(es, e)
+    rh = __rename_if_dataarray__(rh, "relative_humidity")
+    return rh
+
+
+def __rename_if_dataarray__(da: Union[np.ndarray, xr.DataArray], name: str):
+    if isinstance(da, xr.DataArray):
+        print("rename dataarray")
+        da.name = name
+    return da
+
+
+def potential_temperature_from_tp(
+    air_temperature: Union[np.ndarray, xr.DataArray],
+    pressure: Union[np.ndarray, xr.DataArray],
+    pressure_reference: Union[
+        float, np.ndarray, xr.DataArray
+    ] = 100000,  # default value used for drop sondes dataset
+    R_over_cp: float = 0.286,
+):
+    """
+    Calculate the potential temperature from the air temperature and the pressure.
+
+    Parameters
+    ----------
+    air_temperature : np.ndarray or xr.DataArray
+        The air temperature in Kelvin.
+    pressure : np.ndarray  or xr.DataArray
+        The pressure in Pa.
+    pressure_reference : float
+        The reference pressure in Pa.
+    R_over_cp : float, optional
+        The ratio of the gas constant of air to the specific heat capacity at
+        constant pressure. Default is 0.286.
+
+    Returns
+    -------
+    np.ndarray
+        The potential temperature in Kelvin.
+    """
+    theta = air_temperature * (pressure_reference / pressure) ** R_over_cp
+    theta = __rename_if_dataarray__(theta, "potential_temperature")
+    return theta

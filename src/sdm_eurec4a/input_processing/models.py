@@ -59,9 +59,9 @@ def lnnormaldist(
     radii: np.ndarray, scale_factors: float, geometric_means: float, geometric_sigmas: float
 ) -> np.ndarray:
     """
-    Calculate probability of radii given the paramters of a lognormal
-    distribution according to equation 5.8 of "An Introduction to clouds from
-    the Microscale to Climate" by Lohmann, Luond and Mahrt.
+    Calculate probability of radii given the paramters of a lognormal distribution
+    according to equation 5.8 of "An Introduction to clouds from the Microscale to
+    Climate" by Lohmann, Luond and Mahrt.
 
     Note
     ----

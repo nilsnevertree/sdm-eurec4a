@@ -1,4 +1,5 @@
 """Test cases for the __main__ module."""
+
 from __future__ import annotations
 
 import pytest

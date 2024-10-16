@@ -16,11 +16,10 @@ def great_circle_distance_np(
     earth_radius: float = 6371.0088,
 ) -> np.ndarray:
     """
-    This function calculates the great circle distance between two points on
-    the earth. Both latitude and longitude shall be given in decimal degrees.
-    It gives and estimate of the true distance between two points on the earth.
-    Thus, it is not exact, but it is fast. Better results can be achieved with
-    geopy.distance.distance.
+    This function calculates the great circle distance between two points on the earth.
+    Both latitude and longitude shall be given in decimal degrees. It gives and estimate
+    of the true distance between two points on the earth. Thus, it is not exact, but it
+    is fast. Better results can be achieved with geopy.distance.distance.
 
     Notes
     -----
@@ -138,8 +137,8 @@ def vertical_extent_func(
     alt_name: str = "alt",
 ) -> xr.DataArray:
     """
-    Calculate the vertical extent of a Dataset in the same unit as the altitude
-    is given. The output units are the same as the input units.
+    Calculate the vertical extent of a Dataset in the same unit as the altitude is
+    given. The output units are the same as the input units.
 
     Notes
     -----
