@@ -1,3 +1,4 @@
+# %%
 """
 Script to pre-process cloud composite data from Coutris, P. (2021).  SAFIRE
 ATR42: PMA/Cloud composite dataset.  [Dataset].  Aeris.
@@ -24,17 +25,23 @@ import pandas as pd
 import xarray as xr
 
 from sdm_eurec4a import get_git_revision_hash
-from sdm_eurec4a.conversions import lwc_from_psd, msd_from_psd, vsd_from_psd
+from sdm_eurec4a.conversions import msd_from_psd_dataarray  # , lwc_from_psd, msd_from_psd, vsd_from_psd
 from sdm_eurec4a.reductions import validate_datasets_same_attrs
 
+from sdm_eurec4a import RepositoryPath
 
-REPO_PATH = Path(__file__).resolve().parent.parent.parent
+# %%
+
+USER_CONSENT_NEEDED = False
+
+# REPO_PATH = Path(__file__).resolve().parent.parent.parent
+REPO_PATH = RepositoryPath("levante").repo_dir
 
 ORIGIN_DIRECTORY = REPO_PATH / Path("data/observation/cloud_composite/raw")
 DESTINATION_DIRECTORY = REPO_PATH / Path("data/observation/cloud_composite/processed")
 DESTINATION_DIRECTORY.mkdir(parents=True, exist_ok=True)
-DESTINATION_FILENAME = "cloud_composite_si_units.nc"
-
+DESTINATION_FILENAME = "cloud_composite_SI_units_20241025.nc"
+DESTINATION_FILEPATH = DESTINATION_DIRECTORY / DESTINATION_FILENAME
 
 logging.basicConfig(
     filename=DESTINATION_DIRECTORY / "cloud_composite_preprocessing.log",
@@ -47,6 +54,15 @@ logging.info("Git hash: %s", get_git_revision_hash())
 logging.info("Origin directory: %s", ORIGIN_DIRECTORY.relative_to(REPO_PATH))
 logging.info("Destination directory: %s", DESTINATION_DIRECTORY.relative_to(REPO_PATH))
 logging.info("Destination filename: %s", DESTINATION_FILENAME)
+
+if USER_CONSENT_NEEDED == True:
+    print(f"Save the produced datset to netcdf file?\n{DESTINATION_FILEPATH}")
+    user_input = input("Do you want to continue running the script? (y/n): ")
+    if user_input.lower() == "y":
+        print("Saving dataset\nPlease wait...")
+    else:
+        logging.error("User denied proceeding with saving the dataset")
+        raise KeyboardInterrupt
 
 
 def add_flight_number(ds: xr.Dataset) -> xr.Dataset:
@@ -78,33 +94,30 @@ files = sorted(ORIGIN_DIRECTORY.glob("*.nc"))
 if len(files) == 0:
     logging.error("No files found in %s", ORIGIN_DIRECTORY)
     raise FileNotFoundError("No files found in %s", ORIGIN_DIRECTORY)
-
-logging.info("Number of files: %s", len(files))
+else:
+    logging.info("Number of files to combine: %s", len(files))
 
 # --- Validate that all datasets have the same attributes except for fligth_id and creation_date ---
-
 datasets_list = []
 for file in files:
     datasets_list.append(xr.open_dataset(file))
-
-logging.info(
-    "Validate that all datasets have the same attributes except for fligth_id and creation_date"
-)
 try:
     validate_datasets_same_attrs(datasets_list, skip_attrs=["flight_id", "creation_date"])
+    logging.info("All datasets have the same attributes except for flight_id and creation_date")
 except AssertionError:
     logging.error("Not all datasets have the same attributes")
     raise AssertionError("Not all datasets have the same attributes")
 
 
-# --- Load data ---
+# --- Load datasets into chunks ---
+# Also make sure to add the flight number as a new variable
 try:
     datas = xr.open_mfdataset(
         paths=files,
         combine="by_coords",
-        parallel=False,
-        chunks={"time": 1000},
         preprocess=add_flight_number,
+        chunks="auto",
+        parallel=True,
     )
 except Exception as e:
     logging.exception("Error while opening files")
@@ -112,168 +125,183 @@ except Exception as e:
 
 # --- Reorganize dataset ---
 
-try:
-    logging.info("Rename variables")
-    # Use longer names for variable to make it more readable
-    # do not rename the dimension time and size
-    VARNAME_MAPPING = {
-        "lon": "lon",
-        "lat": "lat",
-        "alt": "alt",
-        "PSD": "particle_size_distribution",
-        "MSD": "mass_size_distribution",
-        "LWC": "liquid_water_content_original",
-        "NT": "total_concentration",
-        "MVD": "median_volume_diameter",
-        "M6": "radar_reflectivity_factor",
-        "diameter": "diameter",
-        "bw": "bin_width",
-        "compo_index": "composition_index",
-        "CDP_flag": "flag_CDP",
-        "2DS_flag": "flag_2DS",
-        "CLOUD_mask": "cloud_mask",
-        "DZ_mask": "drizzle_mask",
-        "RA_mask": "rain_mask",
-        "flight_number": "flight_number",
+logging.info("Rename variables")
+# Use longer names for variable to make it more readable
+# do not rename the dimension time and size
+VARNAME_MAPPING = {
+    "lon": "lon",
+    "lat": "lat",
+    "alt": "alt",
+    "PSD": "particle_size_distribution",
+    "MSD": "mass_size_distribution",
+    "LWC": "liquid_water_content",
+    "NT": "total_concentration",
+    "MVD": "median_volume_diameter",
+    "M6": "radar_reflectivity_factor",
+    "diameter": "diameter",
+    "bw": "bin_width",
+    "compo_index": "composition_index",
+    "CDP_flag": "CDP_flag",
+    "2DS_flag": "2DS_flag",
+    "CLOUD_mask": "cloud_mask",
+    "DZ_mask": "drizzle_mask",
+    "RA_mask": "rain_mask",
+    "flight_number": "flight_number",
+}
+datas = datas.rename(VARNAME_MAPPING)
+
+# Convert time to datetime object
+# Note, that the time is in seconds since 2020-01-01 00:00:00
+logging.info("Convert UTC time to datetime object")
+attrs = datas["time"].attrs
+datas["time"] = cftime.num2date(
+    datas["time"], units="seconds since 2020-01-01 00:00:00", calendar="standard"
+)
+# make sure to use the more simple datetime object
+datas["time"] = datas["time"].indexes["time"].to_datetimeindex()
+attrs.update(
+    unit="datetime nanoseconds",
+    calender="standard",
+    comment="UTC time. Use cftime.num2date to convert to datetime object from seconds since 2020-01-01 00:00:00.",
+)
+datas["time"].attrs.update(attrs)
+
+logging.info("Validate that diameter and bin_width do not vary along time axis")
+assert np.all(datas.diameter == datas.diameter.isel(time=0))
+assert np.all(datas.bin_width == datas.bin_width.isel(time=0))
+
+logging.info("Convert diameter and bin_width to meters")
+# Convert from µm to m -> 1e-6
+
+# Diameter
+datas["diameter"] = datas["diameter"].mean("time", keep_attrs=True)
+attrs = datas["diameter"].attrs
+datas["diameter"] = datas["diameter"] * 1e-6
+attrs.update(
+    unit="m",
+)
+datas["diameter"].attrs.update(attrs)
+
+# Bin width
+datas["bin_width"] = datas["bin_width"].mean("time", keep_attrs=True)
+attrs = datas["bin_width"].attrs
+datas["bin_width"] = datas["bin_width"] * 1e-6
+attrs.update(
+    unit="m",
+)
+datas["bin_width"].attrs.update(attrs)
+
+# Create radius variable and use it as leading dimension
+logging.info("Create radius variable and use it as leading dimension")
+datas["radius"] = datas["diameter"] / 2
+datas["radius"].attrs.update(long_name="Radius", unit="m", comment="radius of the droplets")
+
+logging.info("Use radius as leading dimension for size bins")
+datas = datas.swap_dims({"size": "radius"})
+
+# Add major identifiers for the dataset
+logging.info("Modify and add attributes")
+datas.assign_attrs(
+    {
+        "flight_id": "varying, see also flight_number",
+        "Modified_by": "Nils Niebaum",
+        "Modification_date_UTC": datetime.datetime.now(datetime.UTC).strftime("%Y-%m-%d %H:%M:%S"),
+        "GitHub Repository": "https://github.com/nilsnevertree/sdm-eurec4a",
+        "GitHub Commit": get_git_revision_hash(),
     }
-    datas = datas.rename(VARNAME_MAPPING)
+)
 
-    # Convert time to datetime object
-    # Note, that the time is in seconds since 2020-01-01 00:00:00
-    logging.info("Convert UTC time to datetime object")
-    attrs = datas["time"].attrs
-    datas["time"] = cftime.num2date(
-        datas["time"], units="seconds since 2020-01-01 00:00:00", calendar="standard"
+logging.info("Convert the particle size distribution from #/L/µm to SI units m^3/m")
+# Convert from #/l to #/m^3 ->  * 1e3
+# Convert from µm to m -> 1e6
+datas["particle_size_distribution"] = datas["particle_size_distribution"] * 1e3 * 1e6
+attrs = datas["particle_size_distribution"].attrs
+datas["particle_size_distribution"].attrs.update(
+    unit="m^{-3} m^{-1}",
+)
+
+
+logging.info("Add mass size distribution to dataset")
+# Calculate mass size distribution in g m^-3 m^-1
+datas["mass_size_distribution"] = 1e3 * msd_from_psd_dataarray(
+    datas["particle_size_distribution"],
+    radius_name="radius",
+    radius_scale_factor=1,  # one because radius is given in meters
+    rho_water=1000,  # in kg/m^3
+)
+# Make sure to have the correct units!
+# The mass size distribution is in kg/m^3/m
+unit = "g m^{-3} m^{-1}"
+comment = "Mass of droplets per cubic meter of air assuming water density of 1000 kg/m3."
+comment += "\nNormalized by the bin width."
+datas["mass_size_distribution"].attrs.update(
+    comment=comment,
+    unit=unit,
+)
+
+# Add non normalized particle size distribution
+logging.info("Add non normalized particle size distribution")
+# Multiply the particle size distribution by the bin width to get the total number of particles in #/m^3
+datas["particle_size_distribution_non_normalized"] = (
+    datas["particle_size_distribution"] * datas["bin_width"]
+)
+attrs = datas["particle_size_distribution"].attrs
+datas["particle_size_distribution_non_normalized"].attrs.update(
+    unit="m^{-3}",
+    comment="Number of droplets per cubic meter of air, NOT normalized by the bin width. To normalize, divide by the bin width.",
+)
+# %%
+
+# validate the values of the lwc given by the mass size distribution and the original lwc
+# are equal to computer precision 1e-12
+try:
+    desired = datas["liquid_water_content"].compute()
+    actual = (datas["bin_width"] * datas["mass_size_distribution"]).sum("radius", skipna=True).compute()
+    # get a mask of values which are not the same for both
+    wrong_values = actual != desired
+    # In the actual LWC (reconstructed from msd), some values are NaN due to instrument failure.
+    # We need to exclude these values from the comparison.
+    # They are by definition not equal to the desired values.
+    nan_in_actual = np.isnan(actual.where(wrong_values, other=0))
+    # nan_in_desired = np.isnan(desired.where(wrong_values, other = 0))
+    # nan_in_wrong_values = nan_in_actual + nan_in_desired
+
+    # Check if the actual and desired values are equal to computer precision 1e-12 while omiting the values which are
+    # NOT wrong AND NaN in the actual values due to measurement failure.
+    # And fill nan values with 0 to make sure the comparison works.
+    np.testing.assert_allclose(
+        actual=actual[~nan_in_actual].fillna(0),
+        desired=desired[~nan_in_actual].fillna(0),
+        rtol=1e-12,
+        err_msg="The sum of the mass size distribution does not match the liquid water content.",
     )
-    attrs.update(
-        unit="cftime nanoseconds",
-        calender="standard",
-        comment="UTC time. Seconds since 2020-01-01 00:00:00. Use cftime.num2date to convert to datetime object.",
-    )
-    datas["time"].attrs.update(attrs)
-
-    logging.info("Validate that diameter and bin_width do not vary along time axis")
-    assert np.all(datas.diameter == datas.diameter.isel(time=0))
-    assert np.all(datas.bin_width == datas.bin_width.isel(time=0))
-    datas["diameter"] = datas["diameter"].mean("time", keep_attrs=True)
-    datas["bin_width"] = datas["bin_width"].mean("time", keep_attrs=True)
-
-    logging.info("Renormalize the particle size distribution from #/L/µm to #/m^3")
-    # Multiply the particle size distribution by the bin width to get the total number of particles in #/L
-    datas["particle_size_distribution"] = datas["particle_size_distribution"] * datas["bin_width"]
-    # Convert from #/l to #/m^3 ->  * 1e3
-    datas["particle_size_distribution"] = datas["particle_size_distribution"] * 1e3
-    # Update attributes
-    attrs = datas["particle_size_distribution"].attrs
-    datas["particle_size_distribution"].attrs.update(
-        unit="#/m^3",
-        comment="histogram: each bin gives the number of droplets per cubic meter of air, NOT normalized by the bin width. To normalize, divide by the bin width.",
-    )
-    logging.info("Convert diameter and bin_width to meters")
-    # Convert from µm to m -> 1e-6
-    # Diameter
-    attrs = datas["diameter"].attrs
-    datas["diameter"] = datas["diameter"] * 1e-6
-    attrs.update(
-        unit="meter",
-    )
-    datas["diameter"].attrs.update(attrs)
-    # Bin width
-    attrs = datas["bin_width"].attrs
-    datas["bin_width"] = datas["bin_width"] * 1e-6
-    attrs.update(
-        unit="meter",
-    )
-    datas["bin_width"].attrs.update(attrs)
-
-    logging.info("Create radius variable and use it as leading dimension")
-    datas["radius"] = datas["diameter"] / 2
-    datas["radius"].attrs.update(long_name="Radius", unit="m", comment="radius of the droplets")
-
-    logging.info("Use radius as leading dimension for size bins")
-    datas = datas.swap_dims({"size": "radius"})
-
-    logging.info("Modify and add attributes")
-    datas.assign_attrs(
-        {
-            "flight_id": "varying, see also flight_number",
-            "Modified_by": "Nils Niebaum",
-            "Modification_date_UTC": datetime.datetime.now(datetime.UTC).strftime("%Y-%m-%d %H:%M:%S"),
-            "GitHub Repository": "https://github.com/nilsnevertree/sdm-eurec4a",
-            "GitHub Commit": get_git_revision_hash(),
-        }
-    )
-
-    logging.info("Add volume size distribution to dataset")
-    # Calculate volume size distribution
-    datas["volume_size_distribution"] = vsd_from_psd(
-        datas,
-        psd_name="particle_size_distribution",
-        psd_factor=1,
-        scale_name="radius",
-        scale_factor=1,
-        radius_given=True,
-    )
-    comment = "histogram: each bin gives the volume of droplets "
-    comment += "per cubic meter of air assuming spherical droplets."
-    comment += "\nNOT normalized by the bin width. To normalize, divide by the bin width."
-    datas["volume_size_distribution"].attrs.update(
-        comment=comment,
-    )
-
-    logging.info("Add mass size distribution to dataset")
-    # Calculate mass size distribution
-    datas["mass_size_distribution"] = msd_from_psd(
-        datas,
-        psd_name="particle_size_distribution",
-        psd_factor=1,
-        scale_name="radius",
-        scale_factor=1,
-        radius_given=True,
-        rho_water=1000,
-    )
-    comment = "histogram: each bin gives the mass of droplets "
-    comment += "per cubic meter of air assuming water density of 1000 kg/m3."
-    comment += "\nNOT normalized by the bin width. To normalize, divide by the bin width."
-
-    datas["mass_size_distribution"].attrs.update(comment=comment)
-
-    logging.info("Add liquid water content to dataset")
-    # Calculate liquid water content
-    datas["liquid_water_content"] = lwc_from_psd(
-        datas,
-        psd_name="particle_size_distribution",
-        psd_factor=1,
-        scale_name="radius",
-        scale_factor=1,
-        radius_given=True,
-        rho_water=1000,
-    )
-
-    comment = "Liquid water content calculated from the particle size distribution."
-    comment += "LWC = sum over all radii of (rho_water * PSD * 4/3 * pi * radius^3)"
-    comment += "\nNOT normalized by the bin width. To normalize, divide by the bin width."
-
-    datas["liquid_water_content"].attrs.update(comment=comment)
-
-
-except Exception as e:
-    logging.exception("Error while organizing dataset")
+except AssertionError as e:
+    logging.error("The sum of the mass size distribution does not match the liquid water content.")
     raise e
 
+# --- Add more mask to the dataset ---
+# Make sure the masks are boolean
+logging.info("Make sure the masks are boolean")
 
-print(f"Save the produced datset to netcdf file?\n{DESTINATION_DIRECTORY / DESTINATION_FILENAME}")
-user_input = input("Do you want to continue running the script? (y/n): ")
-if user_input.lower() == "y":
-    print("Saving dataset\nPlease wait...")
-    datas.to_netcdf(DESTINATION_DIRECTORY / DESTINATION_FILENAME)
-else:
-    logging.error("User denied proceeding with saving the dataset")
-    raise KeyboardInterrupt
+datas["cloud_mask"] = datas["cloud_mask"].astype(bool)
+datas["drizzle_mask"] = datas["drizzle_mask"].astype(bool)
+datas["rain_mask"] = datas["rain_mask"].astype(bool)
 
+# Create mask if drizzle and rain are present
+logging.info("Create mask if drizzle and rain are present")
+datas["drizzle_rain_mask"] = ((datas["drizzle_mask"] == 1) + (datas["rain_mask"] == 1)).astype(bool)
+
+comment = "based on the liquid water content of drizzle and rain size particles (diameters ranging from 100+/-5 to 2550+/-50 micro meter) ; 0: NT = 0/cm3  ; 1: NT > 0/cm3."
+comment += "\nThe mask is simply the logical OR of the drizzle and rain mask."
+
+datas["drizzle_rain_mask"].attrs.update(
+    long_name="Drizzle and rain mask",
+    unit="",
+)
+
+
+logging.info("Start storing produced datset to netcdf file")
+datas.to_netcdf(DESTINATION_FILEPATH)
 logging.info("Finished cloud composite pre-processing")
 
-# VERY SLOW
-# comp = dict(zlib=True, complevel=5)
-# encoding = {var: comp for var in datas.data_vars}
-# datas.to_netcdf(DESTINATION_DIRECTORY / 'cloud_composite_compressed.nc', encoding=encoding)
+# %%
