@@ -160,9 +160,10 @@ datas["time"] = cftime.num2date(
 # make sure to use the more simple datetime object
 datas["time"] = datas["time"].indexes["time"].to_datetimeindex()
 attrs.update(
-    unit="datetime nanoseconds",
+    long_name="Time",
+    unit="UTC",
     calender="standard",
-    comment="UTC time. Use cftime.num2date to convert to datetime object from seconds since 2020-01-01 00:00:00.",
+    comment="UTC time. Use cftime.num2date to convert to datetime nanoseconds object from seconds since 2020-01-01 00:00:00.",
 )
 datas["time"].attrs.update(attrs)
 
@@ -177,6 +178,7 @@ datas["diameter"] = datas["diameter"].mean("time", keep_attrs=True)
 attrs = datas["diameter"].attrs
 datas["diameter"] = datas["diameter"] * 1e-6
 attrs.update(
+    long_name="Diameter",
     unit="m",
 )
 datas["diameter"].attrs.update(attrs)
@@ -186,6 +188,7 @@ datas["bin_width"] = datas["bin_width"].mean("time", keep_attrs=True)
 attrs = datas["bin_width"].attrs
 datas["bin_width"] = datas["bin_width"] * 1e-6
 attrs.update(
+    long_name="Bin width",
     unit="m",
 )
 datas["bin_width"].attrs.update(attrs)
@@ -193,7 +196,7 @@ datas["bin_width"].attrs.update(attrs)
 # Create radius variable and use it as leading dimension
 logging.info("Create radius variable and use it as leading dimension")
 datas["radius"] = datas["diameter"] / 2
-datas["radius"].attrs.update(long_name="Radius", unit="m", comment="radius of the droplets")
+datas["radius"].attrs.update(long_name="Radius", unit="m", comment="Radius of the bin.")
 
 logging.info("Use radius as leading dimension for size bins")
 datas = datas.swap_dims({"size": "radius"})
@@ -215,8 +218,14 @@ logging.info("Convert the particle size distribution from #/L/µm to SI units m^
 # Convert from µm to m -> 1e6
 datas["particle_size_distribution"] = datas["particle_size_distribution"] * 1e3 * 1e6
 attrs = datas["particle_size_distribution"].attrs
+comment = "Number of droplets per cubic meter of air per meter bin width"
+comment += (
+    "The number concentration is normalized by the bin width, so it is the particle size distribution."
+)
 datas["particle_size_distribution"].attrs.update(
+    long_name="Number concentration",
     unit="m^{-3} m^{-1}",
+    comment=comment,
 )
 
 
@@ -230,12 +239,12 @@ datas["mass_size_distribution"] = msd_from_psd_dataarray(
 )
 # Make sure to have the correct units!
 # The mass size distribution is in kg/m^3/m
-unit = "kg m^{-3} m^{-1}"
 comment = "Mass of droplets per cubic meter of air assuming water density of 1000 kg/m3."
 comment += "\nNormalized by the bin width."
 datas["mass_size_distribution"].attrs.update(
+    long_name="Mass concentration",
+    unit="kg m^{-3} m^{-1}",
     comment=comment,
-    unit=unit,
 )
 
 # Add non normalized particle size distribution
@@ -246,6 +255,7 @@ datas["particle_size_distribution_non_normalized"] = (
 )
 attrs = datas["particle_size_distribution"].attrs
 datas["particle_size_distribution_non_normalized"].attrs.update(
+    long_name="Number concentration",
     unit="m^{-3}",
     comment="Number of droplets per cubic meter of air, NOT normalized by the bin width. To normalize, divide by the bin width.",
 )
