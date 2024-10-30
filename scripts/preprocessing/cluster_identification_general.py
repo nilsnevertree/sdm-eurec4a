@@ -180,6 +180,12 @@ def main(mask_name=mask_name):
         cloud_diff = cloud_diff.compute()
         cloud_start = cloud_diff.time.where(cloud_diff == 1, drop=True)
         cloud_end = cloud_diff.time.where(cloud_diff == -1, drop=True)
+
+        # if the last start is larger than the end, the cloud is still active
+        # in the end of the dataset, so we need to append the last time step to cloud_end
+        if cloud_start.max() > cloud_end.max():
+            cloud_end = xr.concat([cloud_end, cloud_diff.time[-1]], dim="time")
+
         logging.info(f"{cloud_start.shape} number of clouds were identified")
 
         logging.info("Create cloud identification dataset")
