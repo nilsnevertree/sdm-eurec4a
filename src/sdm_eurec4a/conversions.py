@@ -296,6 +296,51 @@ def msd_from_psd_dataarray(
     return msd
 
 
+def psd_from_msd_dataarray(
+    da: xr.DataArray,
+    radius_name: str = "radius",
+    radius_scale_factor: float = 1,
+    rho_water: float = 1000,
+) -> xr.DataArray:
+    """
+    Inverse of msd_from_psd_dataarray.
+
+    Parameters
+    ----------
+    ds : xr.DataArray
+        DataArray containing the mass size distribution and the radius as coordinate (``radius_name``).
+    radius_name : str, optional
+        The name of the radius coordinate.
+        Default is "radius".
+        If the radius is not given in SI units, make sure to adapt the `radius_scale_factor` appropriately.
+        If for instance the diameter is given, set it to "diameter" and set `radius_scale_factor` to 0.5.
+    radius_scale_factor : float, optional
+        Factor by which the radius is scaled. Default is 1.
+        For instance if the radius is given in µm, set it to 1e6.
+    rho_water : float, optional
+        density of water, by default 1000 kg/m^3
+
+    Returns
+    -------
+    xr.DataArray
+        The particle size distribution in 1/m^3.
+        Make sure to check the units and otherwise set the value!
+    """
+
+    # make sure the radius is given in the correct units
+    radius = da[radius_name] * radius_scale_factor
+
+    psd = da * radius ** (-3) / (rho_water * 4 / 3 * np.pi)
+
+    psd.attrs = dict(
+        units="m^{-3}",
+        long_name="Particle size distribution",
+        description="Particle size distribution calculated from the mass size distribution. PSD = MSD / (rho_water * 4/3 * pi * radius^3)",
+        comment="Make sure to check the units and otherwise set the value!",
+    )
+    return psd
+
+
 def saturation_vapour_pressure(
     temperature: Union[np.ndarray, xr.DataArray]
 ) -> Union[np.ndarray, xr.DataArray]:
