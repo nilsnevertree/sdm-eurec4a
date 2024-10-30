@@ -172,7 +172,6 @@ assert np.all(datas.bin_width == datas.bin_width.isel(time=0))
 
 logging.info("Convert diameter and bin_width to meters")
 # Convert from µm to m -> 1e-6
-
 # Diameter
 datas["diameter"] = datas["diameter"].mean("time", keep_attrs=True)
 attrs = datas["diameter"].attrs
@@ -223,7 +222,7 @@ datas["particle_size_distribution"].attrs.update(
 
 logging.info("Add mass size distribution to dataset")
 # Calculate mass size distribution in g m^-3 m^-1
-datas["mass_size_distribution"] = 1e3 * msd_from_psd_dataarray(
+datas["mass_size_distribution"] = msd_from_psd_dataarray(
     datas["particle_size_distribution"],
     radius_name="radius",
     radius_scale_factor=1,  # one because radius is given in meters
@@ -231,7 +230,7 @@ datas["mass_size_distribution"] = 1e3 * msd_from_psd_dataarray(
 )
 # Make sure to have the correct units!
 # The mass size distribution is in kg/m^3/m
-unit = "g m^{-3} m^{-1}"
+unit = "kg m^{-3} m^{-1}"
 comment = "Mass of droplets per cubic meter of air assuming water density of 1000 kg/m3."
 comment += "\nNormalized by the bin width."
 datas["mass_size_distribution"].attrs.update(
@@ -255,7 +254,8 @@ datas["particle_size_distribution_non_normalized"].attrs.update(
 # validate the values of the lwc given by the mass size distribution and the original lwc
 # are equal to computer precision 1e-12
 try:
-    desired = datas["liquid_water_content"].compute()
+    # liquid water content is given in g/m^3
+    desired = 1e-3 * datas["liquid_water_content"].compute()
     actual = (datas["bin_width"] * datas["mass_size_distribution"]).sum("radius", skipna=True).compute()
     # get a mask of values which are not the same for both
     wrong_values = actual != desired
