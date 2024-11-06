@@ -72,10 +72,6 @@ def great_circle_distance_np(
         )
     array([  255.52968038, 16278.1384129 ])
     """
-    # Convert 0 to 360 degrees latitudes to -180 to 180 degrees
-    lat1 = np.where(lat1 > 180, lat1 - 360, lat1)
-    lat2 = np.where(lat2 > 180, lat2 - 360, lat2)
-
     # Convert all values to radians
     lon1, lat1, lon2, lat2 = map(np.radians, [lon1, lat1, lon2, lat2])
 
