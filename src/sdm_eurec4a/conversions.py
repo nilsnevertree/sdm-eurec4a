@@ -379,6 +379,7 @@ def saturation_vapour_pressure_murphy_koop(temperature: xr.DataArray) -> xr.Data
             name="saturation_vapour_pressure",
             unit="Pa",
             long_name="Saturation vapour pressure",
+            comment="Follows the equation of Murphy and Koop (2005) given in Lohmann et al. (2016)",
         ),
     )
     return es
