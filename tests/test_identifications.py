@@ -279,7 +279,7 @@ def ds_sonde():
             "temp": (("time",), np.arange(8)),
         },
         coords={
-            "time": pd.date_range("2020-01-01 0:00", periods=8, freq="5H"),
+            "time": pd.date_range("2020-01-01 0:00", periods=8, freq="5h"),
         },
     )
 
@@ -311,7 +311,7 @@ def ds_distance():
             ),
         },
         coords={
-            "time_drop_sondes": pd.date_range("2020-01-01 0:00", periods=8, freq="5H"),
+            "time_drop_sondes": pd.date_range("2020-01-01 0:00", periods=8, freq="5h"),
             "time_identified_clouds": pd.date_range("2020-01-01 6:00", periods=2, freq="D"),
         },
     )

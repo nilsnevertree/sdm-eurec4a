@@ -18,7 +18,7 @@ ds_example_si = xr.Dataset(
         "particle_size_distribution": (
             ["time", "radius"],
             psd,
-            {"unit": "#/m^3"},
+            {"unit": "# m^{-3}"},
         ),
         "radius": ("radius", radii, dict(unit="m")),
     },
@@ -33,7 +33,7 @@ ds_example_non_si = xr.Dataset(
         "particle_size_distribution": (
             ["time", "radius"],
             1e-6 * psd,
-            {"unit": "#/dm^3"},
+            {"unit": "# dm^{-3}"},
         ),
         "radius": ("radius", 1e-6 * radii, dict(unit="µm")),
     },
@@ -59,7 +59,7 @@ ds_should = xr.Dataset(
             ["time", "radius"],
             volume,
             {
-                "units": "m^3/m^3",
+                "units": "m^3 m^{-3}",
                 "long_name": "Volume size distribution",
                 "description": "Volume size distribution calculated from the particle size distribution. VSD = PSD * 4/3 * pi * radius^3",
             },
@@ -68,7 +68,7 @@ ds_should = xr.Dataset(
             ["time", "radius"],
             mass,
             {
-                "units": "kg/m^3",
+                "units": "kg m^{-3}",
                 "long_name": "Mass size distribution",
                 "description": "Mass size distribution calculated from the particle size distribution. MSD = rho_water * PSD * 4/3 * pi * radius^3",
             },
@@ -77,7 +77,7 @@ ds_should = xr.Dataset(
             ["time"],
             lwc,
             {
-                "units": "kg/m^3",
+                "units": "kg m^{-3}",
                 "long_name": "Liquid water content",
                 "description": "Liquid water content calculated from the particle size distribution. LWC is the sum over specified dimension of (rho_water * PSD * 4/3 * pi * radius^3)",
             },

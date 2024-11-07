@@ -680,7 +680,7 @@ def add_representer() -> None:
 # %%
 
 if __name__ == "__main__":
-    for cloud_id in identified_clouds.cloud_id.data[[0, 10]]:
+    for cloud_id in identified_clouds.cloud_id:
         cloud_id = int(cloud_id)
 
         # select individual datasets
@@ -724,10 +724,10 @@ if __name__ == "__main__":
                 version_control=version_control,
                 output_dir=output_dir,
                 identification_type=identification_type,
-                chosen_id=id,
+                chosen_id=cloud_id,
             )
 
-            logger.info(f"Created input for cloud {id}")
+            logger.info(f"Created input for cloud {cloud_id}")
         except Exception as e:
             message = traceback.format_exception(None, e, e.__traceback__)
             logger.error(
