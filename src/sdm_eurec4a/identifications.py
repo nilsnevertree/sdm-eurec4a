@@ -522,14 +522,14 @@ def match_clouds_and_dropsondes(
 
     # concatenate the list of time arrays and sort them
     time_array = xr.concat(time_list, dim=index_ds_dropsonde)
-    time_array = time_array.sortby(index_ds_dropsonde)
-    time_array = time_array.rename({index_ds_dropsonde: dim_in_dropsondes})
-    time_array = time_array.drop_vars(index_ds_clouds)
+    # make sure to only use unique times
+    time_array = np.unique(time_array)
+    time_array = np.sort(time_array)
 
     if dask_compute is True:
-        return ds_sonde.sel({dim_in_dropsondes: time_array.data}, drop=True).compute()
+        return ds_sonde.sel({dim_in_dropsondes: time_array}, drop=True).compute()
     else:
-        return ds_sonde.sel({dim_in_dropsondes: time_array.data}, drop=True)
+        return ds_sonde.sel({dim_in_dropsondes: time_array}, drop=True)
 
 
 def match_clouds_and_cloudcomposite(

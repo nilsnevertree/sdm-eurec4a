@@ -6,6 +6,16 @@ import numpy as np
 import xarray as xr
 
 
+def __attrs_if_dataarray__(da: xr.DataArray, attrs: dict = {}, name: str = "") -> xr.DataArray:
+    if isinstance(da, xr.DataArray):
+        name = attrs.pop("name", name)
+        da.attrs.update(attrs)
+        da.name = name
+        return da
+    else:
+        return da
+
+
 def vsd_from_psd(
     ds: xr.Dataset,
     psd_name: str = "particle_size_distribution",
@@ -341,15 +351,13 @@ def psd_from_msd_dataarray(
     return psd
 
 
-def saturation_vapour_pressure(
-    temperature: Union[np.ndarray, xr.DataArray]
-) -> Union[np.ndarray, xr.DataArray]:
+def saturation_vapour_pressure(temperature: xr.DataArray) -> xr.DataArray:
     """
     Calculate the saturation vapour pressure over water for a given temperature.
 
     Parameters
     ----------
-    temperature : np.ndarray
+    temperature : xr.DataArray
         The temperature in Kelvin.
 
     Returns
@@ -360,16 +368,22 @@ def saturation_vapour_pressure(
     T = temperature
     A_w = 2.543e11  # Pa
     B_w = 5420  # K
-    es = A_w * np.exp(-B_w / T)
-    es = __rename_if_dataarray__(es, "saturation_vapour_pressure")
+    es: xr.DataArray = A_w * np.exp(-B_w / T)  # Pa (K/K) = Pa #type: ignore
+    attrs = dict(
+        name="saturation_vapour_pressure",
+        units="Pa",
+        long_name="Saturation vapour pressure",
+        description="Saturation vapour pressure over water calculated from temperature.",
+    )
+    es = __attrs_if_dataarray__(da=es, attrs=attrs)
     return es
 
 
 def water_vapour_pressure(
-    specific_humidity: Union[np.ndarray, xr.DataArray],
-    pressure: Union[np.ndarray, xr.DataArray],
+    specific_humidity: xr.DataArray,
+    pressure: xr.DataArray,
     simplified: bool = False,
-) -> Union[np.ndarray, xr.DataArray]:
+) -> xr.DataArray:
     """
     Calculate the water vapour pressure from the specific humidity and the pressure.
     This follows (2.80) from Introduction to Clouds: From the Microscale to Climate.
@@ -392,9 +406,9 @@ def water_vapour_pressure(
 
     Parameters
     ----------
-    specific_humidity : np.ndarray
+    specific_humidity : xr.DataArray
         The specific humidity in kg/kg.
-    pressure : np.ndarray
+    pressure : xr.DataArray
         The pressure in Pa.
 
     Returns
@@ -413,18 +427,18 @@ def water_vapour_pressure(
 
 
 def relative_humidity(
-    saturation_vapour_pressure: Union[np.ndarray, xr.DataArray],
-    vapour_pressure: Union[np.ndarray, xr.DataArray],
-) -> Union[np.ndarray, xr.DataArray]:
+    saturation_vapour_pressure: xr.DataArray,
+    vapour_pressure: xr.DataArray,
+) -> xr.DataArray:
     """
     Calculate the relative humidity from the saturation vapour pressure and the vapour
     pressure.
 
     Parameters
     ----------
-    saturation_vapour_pressure : np.ndarray
+    saturation_vapour_pressure : xr.DataArray
         The saturation vapour pressure in Pa.
-    vapour_pressure : np.ndarray
+    vapour_pressure : xr.DataArray
         The vapour pressure in Pa.
 
     Returns
@@ -432,28 +446,235 @@ def relative_humidity(
     np.ndarray
         The relative humidity in %.
     """
-    rh = 100 * vapour_pressure / saturation_vapour_pressure
-    rh = __rename_if_dataarray__(rh, "relative_humidity")
+    rh: xr.DataArray = 100 * vapour_pressure / saturation_vapour_pressure  # type: ignore
+    attrs = dict(
+        name="relative_humidity",
+        units=r"\%",
+        long_name="Relative humidity",
+        description="Relative humidity calculated from saturation vapour pressure and vapour pressure.",
+    )
+    rh = __attrs_if_dataarray__(da=rh, attrs=attrs)
     return rh
 
 
+def saturation_vapour_pressure_murphy_koop(temperature: xr.DataArray) -> xr.DataArray:
+    """
+    Calculate the saturation vapour pressure according to Murphy and Koop (2005)
+
+    Parameters
+    ----------
+    temperature : xr.DataArray
+        Temperature in Kelvin
+
+    Returns
+    -------
+    xr.DataArray
+        Saturation vapour pressure in Pa
+
+    """
+
+    innest = 53.878 - 1331.22 / temperature - 9.44523 * np.log(temperature) + 0.014025 * temperature
+    inner = 54.842763 - 6763.22 / temperature - 4.210 * np.log(temperature) + 0.000367 * temperature
+
+    es: xr.DataArray = np.exp(inner + np.tanh(0.0415 * (temperature - 218.8)) * innest)  # type: ignore
+    es = __attrs_if_dataarray__(
+        es,
+        attrs=dict(
+            name="saturation_vapour_pressure",
+            unit="Pa",
+            long_name="Saturation vapour pressure",
+            comment="Follows the equation of Murphy and Koop (2005) given in Lohmann et al. (2016)",
+        ),
+    )
+    return es
+
+
+def saturation_vapour_pressure_Bolton(temperature: xr.DataArray) -> xr.DataArray:
+    """
+    Calculate the saturation vapour pressure according to Bolton (1980)
+    """
+    T = temperature - 273.15
+    es: xr.DataArray = 611.2 * np.exp(17.67 * T / (T + 243.5))  # type: ignore
+    es = __attrs_if_dataarray__(
+        es,
+        attrs=dict(
+            name="saturation_vapour_pressure",
+            unit="Pa",
+            long_name="Saturation vapour pressure",
+        ),
+    )
+
+    return es
+
+
+def saturation_vapour_pressure_Roger_Yau(temperature: xr.DataArray) -> xr.DataArray:
+    """
+    Calculate the saturation vapour pressure according to Rogers and Yau (1989)
+    """
+
+    A_w = 2.543e11  # Pa
+    B_w = 5420  # K
+    es: xr.DataArray = A_w * np.exp(-B_w / temperature)  # Pa (K/K) = Pa # type: ignore
+    es = __attrs_if_dataarray__(
+        es,
+        attrs=dict(
+            name="saturation_vapour_pressure",
+            unit="Pa",
+            long_name="Saturation vapour pressure",
+        ),
+    )
+    return es
+
+
+def partial_pressure(
+    temperature: xr.DataArray, partial_density: xr.DataArray, specific_gas_constant: float
+) -> xr.DataArray:
+    """
+    Calculate the partial pressure of an ideal gas.
+    For instance the partial pressure of water vapour in the atmosphere.
+
+    Parameters
+    ----------
+    temperature : xr.DataArray
+        Temperature in Kelvin
+    partial_density : xr.DataArray
+        Partial density of the gas in kg/m^3
+    specific_gas_constant : float
+        Specific gas constant of the gas in J/(kg K)
+        For water vapour this is 461.5 J/(kg K)
+        For dry air this is 287.05 J/(kg K)
+
+    Returns
+    -------
+    xr.DataArray
+        Partial pressure in Pa
+
+    Examples
+    --------
+    >>> # Calculate the partial pressure of water vapour in the atmosphere.
+    >>> # The partial density of water vapour is 0.01 kg/m^3
+    >>> # The temperature is 300 K
+    >>> # The specific gas constant of water vapour is 461.5 J/(kg K)
+    >>> partial_pressure(temperature = 300, partial_density = 0.01, specific_gas_constant = 461.5)
+    ... 1384.5
+    """
+    return partial_density * specific_gas_constant * temperature
+
+
+def relative_humidity_partial_density(
+    temperature: xr.DataArray, partial_density: xr.DataArray, specific_gas_constant: float = 461.5
+) -> xr.DataArray:
+    """
+    Calculate the relative humidity of the atmosphere from:
+    - the temperature in Kelvin
+    - the partial density of the water vapour in kg/m^3
+    - the specific gas constant of the water vapour in J/(kg K)
+
+    The caculation is based on the ideal gas law and the saturation vapour pressure.
+    First the partial pressure of the water vapour is calculated.
+    Then the saturation vapour pressure is calculated based on the definition by Murphy and Koop (2005).
+
+    e = \\rho_w R_w T
+    e_{sat} = 54.842763 - 6763.22 / T - 4.210 * \\log(T) + 0.000367 * T
+    RH = \\frac{e}{e_{sat}} * 100
+
+    Parameters
+    ----------
+    temperature : xr.DataArray
+        Temperature in Kelvin
+    partial_density : xr.DataArray
+        Partial density of the water vapour in kg/m^3
+    specific_gas_constant : float
+        Specific gas constant of the water vapour in J/(kg K)
+        The default value is 461.5 J/(kg K) as given in Lohmann et al. (2016)
+
+    Returns
+    -------
+    xr.DataArray
+        Relative humidity in %
+
+    Examples
+    --------
+    >>> # Calculate the relative humidity of the atmosphere.
+    >>> # The partial density of water vapour is 0.01 kg/m^3
+    >>> # The temperature is 300 K
+    >>> # The specific gas constant of water vapour is 461.5 J/(kg K)
+    >>> relative_humidity_partial_density(temperature = 273.15 + 21, partial_density = 0.01, specific_gas_constant = 461.5)
+    ... 54.555...
+    """
+
+    e = partial_pressure(
+        temperature=temperature,
+        partial_density=partial_density,
+        specific_gas_constant=specific_gas_constant,
+    )
+
+    # e_sat = saturation_vapour_pressure(temperature)
+    # e_sat = saturation_vapour_pressure_Bolton(temperature)
+    e_sat = saturation_vapour_pressure_murphy_koop(temperature)
+
+    relhum = relative_humidity(saturation_vapour_pressure=e_sat, vapour_pressure=e)
+    relhum.attrs.update(
+        comment="Relative humidity calculated from the partial density of the water vapour",
+    )
+
+    return relhum
+
+
+def relative_humidity_dewpoint(
+    temperature: xr.DataArray, dew_point_temperature: xr.DataArray
+) -> xr.DataArray:
+    """
+    Calculate the relative humidity from the temperature and dew point temperature.
+    The relative humidity is calculated using the saturation vapor pressure
+    at the dew point temperature and the saturation vapor pressure at the
+    temperature.
+
+    Parameters
+    ----------
+    temperature : xr.DataArray
+        The temperature in degrees Celsius.
+    dew_point_temperature : xr.DataArray
+        The dew point temperature in degrees Celsius.
+
+    Returns
+    -------
+    xr.DataArray
+        The relative humidity as a percentage.
+    """
+
+    e_dew = saturation_vapour_pressure_murphy_koop(dew_point_temperature)
+    e_sat = saturation_vapour_pressure_murphy_koop(temperature)
+
+    relhum = relative_humidity(
+        saturation_vapour_pressure=e_sat,
+        vapour_pressure=e_dew,
+    )
+
+    relhum.attrs.update(
+        comment="Relative humidity calculated from the dew point temperature",
+    )
+
+    return relhum
+
+
 def relative_humidity_from_tps(
-    temperature: Union[np.ndarray, xr.DataArray],
-    pressure: Union[np.ndarray, xr.DataArray],
-    specific_humidity: Union[np.ndarray, xr.DataArray],
+    temperature: xr.DataArray,
+    pressure: xr.DataArray,
+    specific_humidity: xr.DataArray,
     simplified: bool = False,
-) -> Union[np.ndarray, xr.DataArray]:
+) -> xr.DataArray:
     """
     Calculate the relative humidity from the temperature, pressure and specific
     humidity.
 
     Parameters
     ----------
-    temperature : np.ndarray
+    temperature : xr.DataArray
         The temperature in Kelvin.
-    pressure : np.ndarray
+    pressure : xr.DataArray
         The pressure in Pa.
-    specific_humidity : np.ndarray
+    specific_humidity : xr.DataArray
         The specific humidity in kg/kg.
     simplified : bool, optional
         If set to True, the simplified version is used.
@@ -466,21 +687,20 @@ def relative_humidity_from_tps(
     """
     es = saturation_vapour_pressure(temperature)
     e = water_vapour_pressure(specific_humidity, pressure, simplified)
-    rh = relative_humidity(es, e)
-    rh = __rename_if_dataarray__(rh, "relative_humidity")
-    return rh
 
-
-def __rename_if_dataarray__(da: Union[np.ndarray, xr.DataArray], name: str):
-    if isinstance(da, xr.DataArray):
-        print("rename dataarray")
-        da.name = name
-    return da
+    relhum = relative_humidity(
+        saturation_vapour_pressure=es,
+        vapour_pressure=e,
+    )
+    relhum.attrs.update(
+        comment="Relative humidity calculated from temperature, pressure and specific humidity.",
+    )
+    return relhum
 
 
 def potential_temperature_from_tp(
-    air_temperature: Union[np.ndarray, xr.DataArray],
-    pressure: Union[np.ndarray, xr.DataArray],
+    air_temperature: xr.DataArray,
+    pressure: xr.DataArray,
     pressure_reference: Union[
         float, np.ndarray, xr.DataArray
     ] = 100000,  # default value used for drop sondes dataset
@@ -491,9 +711,9 @@ def potential_temperature_from_tp(
 
     Parameters
     ----------
-    air_temperature : np.ndarray or xr.DataArray
+    air_temperature : xr.DataArray or xr.DataArray
         The air temperature in Kelvin.
-    pressure : np.ndarray  or xr.DataArray
+    pressure : xr.DataArray  or xr.DataArray
         The pressure in Pa.
     pressure_reference : float
         The reference pressure in Pa.
@@ -507,5 +727,11 @@ def potential_temperature_from_tp(
         The potential temperature in Kelvin.
     """
     theta = air_temperature * (pressure_reference / pressure) ** R_over_cp
-    theta = __rename_if_dataarray__(theta, "potential_temperature")
+    attrs = dict(
+        name="potential_temperature",
+        units="K",
+        long_name="Potential temperature",
+        description="Potential temperature calculated from air temperature and pressure.",
+    )
+    theta = __attrs_if_dataarray__(da=theta, attrs=attrs)
     return theta

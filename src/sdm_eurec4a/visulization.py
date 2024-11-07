@@ -38,6 +38,8 @@ _default_colors = [
     "#A494F5",
 ]
 
+_known_unit_keys_ = ["units", "unit", "Units", "Unit", "UNITS", "UNIT"]
+
 
 def set_custom_rcParams() -> list:
     """
@@ -806,13 +808,16 @@ def label_from_attrs(
     --------
     str : The label created from the attributes of the DataArray of the form 'name $[units]$'.
     """
+
     try:
         name = f"{da.attrs['long_name']}"
     except KeyError:
         name = f"{da.name}"
 
-    if "units" in da.attrs:
-        units = f"{da.attrs['units']}"
+    # extract the unit key from the attributes, if any is present which fits the known unit keys
+    unit_key = find_unit_key(da.attrs)
+    if unit_key != None:
+        units = f"{da.attrs[unit_key]}"
         if "$" not in units:
             units = f"${units}$"
 
@@ -826,12 +831,14 @@ def label_from_attrs(
     else:
         units = "???"
 
+    # append units appendix if wanted (e.g. [bla] - [bla / log(µm)])
     if units_appendix != None:
         units = f"{units} {units_appendix}"
 
     # create latex string
     units = rf"$\left[ {units} \right]$"
 
+    # decide the way to return the label string
     if return_name == True:
         if name_width == None:
             name = name
@@ -951,3 +958,30 @@ def add_subplotlabel(
                 textcoords="offset fontsize",
                 **kwargs,
             )
+
+
+def find_unit_key(attrs: dict) -> Union[str, None]:
+    """
+    Check if there is any key similar to 'unit', 'units', 'UNIT', etc., in a dictionary.
+
+    Parameters:
+    -----------
+    attrs : dict
+        The dictionary to check for unit keys.
+
+    Returns:
+    --------
+    str or None
+        The key if found, otherwise None.
+
+    Examples:
+    ---------
+        >>> attrs = {'units': 'm/s', 'long_name': 'Wind Speed'}
+        >>> find_unit_key(attrs)
+        'units'
+    """
+
+    for key in _known_unit_keys_:
+        if key in attrs:
+            return key
+    return None
