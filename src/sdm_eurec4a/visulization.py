@@ -565,7 +565,7 @@ def symlog_from_array(
     """
 
     if isinstance(a, xr.DataArray):
-        a = a.data
+        a = a.values
 
     if linthresh is None:
         # remove zeros
@@ -813,6 +813,12 @@ def label_from_attrs(
 
     if "units" in da.attrs:
         units = f"{da.attrs['units']}"
+        if "$" not in units:
+            units = f"${units}$"
+
+        units = units.replace("$", " ")
+    elif "unit" in da.attrs:
+        units = f"{da.attrs['unit']}"
         if "$" not in units:
             units = f"${units}$"
 
