@@ -2,6 +2,7 @@ from typing import Tuple, Dict, Union, Callable, TypedDict
 import numpy as np
 import xarray as xr
 from scipy.optimize import least_squares, Bounds
+from inspect import signature
 
 
 def linear_func(x: np.ndarray, f_0: float = 2, slope: float = 1):
@@ -58,32 +59,6 @@ def split_linear_func(
     return y_1 + y_2
 
 
-def split_linear_cost_func(
-    x: Tuple[float, float, float, float],
-    t: np.ndarray,
-    y: np.ndarray,
-    variance: Union[None, float, int, np.ndarray] = None,
-    variance_scale: float = 0.01,
-) -> np.ndarray:
-    """
-    Compute the cost for the split linear fit.
-
-    Parameters:
-        x (Tuple[float, float, float, float]): Parameters for the split_linear_func.
-        t (np.ndarray): Independent variable.
-        y (np.ndarray): Dependent variable.
-        variance (Union[None, float, int, np.ndarray], optional): Variance of the dependent variable. Default is None.
-        variance_scale (float, optional): Scale factor for the variance. Default is 0.01.
-
-    Returns:
-        np.ndarray: The computed cost.
-    """
-
-    y_pred = smodels.split_linear_func(t, *x)
-
-    return np.ravel((y_pred - y))
-
-
 def lnnormaldist(
     radii: np.ndarray, scale_factors: float, geometric_means: float, geometric_sigmas: float
 ) -> np.ndarray:
@@ -129,9 +104,6 @@ def lnnormaldist(
     dn_dlnr = norm * np.exp(exponent)  # eq.5.8 [lohmann intro 2 clouds]
 
     return dn_dlnr
-
-
-# ++++++++++++++++++++++++++++
 
 
 class LnParams(TypedDict):
@@ -180,33 +152,6 @@ def ln_normal_distribution(
     result += dn_dlnr
 
     return result
-
-
-def ln_normal_distribution_cost(
-    x: Tuple[float, float, float],
-    t: np.ndarray,
-    y: np.ndarray,
-    variance: Union[None, np.ndarray, float] = None,
-    variance_scale: float = 0.01,
-) -> np.ndarray:
-    """
-    Compute the cost for the log-normal distribution fit.
-
-    Parameters:
-        x (Tuple[float, float, float]): Parameters for the log-normal distribution.
-        t (np.ndarray): Independent variable.
-        y (np.ndarray): Dependent variable.
-        variance (Union[None, np.ndarray, float], optional): Variance of the dependent variable. Default is None.
-        variance_scale (float, optional): Scale factor for the variance. Default is 0.01.
-
-    Returns:
-        np.ndarray: The computed cost.
-    """
-    y_pred = ln_normal_distribution(t, *x)
-
-    var = create_variance_field(y, variance, variance_scale)
-
-    return np.ravel((y_pred - y) / np.sqrt(var))
 
 
 class DoubleLnParams(TypedDict):
@@ -274,33 +219,6 @@ def double_ln_normal_distribution(
     return result
 
 
-def double_ln_normal_distribution_cost(
-    x: Tuple[float, float, float, float, float, float],
-    t: np.ndarray,
-    y: np.ndarray,
-    variance: Union[None, float, int, np.ndarray] = None,
-    variance_scale: float = 0.01,
-) -> np.ndarray:
-    """
-    Compute the cost for the double log-normal distribution fit.
-
-    Parameters:
-        x (Tuple[float, float, float, float, float, float]): Parameters for the double log-normal distribution.
-        t (np.ndarray): Independent variable.
-        y (np.ndarray): Dependent variable.
-        variance (Union[None, float, int, np.ndarray], optional): Variance of the dependent variable. Default is None.
-        variance_scale (float, optional): Scale factor for the variance. Default is 0.01.
-
-    Returns:
-        np.ndarray: The computed cost.
-    """
-    y_pred = double_ln_normal_distribution(t, *x)
-
-    var = create_variance_field(y, variance, variance_scale)
-
-    return np.ravel((y_pred - y) / np.sqrt(var))
-
-
 class SaturatedLinearParams(TypedDict):
     """
     A TypedDict for parameters of the saturated linear function.
@@ -342,32 +260,6 @@ def saturated_linear_func(
 
     x_split = (saturation_value - f_0) / slope_1
     return split_linear_func(x=x, f_0=f_0, slope_1=slope_1, slope_2=0, x_split=x_split)
-
-
-def saturated_linear_cost_func(
-    x: Tuple[float, float, float, float],
-    t: np.ndarray,
-    y: np.ndarray,
-    variance: Union[None, float, int, np.ndarray] = None,
-    variance_scale: float = 0.01,
-) -> np.ndarray:
-    """
-    Compute the cost for the split linear fit.
-
-    Parameters:
-        x (Tuple[float, float, float, float, float]): Parameters for the split_linear_func.
-        t (np.ndarray): Independent variable.
-        y (np.ndarray): Dependent variable.
-        variance (Union[None, float, int, np.ndarray], optional): Variance of the dependent variable. Default is None.
-        variance_scale (float, optional): Scale factor for the variance. Default is 0.01.
-
-    Returns:
-        np.ndarray: The computed cost.
-    """
-
-    y_pred = saturated_linear_func(t, *x)
-
-    return np.ravel((y_pred - y))
 
 
 def create_variance_field(
@@ -430,6 +322,22 @@ def create_variance_field(
     # Ln Normal distribution and corresponding cost function
 
 
+def __annotation_dict__(func: Callable):
+    """This funciton returns a TypedDict from a function"""
+
+    d = dict(signature(func).parameters)
+
+    annotations = dict()
+    # defaults = dict()
+
+    for key in d:
+        annotation, default = d[key].annotation, d[key].default
+        annotations[key] = annotation
+        # defaults[key] = default
+
+    return annotations
+
+
 class LeastSquareFit:
     """
     A class to perform least squares fitting using scipy.optimize's least_squares function.
@@ -463,11 +371,11 @@ class LeastSquareFit:
         self,
         name: str,
         func: Callable,
-        cost_func: Callable,
         x0: np.ndarray,
         bounds: Bounds,
         t_train: Union[np.ndarray, xr.DataArray],
         y_train: Union[np.ndarray, xr.DataArray],
+        cost_func: Union[Callable, None] = None,
         fit_kwargs: Dict = dict(),
         plot_kwargs: Dict = dict(),
     ):
@@ -477,7 +385,7 @@ class LeastSquareFit:
         Parameters:
             name (str): The name of the fitting instance.
             func (Callable): The model function to fit.
-            cost_func (Callable): The cost function to minimize.
+            cost_func (Callable or None): The cost function to minimize. If None, a default cost function is used based on the model function.
             x0 (np.ndarray): Initial guess for the parameters.
             bounds (Bounds): Bounds on the parameters.
             t_train (Union[np.ndarray, xr.DataArray]): Training data for the independent variable.
@@ -488,6 +396,8 @@ class LeastSquareFit:
         """
         self.name = name
         self.func = func
+
+        # set the cost function
         self.cost_func = cost_func
         self.x0 = x0
         self.bounds = bounds
@@ -496,6 +406,136 @@ class LeastSquareFit:
         self.fit_kwargs = fit_kwargs
         self.plot_kwargs = plot_kwargs
         self.fit_result = None
+
+    def __default_cost_func__(self, x: np.ndarray, t: np.ndarray, y: np.ndarray, **kwargs) -> np.ndarray:
+        """
+        The cost function to minimize.
+
+        Parameters:
+            x (np.ndarray): The parameters to estimate.
+            t (np.ndarray): The independent variable.
+            y (np.ndarray): The dependent variable.
+
+        Returns:
+            np.ndarray: The difference between the predicted and the actual data.
+        """
+        diff = self.y_train - self.func(self.t_train, *x)
+
+        return np.ravel(diff)
+
+    # The model function
+    @property
+    def func(self):
+        """The model function to fit."""
+        return self._func
+
+    @func.setter
+    def func(self, func: Callable):
+        self._func = func
+
+    @func.getter
+    def func(self) -> Callable:
+        return self._func
+
+    # The cost function to minimize in the least squares fitting
+    @property
+    def cost_func(self):
+        """
+        The cost function to minimize.
+        If no cost function is provided, a default cost function is used based on the model function.
+        It is explained in the __default_cost_func__ method.
+        """
+        return self._cost_func
+
+    @cost_func.setter
+    def cost_func(self, cost_func: Union[Callable, None]):
+        # set the cost function to the default cost function if None is given
+        if cost_func is None:
+            self._cost_func = self.__default_cost_func__
+        else:
+            self._cost_func = cost_func
+
+    @cost_func.getter
+    def cost_func(self):
+        return self._cost_func
+
+    # ------------
+    # Properties for parameters
+    @property
+    def x0(self):
+        """Initial guess for the parameters."""
+        return self._x0
+
+    @x0.setter
+    def x0(self, x0: np.ndarray):
+        # validate that x0 fits the model function
+        # self.ParameterDict()
+        keys = list(self.ParameterDict.keys())
+        if len(x0) != len(keys) - 1:
+            raise ValueError(
+                f"Initial guess x0 has {len(x0)} elements, but the model function has {len(keys)-1} parameters with parameter keys {keys[1:]}"
+            )
+
+        self._x0 = x0
+
+    @x0.getter
+    def x0(self) -> np.ndarray:
+        return self._x0
+
+    @property
+    def x_guess(self):
+        """
+        The guess of the parameters.
+        It is updated after each fit.
+        This property is read-only.
+        """
+
+        if self.fit_result is None:
+            return self.x0
+        else:
+            return self.fit_result.x
+
+    def __x_to_parameters__(self, x: np.ndarray) -> dict:
+        """This function converts the list of parameter values x to a dictionary with the parameter names given by the function annotations."""
+        annotations = __annotation_dict__(self.func)
+        keys = list(annotations.keys())
+        # ignore the first argument, as it is the independent variable
+        keys = keys[1:]
+
+        return dict(zip(keys, x))
+
+    @property
+    def parameters(self):
+        """
+        Final parameters for the model function after the fit.
+        The parameters are stored in a dictionary with the parameter names given by the function annotations.
+        This property is read-only.
+        """
+        return self.__x_to_parameters__(self.x_guess)
+
+    @property
+    def ParameterDict(self):
+        """
+        The TypedDict for the parameters of the model function.
+        This property is read-only.
+        """
+        return __annotation_dict__(self.func)
+
+    @property
+    def bounds(self):
+        """
+        Bounds on the parameters.
+        This is a Bounds object from scipy.optimize.
+        """
+        return self._bounds
+
+    @bounds.setter
+    def bounds(self, bounds: Bounds):
+        self._bounds = bounds
+
+    @bounds.getter
+    def bounds(self) -> Bounds:
+        return self._bounds
 
     def fit(self, repetitions: int = 1):
         """
@@ -507,21 +547,15 @@ class LeastSquareFit:
         Returns:
             The result of the fitting process.
         """
-        for i in range(repetitions):
-            if i != 0:
-                x0 = self.fit_result.x  # type: ignore
-            else:
-                x0 = self.x0
+        for i in np.arange(repetitions):
 
             self.fit_result = least_squares(
                 self.cost_func,
-                x0=x0,
+                x0=self.x_guess,
                 bounds=self.bounds,
                 args=(np.ravel(self.t_train), np.ravel(self.y_train)),
                 **self.fit_kwargs,
             )
-
-        return self.fit_result
 
     def predict(
         self, t_test: Union[np.ndarray, xr.DataArray]
@@ -535,10 +569,7 @@ class LeastSquareFit:
         Returns:
             Tuple[Union[np.ndarray, xr.DataArray], Union[np.ndarray, xr.DataArray]]: The test data and the predicted dependent variable.
         """
-        self.t_test = t_test
-        self.y_test = self.func(self.t_test, *self.fit_result.x)  # type: ignore
-
-        return self.t_test, self.y_test
+        return t_test, self.func(t_test, **self.parameters)
 
 
 class DoubleLnNormalLeastSquare(LeastSquareFit):
@@ -561,11 +592,15 @@ class DoubleLnNormalLeastSquare(LeastSquareFit):
 
     """
 
-    _func = double_ln_normal_distribution
-    _cost_func = double_ln_normal_distribution_cost
-
     def __init__(
-        self, name: str, x0: np.ndarray, bounds: Bounds, t_train: np.ndarray, y_train: np.ndarray
+        self,
+        name: str,
+        x0: np.ndarray,
+        bounds: Bounds,
+        t_train: np.ndarray,
+        y_train: np.ndarray,
+        fit_kwargs: Dict = dict(),
+        plot_kwargs: Dict = dict(),
     ):
         """
         Initialize the DoubleLnNormalLeastSquare instance.
@@ -580,11 +615,12 @@ class DoubleLnNormalLeastSquare(LeastSquareFit):
         super().__init__(
             name=name,
             func=double_ln_normal_distribution,
-            cost_func=double_ln_normal_distribution_cost,
             x0=x0,
             bounds=bounds,
             t_train=t_train,
             y_train=y_train,
+            fit_kwargs=fit_kwargs,
+            plot_kwargs=plot_kwargs,
         )
 
 
@@ -608,11 +644,17 @@ class LnNormalLeastSquare(LeastSquareFit):
 
     """
 
-    _func = ln_normal_distribution
-    _cost_func = ln_normal_distribution_cost
+    __func = ln_normal_distribution
 
     def __init__(
-        self, name: str, x0: np.ndarray, bounds: Bounds, t_train: np.ndarray, y_train: np.ndarray
+        self,
+        name: str,
+        x0: np.ndarray,
+        bounds: Bounds,
+        t_train: np.ndarray,
+        y_train: np.ndarray,
+        fit_kwargs: Dict = dict(),
+        plot_kwargs: Dict = dict(),
     ):
         """
         Initialize the LnNormalLeastSquare instance.
@@ -627,11 +669,12 @@ class LnNormalLeastSquare(LeastSquareFit):
         super().__init__(
             name=name,
             func=ln_normal_distribution,
-            cost_func=ln_normal_distribution_cost,
             x0=x0,
             bounds=bounds,
             t_train=t_train,
             y_train=y_train,
+            fit_kwargs=fit_kwargs,
+            plot_kwargs=plot_kwargs,
         )
 
 
@@ -655,11 +698,15 @@ class SplitLinearLeastSquare(LeastSquareFit):
 
     """
 
-    _func = split_linear_func
-    _cost_func = ln_normal_distribution_cost
-
     def __init__(
-        self, name: str, x0: np.ndarray, bounds: Bounds, t_train: np.ndarray, y_train: np.ndarray
+        self,
+        name: str,
+        x0: np.ndarray,
+        bounds: Bounds,
+        t_train: np.ndarray,
+        y_train: np.ndarray,
+        fit_kwargs: Dict = dict(),
+        plot_kwargs: Dict = dict(),
     ):
         """
         Initialize the SplitLinearLeastSquare instance.
@@ -674,12 +721,62 @@ class SplitLinearLeastSquare(LeastSquareFit):
         super().__init__(
             name=name,
             func=split_linear_func,
-            cost_func=ln_normal_distribution_cost,
             x0=x0,
             bounds=bounds,
             t_train=t_train,
             y_train=y_train,
+            fit_kwargs=fit_kwargs,
+            plot_kwargs=plot_kwargs,
         )
 
 
-from typing import Tuple, Union
+class SaturatedLinearLeastSquare(LeastSquareFit):
+    """
+    A class to perform least squares fitting for a saturated linear function.
+
+    Attributes:
+        name (str): The name of the fitting instance.
+        func (Callable): The model function to fit.
+        cost_func (Callable): The cost function to minimize.
+        x0 (np.ndarray): Initial guess for the parameters.
+        bounds (Bounds): Bounds on the parameters.
+        t_train (Union[np.ndarray, xr.DataArray]): Training data for the independent variable.
+        y_train (Union[np.ndarray, xr.DataArray]): Training data for the dependent variable.
+        fit_kwargs (Dict): Additional keyword arguments for the least_squares function.
+        plot_kwargs (Dict): Additional keyword arguments for plotting.
+        fit_result: The result of the fitting process.
+
+    Methods:
+
+    """
+
+    def __init__(
+        self,
+        name: str,
+        x0: np.ndarray,
+        bounds: Bounds,
+        t_train: np.ndarray,
+        y_train: np.ndarray,
+        fit_kwargs: Dict = dict(),
+        plot_kwargs: Dict = dict(),
+    ):
+        """
+        Initialize the SaturatedLinearLeastSquare instance.
+
+        Parameters:
+            name (str): The name of the fitting instance.
+            x0 (np.ndarray): Initial guess for the parameters.
+            bounds (Bounds): Bounds on the parameters.
+            t_train (np.ndarray): Training data for the independent variable.
+            y_train (np.ndarray): Training data for the dependent variable.
+        """
+        super().__init__(
+            name=name,
+            func=saturated_linear_func,
+            x0=x0,
+            bounds=bounds,
+            t_train=t_train,
+            y_train=y_train,
+            fit_kwargs=fit_kwargs,
+            plot_kwargs=plot_kwargs,
+        )
