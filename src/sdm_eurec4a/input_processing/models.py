@@ -121,6 +121,173 @@ class LnParams(TypedDict):
     scale_factor1: float
 
 
+def standard_normal(x: np.ndarray) -> np.ndarray:
+    """Returns probability distribution according to
+    standard normal distribution
+
+    The standard normal distribution is given by:
+    n(x) = 1 / sqrt(2 * pi) * exp(-x^2 / 2)
+
+    Parameters:
+    -----------
+    x : np.ndarray
+        array of independent variable
+
+    Returns:
+    --------
+    probs : np.ndarray
+        probability distribution
+    """
+
+    return 1 / np.sqrt(2 * np.pi) * np.exp(-(x**2) / 2)
+
+
+def normal_distribution(x: np.ndarray, mu: float, sigma: float, scale: float) -> np.ndarray:
+    """calculate probability of independent variable `x` given the paramters of a
+    normal dsitribution
+
+    The general normal distribution is given by:
+    g(x; mu, sig) = 1 / sig * n((x - mu) / sig)
+    with n being the standard normal distribution.
+
+    Parameters
+    ----------
+    x : np.ndarray
+        array of independent variable
+    mu : float
+        mean of the distribution
+    sig : float
+        standard deviation of the distribution
+    scale : float
+        scale factor
+
+    Returns
+    -------
+    result : np.ndarray
+        probability distribution
+    """
+    z = (x - mu) / sigma
+    result = 1 / sigma * standard_normal(z)
+    return scale * result
+
+
+def log_normal_distribution(x: np.ndarray, mu: float, sigma: float, scale: float) -> np.ndarray:
+    """calculate probability of independent variable `x` given the paramters of a
+    lognormal dsitribution
+
+    The general lognormal distribution is given by:
+    g(x; mu, sig) = scale * 1 / (x * sig) * n((ln(x) - mu) / sig)
+    with n being the standard normal distribution.
+
+    Parameters
+    ----------
+    x : np.ndarray
+        array of independent variable
+    mu : float
+        mean of the distribution
+    sig : float
+        standard deviation of the distribution
+    scale : float
+        scale factor
+
+    Returns
+    -------
+    result : np.ndarray
+        probability distribution
+    """
+    z = (np.log(x) - mu) / sigma
+    result = 1 / (x * sigma) * standard_normal(z)
+    return scale * result
+
+
+def log_normal_distribution_all(
+    x: np.ndarray,
+    mu: float,
+    sigma: float,
+    scale: float,
+    parameter_space: str = "direct",
+    space: str = "linear",
+    density_scaled: bool = False,
+):
+    """calculate probability of independent variable `x` given the paramters of a
+    lognormal dsitribution.
+    Here one assumes the geometric mean and standard deviation.
+    The natural logarithm is used.
+
+    The general lognormal distribution is given by:
+    g(x; mu, sig) = 1 / (x * ln(sig)) * n((ln(x) - ln(mu)) / ln(sig))
+    with n being the standard normal distribution.
+
+    Parameters
+    ----------
+    x : np.ndarray
+        array of indepedent variable
+    mu : float
+        geometric mean of the distribution
+    sigma : float
+        geometric standard deviation of the distribution
+    scale : float
+        scale factor
+    parameter_space : str
+        Defines the space in which the parameters are given.
+        Default is 'direct'
+        - If 'direct' (the default), it is assumed that the given ``mu`` and ``sigma`` are the parameters of the distribution.
+        - If 'geometric', it is assumed that the given ``mu`` and ``sigma`` are the geometric mean and standard deviation.
+        - If 'exact', it is assumed that the given ``mu`` and ``sigma`` are the exact mean and standard deviation.
+        default is False
+    space : str
+        Defines the space in which the distribution is calculated.
+        In other words in which space the independent variable is given.
+        Default is 'linear'
+        - If 'linear' (the default), the distribution is it assumed that x is given in linear space.
+        So for instance radius in m.
+        - If 'ln', the distribution it is assumed that x is given in natural logarithm space.
+        So for instance radius in ln(m).
+        - If 'cleo', the distribution is calculated in the linear space but the independent variable is multiplied by x.
+    density_scaled : bool
+        If True, the distribution is scaled to a density distribution.
+        The integral over the given x values is 1 * scale.
+        If you change the input of x, you have to rescale the distribution.
+        Default is False.
+
+    Returns
+    -------
+    result : np.ndarray
+        probability distribution
+    """
+
+    if parameter_space == "direct":
+        mu = mu
+        sigma = sigma
+    elif parameter_space == "geometric":
+        mu = np.log(mu)
+        sigma = np.log(sigma)
+    elif parameter_space == "exact":
+        mu_x = np.log(mu**2 / np.sqrt(sigma**2 + mu**2))
+        sigma_x = np.sqrt(np.log(1 + sigma**2 / mu**2))
+        mu = mu_x
+        sigma = sigma_x
+
+    if space == "linear":
+        # in the linear space, the distribution is calculated as usual
+        # R(x) = scale * L(x; mu, sigma)
+        result = log_normal_distribution(x, mu, sigma, 1)
+    elif space == "ln":
+        # in the log space, the distribution is calculated by using the
+        # natural logarithm of the independent variable
+        # further, the transformation of the distribution is considered
+        # l(y; mu, sigma) = x * L(x; mu, sigma) with x = exp(y)
+        # Thus we have the result as followes:
+        result = np.exp(x) * log_normal_distribution(np.exp(x), mu, sigma, 1)
+    elif space == "cleo":
+        result = x * log_normal_distribution(x, mu, sigma, 1)
+
+    if density_scaled:
+        result = result / np.nansum(result)
+    else:
+        return scale * result
+
+
 def ln_normal_distribution(
     t: np.ndarray,
     mu1: float,
@@ -419,9 +586,29 @@ class LeastSquareFit:
         Returns:
             np.ndarray: The difference between the predicted and the actual data.
         """
-        diff = self.y_train - self.func(self.t_train, *x)
+        diff = y - self.func(t, *x)
 
-        return np.ravel(diff)
+        diff = np.ravel(diff)
+
+        # only use the non-NaN values
+        idx = np.where(~np.isnan(diff))
+        diff = diff[idx]
+        return diff
+
+    # def __weighted_cost_function__(
+    #         self,
+    #         x : np.ndarray,
+    #         t : np.ndarray,
+    #         y : np.ndarray,
+    #         w : np.ndarray,
+    #         **kwargs,
+    #         ) -> np.ndarray :
+    #     """
+    #     Apply a weighted factor to the cost function
+
+    #     Parameters:
+    #     -----
+    #     """
 
     # The model function
     @property
@@ -773,6 +960,68 @@ class SaturatedLinearLeastSquare(LeastSquareFit):
         super().__init__(
             name=name,
             func=saturated_linear_func,
+            x0=x0,
+            bounds=bounds,
+            t_train=t_train,
+            y_train=y_train,
+            fit_kwargs=fit_kwargs,
+            plot_kwargs=plot_kwargs,
+        )
+
+
+class FixedSaturatedLinearLeastSquare(LeastSquareFit):
+    """
+    A class to perform least squares fitting for a saturated linear function for a fixed saturation value.
+
+    Attributes:
+        name (str): The name of the fitting instance.
+        func (Callable): The model function to fit.
+        cost_func (Callable): The cost function to minimize.
+        x0 (np.ndarray): Initial guess for the parameters.
+        bounds (Bounds): Bounds on the parameters.
+        t_train (Union[np.ndarray, xr.DataArray]): Training data for the independent variable.
+        y_train (Union[np.ndarray, xr.DataArray]): Training data for the dependent variable.
+        fit_kwargs (Dict): Additional keyword arguments for the least_squares function.
+        plot_kwargs (Dict): Additional keyword arguments for plotting.
+        fit_result: The result of the fitting process.
+
+    Methods:
+
+    """
+
+    def __init__(
+        self,
+        name: str,
+        x0: np.ndarray,
+        bounds: Bounds,
+        t_train: np.ndarray,
+        y_train: np.ndarray,
+        saturation_values: float = 1,
+        fit_kwargs: Dict = dict(),
+        plot_kwargs: Dict = dict(),
+    ):
+        """
+        Initialize the SaturatedLinearLeastSquare instance.
+
+        Parameters:
+            name (str): The name of the fitting instance.
+            x0 (np.ndarray): Initial guess for the parameters.
+            bounds (Bounds): Bounds on the parameters.
+            t_train (np.ndarray): Training data for the independent variable.
+            y_train (np.ndarray): Training data for the dependent variable.
+            saturation_values (float): The fixed saturation value for the function.
+        """
+
+        def fixed_saturation(x, f_0, slope_1):
+            """
+            This func is a linear function that saturates at 1.
+            """
+
+            return saturated_linear_func(x, f_0, slope_1, saturation_value=saturation_values)
+
+        super().__init__(
+            name=name,
+            func=fixed_saturation,
             x0=x0,
             bounds=bounds,
             t_train=t_train,
