@@ -9,10 +9,11 @@ The script will:
     - rename variables to longer names
     - rename "launch_time" to "time" and make it the leading dimension
     - modify attributes
-    - save the produced datset to netcdf file
+    - save the produced dataset to netcdf file
 The produced dataset is stored in ../data/observation/dropsonde/processed/drop_sondes.nc
 """
 
+# %%
 import datetime
 import logging
 
@@ -57,11 +58,18 @@ except Exception as e:
 
 # --- Reorganize dataset ---
 
+# %%
+
 try:
     logging.info("Rename variables")
     # Use longer names for variable to make it more readable
     # do not rename the dimension time and size
     VARNAME_MAPPING = {
+        # make sure theses are uniform throughout the datasets
+        "lat": "latitude",
+        "lon": "longitude",
+        "alt": "altitude",
+        # rename the rest
         "launch_time": "time",
         "p": "pressure",
         "ta": "air_temperature",
@@ -75,8 +83,8 @@ try:
         "low_height_flag": "low_height_flag",
         "platform_id": "platform_id",
         "flight_altitude": "flight_alt",
-        "flight_lat": "flight_lat",
-        "flight_lon": "flight_lon",
+        "flight_lat": "flight_latitude",
+        "flight_lon": "flight_longitude",
         "N_ta": "N_air_temperature",
         "N_rh": "N_relative_humidity",
         "N_gps": "N_gps",
@@ -96,7 +104,9 @@ try:
     data.assign_attrs(
         {
             "Modified_by": "Nils Niebaum",
-            "Modification_date_UTC": datetime.datetime.now(datetime.UTC).strftime("%Y-%m-%d %H:%M:%S"),
+            "Modification_date_UTC": datetime.datetime.now(datetime.timezone.utc).strftime(
+                "%Y-%m-%d %H:%M:%S"
+            ),
             "GitHub Repository": "https://github.com/nilsnevertree/sdm-eurec4a",
             "GitHub Commit": get_git_revision_hash(),
         }
@@ -107,14 +117,14 @@ except Exception as e:
     raise e
 
 
-print(f"Save the produced datset to netcdf file?\n{DESTINATION_DIRECTORY / 'cloud_composite.nc'}")
-user_input = input("Do you want to continue running the script? (y/n): ")
-if user_input.lower() == "y":
-    print("Saving dataset\nPlease wait...")
-    data.to_netcdf(DESTINATION_DIRECTORY / DESTINATION_FILENAME)
-else:
-    logging.error("User denied proceeding with saving the dataset.")
-    raise KeyboardInterrupt
+# print(f"Save the produced dataset to netcdf file?\n{DESTINATION_DIRECTORY / 'cloud_composite.nc'}")
+# user_input = input("Do you want to continue running the script? (y/n): ")
+# if user_input.lower() == "y":
+# print("Saving dataset\nPlease wait...")
+data.to_netcdf(DESTINATION_DIRECTORY / DESTINATION_FILENAME)
+# else:
+#     logging.error("User denied proceeding with saving the dataset.")
+#     raise KeyboardInterrupt
 
 logging.info("Finished drop sonde pre-processing")
 
@@ -122,3 +132,5 @@ logging.info("Finished drop sonde pre-processing")
 # comp = dict(zlib=True, complevel=5)
 # encoding = {var: comp for var in datas.data_vars}
 # datas.to_netcdf(DESTINATION_DIRECTORY / 'cloud_composite_compressed.nc', encoding=encoding)
+
+# %%

@@ -88,15 +88,15 @@ def great_circle_distance_np(
 
 def horizontal_extent_func(
     da: xr.Dataset,
-    lon_name: str = "lon",
-    lat_name: str = "lat",
+    longitude_name: str = "longitude",
+    latitude_name: str = "latitude",
 ):
     """
     Calculate the horizontal extent of a Dataset in Meter [m]. It uses the
     great_circle_distance_np function but returns the horizontal extent in m.
 
-    d_lon = da[lon_name].max() - da[lon_name].min()
-    d_lat = da[lat_name].max() - da[lat_name].min()
+    d_lon = da[longitude_name].max() - da[longitude_name].min()
+    d_lat = da[latitude_name].max() - da[latitude_name].min()
 
     The horizontal extent is then the distance from the value a virtual point at (0,0) to a Point at (d_lat, d_lon)
 
@@ -104,18 +104,18 @@ def horizontal_extent_func(
     ----------
     da : xr.DataArray
         DataArray containing the cloud information.
-    lon_name : str, optional
-        Name of the longitude coordinate, by default "lon"
-    lat_name : str, optional
-        Name of the latitude coordinate, by default "lat"
+    longitude_name : str, optional
+        Name of the longitude coordinate, by default "longitude"
+    latitude_name : str, optional
+        Name of the latitude coordinate, by default "latitude"
 
     Returns
     -------
     xr.DataArray
         The spatial extent of the cloud in m.
     """
-    d_lon = da[lon_name].max() - da[lon_name].min()
-    d_lat = da[lat_name].max() - da[lat_name].min()
+    d_lon = da[longitude_name].max() - da[longitude_name].min()
+    d_lat = da[latitude_name].max() - da[latitude_name].min()
     horizontal_extent = 1e3 * great_circle_distance_np(d_lat, d_lon, 0, 0)
     horizontal_extent.name = "horizontal_extent"
     horizontal_extent.attrs.update(
@@ -130,7 +130,7 @@ def horizontal_extent_func(
 
 def vertical_extent_func(
     ds: xr.Dataset,
-    alt_name: str = "alt",
+    altitude_name: str = "altitude",
 ) -> xr.DataArray:
     """
     Calculate the vertical extent of a Dataset in the same unit as the altitude is
@@ -145,35 +145,35 @@ def vertical_extent_func(
     ----------
     ds : xr.Dataset
         Dataset containing the cloud information.
-    alt_name : str, optional
-        Name of the altitude coordinate, by default "alt"
+    altitude_name : str, optional
+        Name of the altitude coordinate, by default "altitude"
 
     Returns
     -------
     xr.DataArray
-        The vertical extent of the cloud in the same unit as ``ds[alt_name]``.
+        The vertical extent of the cloud in the same unit as ``ds[altitude_name]``.
     """
 
-    alt_attrs = ds[alt_name].attrs
+    altitude_attrs = ds[altitude_name].attrs
 
     known_unit_keys = ["units", "Units", "unit", "Unit"]
     found = False
     for key in known_unit_keys:
-        if key in alt_attrs:
-            alt_units = alt_attrs[key]
+        if key in altitude_attrs:
+            altitude_units = altitude_attrs[key]
             found = True
             break
     if not found:
         warnings.warn("No units found for altitude.")
-        alt_units = "None"
+        altitude_units = "None"
 
-    vertical_extent = ds[alt_name].max() - ds[alt_name].min()
+    vertical_extent = ds[altitude_name].max() - ds[altitude_name].min()
     vertical_extent.name = "vertical_extent"
     vertical_extent.attrs.update(
         {
             "long_name": "vertical extent of cloud",
-            "units": f"{alt_units}",
-            "description": f"The vertical extent of the cloud in {alt_units}. Calculated as the difference between the maximum and minimum altitude.",
+            "units": f"{altitude_units}",
+            "description": f"The vertical extent of the cloud in {altitude_units}. Calculated as the difference between the maximum and minimum altitude.",
         }
     )
     return vertical_extent

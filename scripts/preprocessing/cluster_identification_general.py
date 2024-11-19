@@ -15,9 +15,9 @@ Data variables:
         duration              (time) timedelta64[ns] 00:00:00 ...
         mid_time              (time) datetime64[ns] 2017-01-01T00:32:00 ...
         liquid_water_content  (time) float64 ...
-        alt                   (time) float64 ...
-        lat                   (time) float64 ...
-        lon                   (time) float64 ...
+        altitude                   (time) float64 ...
+        latitude                   (time) float64 ...
+        longitude                   (time) float64 ...
 
 The variables are defined as follows:
         - start: start time of cloud event
@@ -25,9 +25,9 @@ The variables are defined as follows:
         - duration: duration of cloud event
         - mid_time: mid time of cloud event
         - liquid_water_content: total LWC of cloud event
-        - alt: mean altitude of cloud event
-        - lat: mean latitude of cloud event
-        - lon: mean longitude of cloud event
+        - altitude: mean altitude of cloud event
+        - latitude: mean latitude of cloud event
+        - longitude: mean longitude of cloud event
 
 The dataset is stored in the folder data/observation/cloud_composite/processed/
 
@@ -46,6 +46,7 @@ import logging
 import os
 import secrets
 import sys
+import time
 
 from pathlib import Path
 
@@ -154,7 +155,7 @@ with open(OUTPUT_DIR / settings_output_name, "w") as file:
 
 
 def main(mask_name=mask_name):
-    cloud_composite = xr.open_dataset(INPUT_FILEPATH, chunks={"time": 1000})
+    cloud_composite = xr.open_dataset(INPUT_FILEPATH, chunks={"time": 100000})
 
     with ProgressBar():
         logging.info("Create cluster mask")
@@ -178,8 +179,8 @@ def main(mask_name=mask_name):
         logging.info("Identify clouds using xr.diff")
         cloud_diff = cloud_composite[mask_name].fillna(0).astype(int).diff(dim="time")
         cloud_diff = cloud_diff.compute()
-        cloud_start = cloud_diff.time.where(cloud_diff == 1, drop=True)
-        cloud_end = cloud_diff.time.where(cloud_diff == -1, drop=True)
+        cloud_start = cloud_diff["time"].where(cloud_diff == 1, drop=True)
+        cloud_end = cloud_diff["time"].where(cloud_diff == -1, drop=True)
 
         # if the last start is larger than the end, the cloud is still active
         # in the end of the dataset, so we need to append the last time step to cloud_end
@@ -200,7 +201,7 @@ def main(mask_name=mask_name):
 
         clouds.attrs = {
             "description": "cloud identification dataset",
-            "creation_time": datetime.datetime.now(datetime.UTC).strftime("%Y-%m-%d %H:%M:%S"),
+            "creation_time": datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),
             "details": details,
             "author": "Nils Niebaum",
             "email": "nils-ole.niebaum@mpimet.mpg.de",
@@ -226,42 +227,42 @@ def main(mask_name=mask_name):
     clouds = xr.open_dataset(TEMPORARY_FILEPATH)
 
     logging.info("Calculate mean altitude of cloud events")
-    clouds["alt"] = (
+    clouds["altitude"] = (
         "time",
         [
-            cloud_composite["alt"].sel(time=slice(start, end)).mean()
+            cloud_composite["altitude"].sel(time=slice(start, end)).mean()
             for start, end in zip(clouds.start.data, clouds.end.data)
         ],
     )
-    clouds["alt"].attrs = {
+    clouds["altitude"].attrs = {
         "long_name": "mean altitude of cloud event",
         "units": "m",
         "comment": "This is the mean altitude of all pixels in the cloud event.\nFrom SAFIRE ATR42 Inertial/GPS System",
     }
 
     logging.info("Calculate mean latitude of cloud events")
-    clouds["lat"] = (
+    clouds["latitude"] = (
         "time",
         [
-            cloud_composite["lat"].sel(time=slice(start, end)).mean()
+            cloud_composite["latitude"].sel(time=slice(start, end)).mean()
             for start, end in zip(clouds.start.data, clouds.end.data)
         ],
     )
-    clouds["lat"].attrs = {
+    clouds["latitude"].attrs = {
         "long_name": "mean latitude of cloud event",
         "units": "degree",
         "comment": "This is the mean latitude of all pixels in the cloud event.\nFrom SAFIRE ATR42 Inertial/GPS System.",
     }
 
     logging.info("Calculate mean longitude of cloud events")
-    clouds["lon"] = (
+    clouds["longitude"] = (
         "time",
         [
-            cloud_composite["lon"].sel(time=slice(start, end)).mean()
+            cloud_composite["longitude"].sel(time=slice(start, end)).mean()
             for start, end in zip(clouds.start.data, clouds.end.data)
         ],
     )
-    clouds["lon"].attrs = {
+    clouds["longitude"].attrs = {
         "long_name": "mean longitude of cloud event",
         "units": "degree",
         "comment": "This is the mean longitude of all pixels in the cloud event.\nFrom SAFIRE ATR42 Inertial/GPS System.",
@@ -314,6 +315,7 @@ def main(mask_name=mask_name):
         clouds.to_netcdf(OUTPUT_DIR / OUTPUT_FILE_NAME)
     logging.info(f"File written to {OUTPUT_DIR / OUTPUT_FILE_NAME}")
     logging.info("Remove temporary file")
+    time.sleep(10)
     Path(TEMPORARY_FILEPATH).unlink()
     logging.info("Successfully finished cloud identification pre-processing")
 

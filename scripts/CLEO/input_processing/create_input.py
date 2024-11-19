@@ -153,7 +153,7 @@ print(repo_path)
 
 version_control = dict(
     git_hash=get_git_revision_hash(),
-    date=datetime.datetime.now(datetime.UTC).strftime("%Y-%m-%d %H:%M:%S"),
+    date=datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),
 )
 
 
@@ -227,7 +227,7 @@ sys.excepthook = handle_exception
 logging.info("============================================================")
 logging.info("Start preprocessing of identified clouds to create input for CLEO")
 logging.info("Git hash: %s", get_git_revision_hash())
-logging.info("Date: %s", datetime.datetime.now(datetime.UTC).strftime("%Y-%m-%d %H:%M:%S"))
+logging.info("Date: %s", datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d %H:%M:%S"))
 logging.info("Output directory: %s", output_dir)
 logging.info("============================================================")
 

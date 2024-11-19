@@ -8,7 +8,7 @@ https://doi.org/10.25326/237 which is stored locally in
     - convert time to datetime object
     - use diameter as coordinate for size bins
     - modify attributes
-    - save the produced datset to netcdf file
+    - save the produced dataset to netcdf file
 The produced dataset is stored in ../data/observation/cloud_composite/processed
 """
 
@@ -261,7 +261,7 @@ except Exception as e:
     raise e
 
 
-print(f"Save the produced datset to netcdf file?\n{DESTINATION_DIRECTORY / 'cloud_composite.nc'}")
+print(f"Save the produced dataset to netcdf file?\n{DESTINATION_DIRECTORY / 'cloud_composite.nc'}")
 user_input = input("Do you want to continue running the script? (y/n): ")
 if user_input.lower() == "y":
     print("Saving dataset\nPlease wait...")

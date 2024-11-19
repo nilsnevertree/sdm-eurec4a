@@ -575,12 +575,12 @@ def match_clouds_and_cloudcomposite(
     --------
     >>> ds_cloudcomposite = xr.Dataset(
     ...     {
-    ...         "cloud_composite": (("time", "lat", "lon"), np.random.rand(5, 5, 5)),
+    ...         "cloud_composite": (("time", "latitude", "longitude"), np.random.rand(5, 5, 5)),
     ...     },
     ...     coords={
     ...         "time": pd.date_range("2020-01-01", periods=5),
-    ...         "lat": np.arange(5),
-    ...         "lon": np.arange(5),
+    ...         "latitude": np.arange(5),
+    ...         "longitude": np.arange(5),
     ...     },
     ... )
     >>> ds_clouds = xr.Dataset(
@@ -594,13 +594,13 @@ def match_clouds_and_cloudcomposite(
     ... )
     >>> match_multiple_clouds_and_cloudcomposite(ds_clouds, ds_cloudcomposite)
     <xarray.Dataset>
-    Dimensions:          (lat: 5, lon: 5, time: 3)
+    Dimensions:          (latitude: 5, longitude: 5, time: 3)
     Coordinates:
         * time             (time) datetime64[ns] 2020-01-01 2020-01-02 2020-01-03
-        * lat              (lat) int64 0 1 2 3 4
-        * lon              (lon) int64 0 1 2 3 4
+        * latitude              (latitude) int64 0 1 2 3 4
+        * longitude              (longitude) int64 0 1 2 3 4
     Data variables:
-        cloud_composite  (time, lat, lon) float64 0.548 0.592 0.046 0.607 ... 0.236 0.604 0.959 0.22
+        cloud_composite  (time, latitude, longitude) float64 0.548 0.592 0.046 0.607 ... 0.236 0.604 0.959 0.22
     """
 
     # create a list of time arrays for each cloud
