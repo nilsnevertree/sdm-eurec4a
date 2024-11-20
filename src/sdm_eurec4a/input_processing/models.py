@@ -342,6 +342,44 @@ class DoubleLnParams(TypedDict):
     scale_factor2: float
 
 
+def double_log_normal_distribution(
+    x: np.ndarray,
+    mu1: float,
+    sigma1: float,
+    scale1: float,
+    mu2: float,
+    sigma2: float,
+    scale2: float,
+) -> np.ndarray:
+    """calculate probability of independent variable `x` given the paramters of a
+    lognormal dsitribution
+
+    The general lognormal distribution is given by:
+    g(x; mu1, sig1, mu2, sig2) = LnNormal(x; mu1, sig1) + LnNormal(x; mu2, sig2)
+    with n being the standard normal distribution.
+
+    Parameters
+    ----------
+    x : np.ndarray
+        array of independent variable
+    mu : float
+        mean of the distribution
+    sig : float
+        standard deviation of the distribution
+    scale : float
+        scale factor
+
+    Returns
+    -------
+    result : np.ndarray
+        probability distribution
+    """
+    results = log_normal_distribution(x, mu1, sigma1, scale1) + log_normal_distribution(
+        x, mu2, sigma2, scale2
+    )
+    return results
+
+
 def double_ln_normal_distribution(
     t: np.ndarray,
     mu1: float,
@@ -724,7 +762,7 @@ class LeastSquareFit:
     def bounds(self) -> Bounds:
         return self._bounds
 
-    def fit(self, repetitions: int = 1):
+    def fit(self, repetitions: int = 1, add_noise: bool = True, seed=42):
         """
         Perform the fitting process. Can repeat the fitting multiple times.
 
@@ -734,7 +772,14 @@ class LeastSquareFit:
         Returns:
             The result of the fitting process.
         """
+        # np.random.seed(seed)
+
         for i in np.arange(repetitions):
+
+            # x_guess = self.x_guess
+            # # add a 5 % of noise to each parameter
+            # if add_noise:
+            #     x_guess = x_guess + 0.05 * x_guess * np.random.randn(len(x_guess))
 
             self.fit_result = least_squares(
                 self.cost_func,
