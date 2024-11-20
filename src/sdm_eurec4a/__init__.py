@@ -11,16 +11,16 @@ from typing import Any
 class RepositoryPath:
     """Path to the repository root."""
 
-    _levante_ = dict(
-        repo_dir=Path("/home/m/m301096/repositories/sdm-eurec4a/"),
-        data_dir=Path("/work/mh1126/m301096/softlinks/sdm-eurec4a/data"),
+    _known_development_regimes = dict(
+        levante=dict(
+            repo_dir=Path("/home/m/m301096/repositories/sdm-eurec4a/"),
+            data_dir=Path("/work/mh1126/m301096/softlinks/sdm-eurec4a/data"),
+        ),
+        nils_levante=dict(
+            repo_dir=Path("/home/m/m301096/repositories/sdm-eurec4a/"),
+            data_dir=Path("/work/mh1126/m301096/softlinks/sdm-eurec4a/data"),
+        ),
     )
-    _nils_levante_ = dict(
-        repo_dir=Path("/home/m/m301096/repositories/sdm-eurec4a/"),
-        data_dir=Path("/work/mh1126/m301096/softlinks/sdm-eurec4a/data"),
-    )
-
-    _known_development_regimes = ["levante", "nils_levante"]
 
     def __init__(self, development_regime, *args, **kwargs):
         if development_regime not in RepositoryPath._known_development_regimes:
@@ -28,12 +28,9 @@ class RepositoryPath:
                 f"Unknown development regime: {development_regime}. "
                 f"Known development regimes: {RepositoryPath._known_development_regimes}"
             )
-        elif development_regime == "levante":
-            self.repo_dir = RepositoryPath._levante_["repo_dir"]
-            self.data_dir = RepositoryPath._levante_["data_dir"]
-        elif development_regime == "nils_levante":
-            self.repo_dir = RepositoryPath._nils_levante_["repo_dir"]
-            self.data_dir = RepositoryPath._nils_levante_["data_dir"]
+        else:
+            self.repo_dir = RepositoryPath._known_development_regimes[development_regime]["repo_dir"]
+            self.data_dir = RepositoryPath._known_development_regimes[development_regime]["data_dir"]
 
     def set_repo_dir(self, repo_dir):
         self.repo_dir = repo_dir
