@@ -208,7 +208,7 @@ def log_normal_distribution_all(
     parameter_space: str = "direct",
     space: str = "linear",
     density_scaled: bool = False,
-):
+) -> np.ndarray:
     """calculate probability of independent variable `x` given the paramters of a
     lognormal dsitribution.
     Here one assumes the geometric mean and standard deviation.
@@ -263,10 +263,12 @@ def log_normal_distribution_all(
         mu = np.log(mu)
         sigma = np.log(sigma)
     elif parameter_space == "exact":
-        mu_x = np.log(mu**2 / np.sqrt(sigma**2 + mu**2))
-        sigma_x = np.sqrt(np.log(1 + sigma**2 / mu**2))
-        mu = mu_x
-        sigma = sigma_x
+        mu = np.log(mu) + np.log(sigma) ** 2
+        sigma = np.log(sigma)
+        # mu_x = np.log(mu**2 / np.sqrt(sigma**2 + mu**2))
+        # sigma_x = np.sqrt(np.log(1 + sigma**2 / mu**2))
+        # mu = mu_x
+        # sigma = sigma_x
 
     if space == "linear":
         # in the linear space, the distribution is calculated as usual
@@ -284,8 +286,9 @@ def log_normal_distribution_all(
 
     if density_scaled:
         result = result / np.nansum(result)
-    else:
-        return scale * result
+        result = result * scale
+
+    return result
 
 
 def ln_normal_distribution(
