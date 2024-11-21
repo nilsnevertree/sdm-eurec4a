@@ -16,6 +16,7 @@ The produced dataset is stored in ../data/observation/dropsonde/processed/drop_s
 # %%
 import datetime
 import logging
+import sys
 
 from pathlib import Path
 
@@ -36,11 +37,39 @@ DESTINATION_DIRECTORY = REPO_PATH / Path("data/observation/dropsonde/processed")
 DESTINATION_DIRECTORY.mkdir(parents=True, exist_ok=True)
 DESTINATION_FILENAME = "drop_sondes.nc"
 
-logging.basicConfig(
-    filename=DESTINATION_DIRECTORY / "drop_sondes_preprocessing.log",
-    level=logging.INFO,
-    format="%(asctime)s - %(levelname)s - %(message)s",
-)
+log_file_path = DESTINATION_DIRECTORY / "drop_sondes_preprocessing.log"
+
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
+
+# create a file handler
+handler = logging.FileHandler(log_file_path)
+handler.setLevel(logging.INFO)
+
+# create a console handler
+console_handler = logging.StreamHandler()
+console_handler.setLevel(logging.INFO)
+
+# create a logging format
+formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
+handler.setFormatter(formatter)
+console_handler.setFormatter(formatter)
+
+# add the handlers to the logger
+logger.addHandler(handler)
+logger.addHandler(console_handler)
+
+
+def handle_exception(exc_type, exc_value, exc_traceback):
+    if issubclass(exc_type, KeyboardInterrupt):
+        sys.__excepthook__(exc_type, exc_value, exc_traceback)
+        return
+
+    logger.critical(
+        "Execution terminated due to an Exception", exc_info=(exc_type, exc_value, exc_traceback)
+    )
+
+
 logging.info("============================================================")
 logging.info("Start drop_sondes pre-processing")
 logging.info("Git hash: %s", get_git_revision_hash())
