@@ -5,7 +5,7 @@ paths:
   # The path to the input file
   input_filepath: data/observation/cloud_composite/processed/cloud_composite_SI_units_20241025.nc
   # The path to the directory where the output data will be stored
-  output_directory: data/observation/cloud_composite/processed/identified_clouds/
+  output_directory: data/observation/cloud_composite/processed/identified_clusters/
   # The output file name. If NULL is provided, the input file will be automatically made:
   # f"identified_clouds_{mask_name}.nc"
   output_file_name : NULL
