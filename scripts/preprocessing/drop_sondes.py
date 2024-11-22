@@ -132,8 +132,8 @@ try:
     logging.info("Modify and add attributes")
     data.assign_attrs(
         {
-            "Modified_by": "Nils Niebaum",
-            "Modification_date_UTC": datetime.datetime.now(datetime.timezone.utc).strftime(
+            "modified_by": "Nils Niebaum",
+            "modification_date_UTC": datetime.datetime.now(datetime.timezone.utc).strftime(
                 "%Y-%m-%d %H:%M:%S"
             ),
             "GitHub Repository": "https://github.com/nilsnevertree/sdm-eurec4a",

@@ -251,8 +251,10 @@ try:
         {
             "creation_date": "varying, see single source files",
             "flight_id": "varying, see also flight_number",
-            "Modified_by": "Nils Niebaum",
-            "Modification_date_UTC": datetime.datetime.now(datetime.UTC).strftime("%Y-%m-%d %H:%M:%S"),
+            "modified_by": "Nils Niebaum",
+            "modification_date_UTC": datetime.datetime.now(datetime.timezone.utc).strftime(
+                "%Y-%m-%d %H:%M:%S"
+            ),
         }
     )
 

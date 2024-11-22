@@ -258,8 +258,8 @@ logging.info("Modify and add attributes")
 datas.assign_attrs(
     {
         "flight_id": "varying, see also flight_number",
-        "Modified_by": "Nils Niebaum",
-        "Modification_date_UTC": datetime.datetime.now(datetime.timezone.utc).strftime(
+        "modified_by": "Nils Niebaum",
+        "modification_date_UTC": datetime.datetime.now(datetime.timezone.utc).strftime(
             "%Y-%m-%d %H:%M:%S"
         ),
         "GitHub Repository": "https://github.com/nilsnevertree/sdm-eurec4a",

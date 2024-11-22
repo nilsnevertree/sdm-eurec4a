@@ -152,7 +152,7 @@ print(repo_path)
 
 
 version_control = dict(
-    git_hash=get_git_revision_hash(),
+    git_commit=get_git_revision_hash(),
     date=datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),
 )
 
