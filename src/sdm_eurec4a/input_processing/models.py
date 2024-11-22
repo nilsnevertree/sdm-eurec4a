@@ -807,7 +807,7 @@ class LeastSquareFit:
         return t_test, self.func(t_test, **self.parameters)
 
 
-class DoubleLnNormalLeastSquare(LeastSquareFit):
+class DoubleLnNormalFit(LeastSquareFit):
     """
     A class to perform least squares fitting for a double log-normal distribution.
 
@@ -838,7 +838,7 @@ class DoubleLnNormalLeastSquare(LeastSquareFit):
         plot_kwargs: Dict = dict(),
     ):
         """
-        Initialize the DoubleLnNormalLeastSquare instance.
+        Initialize the DoubleLnNormalFit instance.
 
         Parameters:
             name (str): The name of the fitting instance.
@@ -859,7 +859,113 @@ class DoubleLnNormalLeastSquare(LeastSquareFit):
         )
 
 
-class LnNormalLeastSquare(LeastSquareFit):
+class CleoDoubleLnNormalFit(LeastSquareFit):
+    """
+    A class to perform least squares fitting for a double log-normal distribution.
+
+    Attributes:
+        name (str): The name of the fitting instance.
+        func (Callable): The model function to fit.
+        cost_func (Callable): The cost function to minimize.
+        x0 (np.ndarray): Initial guess for the parameters.
+        bounds (Bounds): Bounds on the parameters.
+        t_train (Union[np.ndarray, xr.DataArray]): Training data for the independent variable.
+        y_train (Union[np.ndarray, xr.DataArray]): Training data for the dependent variable.
+        fit_kwargs (Dict): Additional keyword arguments for the least_squares function.
+        plot_kwargs (Dict): Additional keyword arguments for plotting.
+        fit_result: The result of the fitting process.
+
+    Methods:
+
+    """
+
+    def __init__(
+        self,
+        name: str,
+        x0: np.ndarray,
+        bounds: Bounds,
+        t_train: Union[xr.DataArray, np.ndarray],
+        y_train: Union[xr.DataArray, np.ndarray],
+        fit_kwargs: Dict = dict(),
+        plot_kwargs: Dict = dict(),
+        t_weight_power: Union[None, int] = None,
+    ):
+        """
+        Initialize the DoubleLnNormalFit instance.
+
+        Parameters:
+            name (str): The name of the fitting instance.
+            x0 (np.ndarray): Initial guess for the parameters.
+            bounds (Bounds): Bounds on the parameters.
+            t_train (np.ndarray): Training data for the independent variable.
+            y_train (np.ndarray): Training data for the dependent variable.
+        """
+
+        super().__init__(
+            name=name,
+            func=double_ln_normal_distribution,
+            # cost_func=double_ln_normal_distribution_cost,
+            x0=x0,
+            bounds=bounds,
+            t_train=t_train,
+            y_train=y_train,
+            fit_kwargs=fit_kwargs,
+            plot_kwargs=plot_kwargs,
+        )
+
+        if t_weight_power is not None:
+            self.t_weight_power = t_weight_power
+            self.cost_func = self.__weighted_cost_func__
+        else:
+            self.cost_func = self.__default_cost_func__
+
+    def __default_cost_func__(self, x: np.ndarray, t: np.ndarray, y: np.ndarray, **kwargs) -> np.ndarray:
+        """
+        The cost function to minimize.
+
+        Parameters:
+            x (np.ndarray): The parameters to estimate.
+            t (np.ndarray): The independent variable.
+            y (np.ndarray): The dependent variable.
+
+        Returns:
+            np.ndarray: The difference between the predicted and the actual data.
+        """
+        diff = y - self.func(t, *x)
+
+        diff = np.ravel(diff)
+
+        # only use the non-NaN values
+        idx = np.where(~np.isnan(diff))
+        diff = diff[idx]
+        return diff
+
+    def __weighted_cost_func__(
+        self, x: np.ndarray, t: np.ndarray, y: np.ndarray, **kwargs
+    ) -> np.ndarray:
+        """
+        The cost function to minimize.
+
+        Parameters:
+            x (np.ndarray): The parameters to estimate.
+            t (np.ndarray): The independent variable.
+            y (np.ndarray): The dependent variable.
+
+        Returns:
+            np.ndarray: The difference between the predicted and the actual data.
+        """
+        weight = t**self.t_weight_power
+        diff = weight * (y - self.func(t, *x))
+
+        diff = np.ravel(diff)
+
+        # only use the non-NaN values
+        idx = np.where(~np.isnan(diff))
+        diff = diff[idx]
+        return diff
+
+
+class LnNormalFit(LeastSquareFit):
     """
     A class to perform least squares fitting for a log-normal distribution.
 
@@ -892,7 +998,7 @@ class LnNormalLeastSquare(LeastSquareFit):
         plot_kwargs: Dict = dict(),
     ):
         """
-        Initialize the LnNormalLeastSquare instance.
+        Initialize the LnNormalFit instance.
 
         Parameters:
             name (str): The name of the fitting instance.
