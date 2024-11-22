@@ -247,7 +247,7 @@ def log_normal_distribution_all(
     density_scaled : bool
         If True, the distribution is scaled to a density distribution.
         The integral over the given x values is 1 * scale.
-        If you change the input of x, you have to rescale the distribution.
+        NOTE: That this is NOT a analytical solution! If you change the input of x, you have to rescale the distribution.
         Default is False.
 
     Returns
@@ -286,9 +286,9 @@ def log_normal_distribution_all(
 
     if density_scaled:
         result = result / np.nansum(result)
-        result = result * scale
-
-    return result
+        return result * scale
+    else : 
+        return scale * result
 
 
 def ln_normal_distribution(
