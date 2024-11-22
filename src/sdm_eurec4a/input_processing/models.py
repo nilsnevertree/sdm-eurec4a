@@ -287,7 +287,7 @@ def log_normal_distribution_all(
     if density_scaled:
         result = result / np.nansum(result)
         return result * scale
-    else : 
+    else:
         return scale * result
 
 
