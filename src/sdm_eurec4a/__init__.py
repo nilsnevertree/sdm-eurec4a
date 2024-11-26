@@ -20,6 +20,10 @@ class RepositoryPath:
             repo_dir=Path("/home/m/m301096/repositories/sdm-eurec4a/"),
             data_dir=Path("/work/mh1126/m301096/softlinks/sdm-eurec4a/data"),
         ),
+        nils_private=dict(
+            repo_dir=Path("C:/Users/Niebaum/Documents/Repositories/sdm-eurec4a"),
+            data_dir=Path("C:/Users/Niebaum/Documents/Repositories/sdm-eurec4a/data"),
+        ),
     )
 
     def __init__(self, development_regime, *args, **kwargs):
