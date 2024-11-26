@@ -206,7 +206,7 @@ def log_normal_distribution_all(
     sigma: float,
     scale: float,
     parameter_space: str = "direct",
-    space: str = "linear",
+    x_space: str = "linear",
     density_scaled: bool = False,
 ) -> np.ndarray:
     """calculate probability of independent variable `x` given the paramters of a
@@ -229,21 +229,21 @@ def log_normal_distribution_all(
     scale : float
         scale factor
     parameter_space : str
-        Defines the space in which the parameters are given.
+        Defines the x_space in which the parameters are given.
         Default is 'direct'
         - If 'direct' (the default), it is assumed that the given ``mu`` and ``sigma`` are the parameters of the distribution.
         - If 'geometric', it is assumed that the given ``mu`` and ``sigma`` are the geometric mean and standard deviation.
         - If 'exact', it is assumed that the given ``mu`` and ``sigma`` are the exact mean and standard deviation.
         default is False
-    space : str
-        Defines the space in which the distribution is calculated.
-        In other words in which space the independent variable is given.
+    x_space : str
+        Defines the x_space in which the distribution is calculated.
+        In other words in which x_space the independent variable is given.
         Default is 'linear'
-        - If 'linear' (the default), the distribution is it assumed that x is given in linear space.
+        - If 'linear' (the default), the distribution is it assumed that x is given in linear x_space.
         So for instance radius in m.
-        - If 'ln', the distribution it is assumed that x is given in natural logarithm space.
+        - If 'ln', the distribution it is assumed that x is given in natural logarithm x_space.
         So for instance radius in ln(m).
-        - If 'cleo', the distribution is calculated in the linear space but the independent variable is multiplied by x.
+        - If 'cleo', the distribution is calculated in the linear x_space but the independent variable is multiplied by x.
     density_scaled : bool
         If True, the distribution is scaled to a density distribution.
         The integral over the given x values is 1 * scale.
@@ -262,28 +262,18 @@ def log_normal_distribution_all(
     elif parameter_space == "geometric":
         mu = np.log(mu)
         sigma = np.log(sigma)
-    elif parameter_space == "exact":
-        mu = np.log(mu) + np.log(sigma) ** 2
-        sigma = np.log(sigma)
-        # mu_x = np.log(mu**2 / np.sqrt(sigma**2 + mu**2))
-        # sigma_x = np.sqrt(np.log(1 + sigma**2 / mu**2))
-        # mu = mu_x
-        # sigma = sigma_x
-
-    if space == "linear":
-        # in the linear space, the distribution is calculated as usual
+    else:
+        raise NotImplementedError("The requested parameter x_space does not exist.")
+    if x_space == "linear":
+        # in the linear x_space, the distribution is calculated as usual
         # R(x) = scale * L(x; mu, sigma)
         result = log_normal_distribution(x, mu, sigma, 1)
-    elif space == "ln":
-        # in the log space, the distribution is calculated by using the
-        # natural logarithm of the independent variable
-        # further, the transformation of the distribution is considered
-        # l(y; mu, sigma) = x * L(x; mu, sigma) with x = exp(y)
-        # Thus we have the result as followes:
-        result = np.exp(x) * log_normal_distribution(np.exp(x), mu, sigma, 1)
-    elif space == "cleo":
+    elif x_space == "ln":
+        # in the ln x_space, the distribution is calculated as
+        # R(x) = scale * x * L(exp(x); mu, sigma)
         result = x * log_normal_distribution(x, mu, sigma, 1)
-
+    else:
+        raise NotImplementedError("The requested x_space does not exist.")
     if density_scaled:
         result = result / np.nansum(result)
         return result * scale
@@ -383,6 +373,71 @@ def double_log_normal_distribution(
     return results
 
 
+def double_log_normal_distribution_all(
+    x: np.ndarray,
+    mu1: float,
+    sigma1: float,
+    scale1: float,
+    mu2: float,
+    sigma2: float,
+    scale2: float,
+    parameter_space: str = "direct",
+    x_space: str = "linear",
+    density_scaled: bool = False,
+) -> np.ndarray:
+    """
+    Compute the sum of two log-normal distributions.
+
+    Parameters:
+    -----------
+    x (np.ndarray):
+        Input array of values.
+    mu1 (float):
+        Mean of the first log-normal distribution.
+    sigma1 (float):
+        Standard deviation of the first log-normal distribution.
+    scale1 (float):
+        Scale factor for the first log-normal distribution.
+    mu2 (float):
+        Mean of the second log-normal distribution.
+    sigma2 (float):
+        Standard deviation of the second log-normal distribution.
+    scale2 (float):
+        Scale factor for the second log-normal distribution.
+    parameter_space (str, optional):
+        Parameter space to use, either "direct" or "geometric". Defaults to "direct".
+    x_space (str, optional):
+        Space of the input values, either "linear" or "log". Defaults to "linear".
+    density_scaled (bool, optional):
+        Whether to scale the density. Defaults to False.
+
+    Returns:
+    --------
+    np.ndarray:
+        The sum of the two log-normal distributions evaluated at `x`.
+    """
+
+    result1 = log_normal_distribution_all(
+        x=x,
+        mu=mu1,
+        sigma=sigma1,
+        scale=scale1,
+        parameter_space=parameter_space,
+        x_space=x_space,
+        density_scaled=density_scaled,
+    )
+    result2 = log_normal_distribution_all(
+        x=x,
+        mu=mu2,
+        sigma=sigma2,
+        scale=scale2,
+        parameter_space=parameter_space,
+        x_space=x_space,
+        density_scaled=density_scaled,
+    )
+    return result1 + result2
+
+
 def double_ln_normal_distribution(
     t: np.ndarray,
     mu1: float,
@@ -422,7 +477,7 @@ def double_ln_normal_distribution(
 
         dn_dlnr = norm * np.exp(exponent)  # eq.5.8 [lohmann intro 2 clouds]
 
-        result += dn_dlnr
+        result = result + dn_dlnr
 
     return result
 
@@ -627,7 +682,7 @@ class LeastSquareFit:
         Returns:
             np.ndarray: The difference between the predicted and the actual data.
         """
-        diff = y - self.func(t, *x)
+        diff = y - self.func(t, *x, **kwargs)
 
         diff = np.ravel(diff)
 
@@ -636,20 +691,29 @@ class LeastSquareFit:
         diff = diff[idx]
         return diff
 
-    # def __weighted_cost_function__(
-    #         self,
-    #         x : np.ndarray,
-    #         t : np.ndarray,
-    #         y : np.ndarray,
-    #         w : np.ndarray,
-    #         **kwargs,
-    #         ) -> np.ndarray :
-    #     """
-    #     Apply a weighted factor to the cost function
+    def __weighted_t_values_cost_func__(
+        self, x: np.ndarray, t: np.ndarray, y: np.ndarray, **kwargs
+    ) -> np.ndarray:
+        """
+        The cost function to minimize.
 
-    #     Parameters:
-    #     -----
-    #     """
+        Parameters:
+            x (np.ndarray): The parameters to estimate.
+            t (np.ndarray): The independent variable.
+            y (np.ndarray): The dependent variable.
+
+        Returns:
+            np.ndarray: The difference between the predicted and the actual data.
+        """
+        weight = t**self.t_weight_power
+        diff = weight * (y - self.func(t, *x))
+
+        diff = np.ravel(diff)
+
+        # only use the non-NaN values
+        idx = np.where(~np.isnan(diff))
+        diff = diff[idx]
+        return diff
 
     # The model function
     @property
@@ -699,10 +763,10 @@ class LeastSquareFit:
         # validate that x0 fits the model function
         # self.ParameterDict()
         keys = list(self.ParameterDict.keys())
-        if len(x0) != len(keys) - 1:
-            raise ValueError(
-                f"Initial guess x0 has {len(x0)} elements, but the model function has {len(keys)-1} parameters with parameter keys {keys[1:]}"
-            )
+        # if len(x0) != len(keys) - 1:
+        #     raise ValueError(
+        #         f"Initial guess x0 has {len(x0)} elements, but the model function has {len(keys)-1} parameters with parameter keys {keys[1:]}"
+        #     )
 
         self._x0 = x0
 
@@ -804,7 +868,10 @@ class LeastSquareFit:
         Returns:
             Tuple[Union[np.ndarray, xr.DataArray], Union[np.ndarray, xr.DataArray]]: The test data and the predicted dependent variable.
         """
-        return t_test, self.func(t_test, **self.parameters)
+
+        kwargs = self.parameters.copy()
+        kwargs.update(self.fit_kwargs["kwargs"])
+        return t_test, self.func(t_test, **kwargs)
 
 
 class DoubleLnNormalFit(LeastSquareFit):
@@ -832,10 +899,11 @@ class DoubleLnNormalFit(LeastSquareFit):
         name: str,
         x0: np.ndarray,
         bounds: Bounds,
-        t_train: np.ndarray,
-        y_train: np.ndarray,
+        t_train: Union[xr.DataArray, np.ndarray],
+        y_train: Union[xr.DataArray, np.ndarray],
         fit_kwargs: Dict = dict(),
         plot_kwargs: Dict = dict(),
+        t_weight_power: Union[None, int] = None,
     ):
         """
         Initialize the DoubleLnNormalFit instance.
@@ -847,9 +915,10 @@ class DoubleLnNormalFit(LeastSquareFit):
             t_train (np.ndarray): Training data for the independent variable.
             y_train (np.ndarray): Training data for the dependent variable.
         """
+
         super().__init__(
             name=name,
-            func=double_ln_normal_distribution,
+            func=double_log_normal_distribution_all,
             x0=x0,
             bounds=bounds,
             t_train=t_train,
@@ -857,6 +926,12 @@ class DoubleLnNormalFit(LeastSquareFit):
             fit_kwargs=fit_kwargs,
             plot_kwargs=plot_kwargs,
         )
+
+        if t_weight_power is not None:
+            self.t_weight_power = t_weight_power
+            self.cost_func = self.__weighted_t_values_cost_func__
+        else:
+            self.cost_func = self.__default_cost_func__
 
 
 class CleoDoubleLnNormalFit(LeastSquareFit):
@@ -915,54 +990,9 @@ class CleoDoubleLnNormalFit(LeastSquareFit):
 
         if t_weight_power is not None:
             self.t_weight_power = t_weight_power
-            self.cost_func = self.__weighted_cost_func__
+            self.cost_func = self.__weighted_t_values_cost_func__
         else:
             self.cost_func = self.__default_cost_func__
-
-    def __default_cost_func__(self, x: np.ndarray, t: np.ndarray, y: np.ndarray, **kwargs) -> np.ndarray:
-        """
-        The cost function to minimize.
-
-        Parameters:
-            x (np.ndarray): The parameters to estimate.
-            t (np.ndarray): The independent variable.
-            y (np.ndarray): The dependent variable.
-
-        Returns:
-            np.ndarray: The difference between the predicted and the actual data.
-        """
-        diff = y - self.func(t, *x)
-
-        diff = np.ravel(diff)
-
-        # only use the non-NaN values
-        idx = np.where(~np.isnan(diff))
-        diff = diff[idx]
-        return diff
-
-    def __weighted_cost_func__(
-        self, x: np.ndarray, t: np.ndarray, y: np.ndarray, **kwargs
-    ) -> np.ndarray:
-        """
-        The cost function to minimize.
-
-        Parameters:
-            x (np.ndarray): The parameters to estimate.
-            t (np.ndarray): The independent variable.
-            y (np.ndarray): The dependent variable.
-
-        Returns:
-            np.ndarray: The difference between the predicted and the actual data.
-        """
-        weight = t**self.t_weight_power
-        diff = weight * (y - self.func(t, *x))
-
-        diff = np.ravel(diff)
-
-        # only use the non-NaN values
-        idx = np.where(~np.isnan(diff))
-        diff = diff[idx]
-        return diff
 
 
 class LnNormalFit(LeastSquareFit):
