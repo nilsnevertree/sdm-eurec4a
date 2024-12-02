@@ -149,8 +149,8 @@ def test_x_y_flatten_DataArray():
         np.arange(2 * 4).reshape(2, 4),
         dims=("dim_0", "dim_1"),
         coords={
-            "dim_0": np.arange(2),
             "dim_1": np.arange(4),
+            "dim_0": np.arange(2),
         },
     )
     x, y = x_y_flatten(da, "dim_0")
