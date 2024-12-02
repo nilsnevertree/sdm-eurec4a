@@ -141,6 +141,12 @@ try:
         }
     )
 
+    logging.info("Convert relative humidity to percentage")
+    attrs = data["relative_humidity"].attrs
+    data["relative_humidity"] = data["relative_humidity"] * 100
+    data["relative_humidity"].attrs = attrs
+    data["relative_humidity"].attrs["units"] = "\%"
+
 except Exception as e:
     logging.exception("Error while organizing dataset")
     raise e
