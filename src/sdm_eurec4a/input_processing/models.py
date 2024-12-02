@@ -61,9 +61,8 @@ def split_linear_func(
         y_1 = linear_func(x=x_1, f_0=f_0, slope=slope_1)
         y_2 = linear_func(x=x_2, f_0=f_0 + (slope_1 - slope_2) * x_split, slope=slope_2)
 
-        y_1 = np.where(x <= x_split, y_1, 0)
-        y_2 = np.where(x > x_split, y_2, 0)
-        return y_1 + y_2
+        y = np.where(x <= x_split, y_1, y_2)
+        return y
     elif isinstance(x, xr.DataArray):
 
         x_1 = x.where(x <= x_split)
@@ -72,9 +71,8 @@ def split_linear_func(
         y_1 = linear_func(x=x_1, f_0=f_0, slope=slope_1)
         y_2 = linear_func(x=x_2, f_0=f_0 + (slope_1 - slope_2) * x_split, slope=slope_2)
 
-        y_1 = xr.where(x <= x_split, y_1, 0)
-        y_2 = xr.where(x > x_split, y_2, 0)
-        return y_1 + y_2
+        y = xr.where(x <= x_split, y_1, y_2)
+        return y
 
 
 def lnnormaldist(
