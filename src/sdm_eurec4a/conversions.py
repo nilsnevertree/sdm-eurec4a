@@ -786,7 +786,7 @@ def specific_humidity_from_relative_humidity_temperature_pressure(
     return q_v
 
 
-def potential_temperature_from_tp(
+def potential_temperature_from_temperature_pressure(
     air_temperature: xr.DataArray,
     pressure: xr.DataArray,
     pressure_reference: Union[
@@ -823,3 +823,43 @@ def potential_temperature_from_tp(
     )
     theta = __attrs_if_dataarray__(da=theta, attrs=attrs)
     return theta
+
+
+def temperature_from_potential_temperature_pressure(
+    potential_temperature: xr.DataArray,
+    pressure: xr.DataArray,
+    pressure_reference: Union[
+        float, np.ndarray, xr.DataArray
+    ] = 100000,  # default value used for drop sondes dataset
+    R_over_cp: float = 0.286,
+):
+    """
+    Calculate the potential temperature from the air temperature and the pressure.
+
+    Parameters
+    ----------
+    air_temperature : xr.DataArray or xr.DataArray
+        The air temperature in Kelvin.
+    pressure : xr.DataArray  or xr.DataArray
+        The pressure in Pa.
+    pressure_reference : float
+        The reference pressure in Pa.
+    R_over_cp : float, optional
+        The ratio of the gas constant of air to the specific heat capacity at
+        constant pressure. Default is 0.286.
+
+    Returns
+    -------
+    np.ndarray
+        The potential temperature in Kelvin.
+    """
+    factor = (pressure_reference / pressure) ** R_over_cp
+    air_temperature = potential_temperature / factor
+    attrs = dict(
+        name="temperature",
+        units="K",
+        long_name="Ambient temperature",
+        description="Ambient temperature calculated from potential temperature and pressure.",
+    )
+    air_temperature = __attrs_if_dataarray__(da=air_temperature, attrs=attrs)
+    return air_temperature
