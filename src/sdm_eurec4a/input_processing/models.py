@@ -15,7 +15,11 @@ def linear_func(x: np.ndarray, f_0: float = 2, slope: float = 1):
 
 
 def split_linear_func(
-    x: np.ndarray, f_0: float = 2, slope_1: float = 1, slope_2: float = 2, x_split: float = 800
+    x: Union[np.ndarray, xr.DataArray],
+    f_0: float = 2,
+    slope_1: float = 1,
+    slope_2: float = 2,
+    x_split: float = 800,
 ):
     """
     Split the array x into two arrays at the point x_split. The function is the
@@ -48,15 +52,29 @@ def split_linear_func(
     >>> split_linear(x, f_0=2, slope_1=1, slope_2=2, x_split=800)
     array([  2., 102., 202., 302., 402., 502., 602., 702., 802., 902.])
     """
-    x_1 = np.where(x <= x_split, x, np.nan)
-    x_2 = np.where(x > x_split, x, np.nan)
 
-    y_1 = linear_func(x=x_1, f_0=f_0, slope=slope_1)
-    y_2 = linear_func(x=x_2, f_0=f_0 + (slope_1 - slope_2) * x_split, slope=slope_2)
+    if isinstance(x, np.ndarray):
 
-    y_1 = np.where(x > x_split, 0, y_1)
-    y_2 = np.where(x <= x_split, 0, y_2)
-    return y_1 + y_2
+        x_1 = np.where(x <= x_split, x, np.nan)
+        x_2 = np.where(x > x_split, x, np.nan)
+
+        y_1 = linear_func(x=x_1, f_0=f_0, slope=slope_1)
+        y_2 = linear_func(x=x_2, f_0=f_0 + (slope_1 - slope_2) * x_split, slope=slope_2)
+
+        y_1 = np.where(x <= x_split, y_1, 0)
+        y_2 = np.where(x > x_split, y_2, 0)
+        return y_1 + y_2
+    elif isinstance(x, xr.DataArray):
+
+        x_1 = x.where(x <= x_split)
+        x_2 = x.where(x > x_split)
+
+        y_1 = linear_func(x=x_1, f_0=f_0, slope=slope_1)
+        y_2 = linear_func(x=x_2, f_0=f_0 + (slope_1 - slope_2) * x_split, slope=slope_2)
+
+        y_1 = xr.where(x <= x_split, y_1, 0)
+        y_2 = xr.where(x > x_split, y_2, 0)
+        return y_1 + y_2
 
 
 def lnnormaldist(
@@ -439,28 +457,39 @@ def double_log_normal_distribution_all(
 
 
 def double_ln_normal_distribution(
-    t: np.ndarray,
-    mu1: float,
-    sigma1: float,
-    scale_factor1: float,
-    mu2: float,
-    sigma2: float,
-    scale_factor2: float,
-) -> np.ndarray:
+    t: Union[np.ndarray, xr.DataArray],
+    mu1: Union[float, np.ndarray, xr.DataArray],
+    sigma1: Union[float, np.ndarray, xr.DataArray],
+    scale_factor1: Union[float, np.ndarray, xr.DataArray],
+    mu2: Union[float, np.ndarray, xr.DataArray],
+    sigma2: Union[float, np.ndarray, xr.DataArray],
+    scale_factor2: Union[float, np.ndarray, xr.DataArray],
+) -> Union[np.ndarray, xr.DataArray]:
     """
-    Compute the double log-normal distribution.
+    Compute the double log-normal distribution
+    based on the geometric means and standard deviations of the two distributions.
 
     Parameters:
-        t (np.ndarray): Independent variable.
-        mu1 (float): Mean of the first log-normal distribution.
-        sigma1 (float): Standard deviation of the first log-normal distribution.
-        scale_factor1 (float): Scale factor for the first log-normal distribution.
-        mu2 (float): Mean of the second log-normal distribution.
-        sigma2 (float): Standard deviation of the second log-normal distribution.
-        scale_factor2 (float): Scale factor for the second log-normal distribution.
+    -----------
+    t : Union[np.ndarray, xr.DataArray]
+        Independent variable.
+    mu1 : Union[float, np.ndarray, xr.DataArray]
+        Geometric mean of the first log-normal distribution.
+    sigma1 : Union[float, np.ndarray, xr.DataArray]
+        Geometric standard deviation of the first log-normal distribution.
+    scale_factor1 : Union[float, np.ndarray, xr.DataArray]
+        Scale factor for the first log-normal distribution.
+    mu2 : Union[float, np.ndarray, xr.DataArray]
+        Geometric mean of the second log-normal distribution.
+    sigma2 : Union[float, np.ndarray, xr.DataArray]
+        Geometric standard deviation of the second log-normal distribution.
+    scale_factor2 : Union[float, np.ndarray, xr.DataArray]
+        Scale factor for the second log-normal distribution.
 
     Returns:
-        np.ndarray: The computed double log-normal distribution.
+    --------
+    Union[np.ndarray, xr.DataArray]
+        The computed double log-normal
     """
     result = t * 0
 
@@ -498,7 +527,7 @@ class SaturatedLinearParams(TypedDict):
 
 
 def saturated_linear_func(
-    x: np.ndarray, f_0: float = 2, slope_1: float = 1, saturation_value: float = 1
+    x: Union[np.ndarray, xr.DataArray], f_0: float = 2, slope_1: float = 1, saturation_value: float = 1
 ):
     """
     This function is a linear function that saturates at a certain value.
@@ -639,6 +668,7 @@ class LeastSquareFit:
         t_train: Union[np.ndarray, xr.DataArray],
         y_train: Union[np.ndarray, xr.DataArray],
         cost_func: Union[Callable, None] = None,
+        func_kwargs: dict = dict(),
         fit_kwargs: Dict = dict(),
         plot_kwargs: Dict = dict(),
     ):
@@ -664,8 +694,12 @@ class LeastSquareFit:
         self.cost_func = cost_func
         self.x0 = x0
         self.bounds = bounds
+
+        assert t_train.shape == y_train.shape, "Shape missmatch t_train, y_train"
+
         self.t_train = t_train
         self.y_train = y_train
+        self.func_kwargs = func_kwargs
         self.fit_kwargs = fit_kwargs
         self.plot_kwargs = plot_kwargs
         self.fit_result = None
@@ -715,6 +749,35 @@ class LeastSquareFit:
         diff = diff[idx]
         return diff
 
+    def __weighted_cost_func__(
+        self,
+        x: np.ndarray,
+        t: np.ndarray,
+        y: np.ndarray,
+        **kwargs,
+    ) -> np.ndarray:
+        """
+        Apply a weighted factor to the cost function
+
+        Parameters:
+        -----
+        """
+
+        y_fit = self.func(t, *x, **kwargs)
+        diff = y - y_fit
+        diff, weight = np.ravel(diff), np.ravel(self.weight)
+
+        idx = np.where(~np.isnan(diff))
+        diff = diff[idx]
+
+        total_loss = np.sum(diff)
+
+        diff = diff * weight
+
+        diff = diff / np.sum(diff) * total_loss
+
+        return diff
+
     # The model function
     @property
     def func(self):
@@ -740,7 +803,7 @@ class LeastSquareFit:
         return self._cost_func
 
     @cost_func.setter
-    def cost_func(self, cost_func: Union[Callable, None]):
+    def cost_func(self, cost_func: Union[Callable, None] = None):
         # set the cost function to the default cost function if None is given
         if cost_func is None:
             self._cost_func = self.__default_cost_func__
@@ -848,12 +911,15 @@ class LeastSquareFit:
             # if add_noise:
             #     x_guess = x_guess + 0.05 * x_guess * np.random.randn(len(x_guess))
 
+            least_squares_kwargs = self.fit_kwargs.copy()
+            least_squares_kwargs.update(kwargs=self.func_kwargs)
+
             self.fit_result = least_squares(
                 self.cost_func,
                 x0=self.x_guess,
                 bounds=self.bounds,
                 args=(np.ravel(self.t_train), np.ravel(self.y_train)),
-                **self.fit_kwargs,
+                **least_squares_kwargs,
             )
 
     def predict(
@@ -870,7 +936,7 @@ class LeastSquareFit:
         """
 
         kwargs = self.parameters.copy()
-        kwargs.update(self.fit_kwargs["kwargs"])
+        kwargs.update(self.func_kwargs)
         return t_test, self.func(t_test, **kwargs)
 
 
@@ -1049,6 +1115,60 @@ class LnNormalFit(LeastSquareFit):
         )
 
 
+class LinearLeastSquare(LeastSquareFit):
+    """
+    A class to perform least squares fitting for a split linear function.
+
+    Attributes:
+        name (str): The name of the fitting instance.
+        func (Callable): The model function to fit.
+        cost_func (Callable): The cost function to minimize.
+        x0 (np.ndarray): Initial guess for the parameters.
+        bounds (Bounds): Bounds on the parameters.
+        t_train (Union[np.ndarray, xr.DataArray]): Training data for the independent variable.
+        y_train (Union[np.ndarray, xr.DataArray]): Training data for the dependent variable.
+        fit_kwargs (Dict): Additional keyword arguments for the least_squares function.
+        plot_kwargs (Dict): Additional keyword arguments for plotting.
+        fit_result: The result of the fitting process.
+
+    Methods:
+
+    """
+
+    def __init__(
+        self,
+        name: str,
+        x0: np.ndarray,
+        bounds: Bounds,
+        t_train: np.ndarray,
+        y_train: np.ndarray,
+        func_kwargs: dict = dict(),
+        fit_kwargs: Dict = dict(),
+        plot_kwargs: Dict = dict(),
+    ):
+        """
+        Initialize the SplitLinearLeastSquare instance.
+
+        Parameters:
+            name (str): The name of the fitting instance.
+            x0 (np.ndarray): Initial guess for the parameters.
+            bounds (Bounds): Bounds on the parameters.
+            t_train (np.ndarray): Training data for the independent variable.
+            y_train (np.ndarray): Training data for the dependent variable.
+        """
+        super().__init__(
+            name=name,
+            func=linear_func,
+            x0=x0,
+            bounds=bounds,
+            t_train=t_train,
+            y_train=y_train,
+            func_kwargs=func_kwargs,
+            fit_kwargs=fit_kwargs,
+            plot_kwargs=plot_kwargs,
+        )
+
+
 class SplitLinearLeastSquare(LeastSquareFit):
     """
     A class to perform least squares fitting for a split linear function.
@@ -1180,9 +1300,11 @@ class FixedSaturatedLinearLeastSquare(LeastSquareFit):
         bounds: Bounds,
         t_train: np.ndarray,
         y_train: np.ndarray,
-        saturation_values: float = 1,
-        fit_kwargs: Dict = dict(),
-        plot_kwargs: Dict = dict(),
+        saturation_value: float,
+        func_kwargs: dict = dict(),
+        fit_kwargs: dict = dict(),
+        plot_kwargs: dict = dict(),
+        weight: Union[np.ndarray, None] = None,
     ):
         """
         Initialize the SaturatedLinearLeastSquare instance.
@@ -1196,20 +1318,45 @@ class FixedSaturatedLinearLeastSquare(LeastSquareFit):
             saturation_values (float): The fixed saturation value for the function.
         """
 
-        def fixed_saturation(x, f_0, slope_1):
-            """
-            This func is a linear function that saturates at 1.
-            """
-
-            return saturated_linear_func(x, f_0, slope_1, saturation_value=saturation_values)
+        self.weight = weight
+        self.saturation_value = saturation_value
+        func_kwargs.update(saturation_value=saturation_value)
 
         super().__init__(
             name=name,
-            func=fixed_saturation,
+            func=saturated_linear_func,
             x0=x0,
             bounds=bounds,
             t_train=t_train,
             y_train=y_train,
             fit_kwargs=fit_kwargs,
+            func_kwargs=func_kwargs,
             plot_kwargs=plot_kwargs,
         )
+
+        # we need to set the saturation value in the kwargs for the cost function
+
+        if self.weight is not None:
+            if isinstance(self.weight, np.ndarray) or isinstance(self.weight, xr.DataArray):
+                assert self.weight.shape == self.y_train.shape, "Shape missmatch weight, y_train"
+                self.cost_func = self.__weighted_cost_func__
+            else:
+                raise ValueError("The weight parameter must be a numpy array or a xarray DataArray")
+
+    @property
+    def full_parameters(self):
+        """
+        Final parameters for the model function after the fit.
+        The parameters are stored in a dictionary with the parameter names given by the function annotations.
+        This property is read-only.
+        """
+
+        # if no saturation
+
+        parameters = self.parameters
+        x_s = (self.saturation_value - parameters["f_0"]) / parameters["slope_1"]
+
+        parameters.update(x_split=x_s)
+        parameters.update(slope_2=0.0)
+
+        return parameters
