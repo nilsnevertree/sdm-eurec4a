@@ -1360,3 +1360,396 @@ class FixedSaturatedLinearLeastSquare(LeastSquareFit):
         parameters.update(slope_2=0.0)
 
         return parameters
+
+
+# Classes for handling the LogNormal Parameters in the individual spaces
+
+
+class LogNormalDistribution:
+
+    @staticmethod
+    def linearspace(
+        x: Union[float, np.ndarray, xr.DataArray],
+        mu: Union[float, np.ndarray, xr.DataArray],
+        sigma: Union[float, np.ndarray, xr.DataArray],
+        scale: Union[float, np.ndarray, xr.DataArray],
+    ) -> Union[float, np.ndarray, xr.DataArray]:
+        """Compute L(x) for the given x."""
+        return (
+            scale
+            * 1
+            / (x * sigma * np.sqrt(2 * np.pi))
+            * np.exp(-0.5 * (np.log(x) - mu) ** 2 / sigma**2)
+        )
+
+    @staticmethod
+    def logspace(
+        y: Union[float, np.ndarray, xr.DataArray],
+        mu: Union[float, np.ndarray, xr.DataArray],
+        sigma: Union[float, np.ndarray, xr.DataArray],
+        scale: Union[float, np.ndarray, xr.DataArray],
+    ) -> Union[float, np.ndarray, xr.DataArray]:
+        """Compute l(y) for the given y."""
+        return scale * 1 / (sigma * np.sqrt(2 * np.pi)) * np.exp(-0.5 * (np.log(y) - mu) ** 2 / sigma**2)
+
+
+class StandardizedParameters:
+    """
+    Represents the full set of log-normal parameters derived from the base triple.
+
+    Parameters:
+        mu_L: Union[float, np.ndarray, xr.DataArray]
+            Mean of the log-normal distribution in log space (L(x)).
+        sigma_L: Union[float, np.ndarray, xr.DataArray]
+            Standard deviation of the log-normal distribution in log space (L(x)).
+        scale_L: Union[float, np.ndarray, xr.DataArray]
+            Scale factor for the L(x) distribution.
+    """
+
+    def __init__(
+        self,
+        mu_L: Union[float, np.ndarray, xr.DataArray],
+        sigma_L: Union[float, np.ndarray, xr.DataArray],
+        scale_L: Union[float, np.ndarray, xr.DataArray],
+    ):
+        self.mu_L = mu_L
+        self.sigma_L = sigma_L
+        self.scale_L = scale_L
+
+    # make the individual parameters accessible by dict like access
+    def __getitem__(self, key: str) -> Union[float, np.ndarray, xr.DataArray]:
+        return self.__getattribute__(key)
+
+    @property
+    def mu_l(self) -> Union[float, np.ndarray, xr.DataArray]:
+        """Compute mu_l for l(y)."""
+        return self.mu_L - self.sigma_L**2
+
+    @property
+    def sigma(self) -> Union[float, np.ndarray, xr.DataArray]:
+        return self.sigma_L
+
+    @property
+    def sigma_l(self) -> Union[float, np.ndarray, xr.DataArray]:
+        return self.sigma_L
+
+    @property
+    def x_max(self) -> Union[float, np.ndarray, xr.DataArray]:
+        """Compute x_max (mode of L(x))."""
+        return np.exp(self.mu_l)
+
+    @property
+    def maximum_value(self) -> Union[float, np.ndarray, xr.DataArray]:
+        """Compute maximum value of L(x)."""
+        factor = LogNormalDistribution.linearspace(
+            x=self.x_max,
+            mu=self.mu_L,
+            sigma=self.sigma_L,
+            scale=1,
+        )
+        return self.scale_L * factor
+
+    @property
+    def scale_l(self) -> Union[float, np.ndarray, xr.DataArray]:
+        """Compute scale_l for l(y)."""
+        factor = LogNormalDistribution.logspace(
+            y=self.x_max,
+            mu=self.mu_l,
+            sigma=self.sigma_l,
+            scale=1,
+        )
+        return self.maximum_value / factor
+
+    @property
+    def geometric_mu_L(self) -> Union[float, np.ndarray, xr.DataArray]:
+        """Compute geometric mean of the distribution."""
+        return np.exp(self.mu_L)
+
+    @property
+    def geometric_mu_l(self) -> Union[float, np.ndarray, xr.DataArray]:
+        """Compute geometric mean of the distribution."""
+        return np.exp(self.mu_l)
+
+    @property
+    def geometric_std_dev(self) -> Union[float, np.ndarray, xr.DataArray]:
+        """Compute geometric standard deviation of the distribution."""
+        return np.exp(self.sigma)
+
+    def __params_to_dict__(
+        self,
+        get_keys: Tuple[str, str, str],
+        dict_keys: Tuple[str, str, str],
+    ) -> dict:
+
+        return {dict_keys[i]: getattr(self, get_keys[i]) for i in range(3)}
+
+    def get_parameters_linear(self, dict_keys: Union[None, Tuple[str, str, str]] = None) -> dict:
+        get_keys = ("mu_L", "sigma_L", "scale_L")
+        if dict_keys is None:
+            dict_keys = get_keys
+
+        return self.__params_to_dict__(get_keys, dict_keys)
+
+    def get_parameters_log(self, dict_keys: Union[None, Tuple[str, str, str]] = None) -> dict:
+        get_keys = ("mu_l", "sigma_l", "scale_l")
+        if dict_keys is None:
+            dict_keys = get_keys
+
+        return self.__params_to_dict__(get_keys, dict_keys)
+
+    def get_geometric_parameters_linear(
+        self, dict_keys: Union[None, Tuple[str, str, str]] = None
+    ) -> dict:
+        get_keys = ("geometric_mu_L", "geometric_std_dev", "scale_L")
+        if dict_keys is None:
+            dict_keys = get_keys
+        return self.__params_to_dict__(get_keys, dict_keys)
+
+    def get_geometric_parameters_log(self, dict_keys: Union[None, Tuple[str, str, str]] = None) -> dict:
+        get_keys = ("geometric_mu_l", "geometric_std_dev", "scale_l")
+        if dict_keys is None:
+            dict_keys = get_keys
+        return self.__params_to_dict__(get_keys, dict_keys)
+
+    def get_maximum_values(self, dict_keys: Union[None, Tuple[str, str, str]] = None) -> dict:
+        get_keys = ("x_max", "sigma", "maximum_value")
+        if dict_keys is None:
+            dict_keys = get_keys
+        return self.__params_to_dict__(get_keys, dict_keys)
+
+    def summary(self) -> dict:
+        """Provide a summary of all parameters."""
+        return {
+            "Linear": {
+                "mu_L": self.mu_L,
+                "sigma_L": self.sigma_L,
+                "scale_L": self.scale_L,
+            },
+            "Log": {
+                "mu_l": self.mu_l,
+                "sigma_l": self.sigma_l,
+                "scale_l": self.scale_l,
+            },
+            "x": {
+                "x_max": self.x_max,
+                "y_max": self.maximum_value,
+                "sigma": self.sigma_L,
+            },
+            "geometric": {
+                "geometric_mu_L": self.geometric_mu_L,
+                "geometric_std_dev_L": self.geometric_std_dev,
+            },
+        }
+
+    def __repr__(self):
+        res = f"StandardizedParameters"
+        summary = self.summary()
+        for key in summary.keys():
+            res += f"\n{key}:"
+            for k, v in summary[key].items():
+                res += f"\n\t{k}: {v}"
+            res += "\n-----------------"
+
+        return res
+
+
+class LogNormalParameters:
+    """Abstract base class for parameter sets."""
+
+    def to_base_triple(self):
+        """Convert to the canonical form: mu_L, sigma_L, scale_L."""
+        pass
+
+    def standardize(self):
+        """Convert the Child Class to the standard class."""
+        return StandardizedParameters(*self.to_base_triple())
+
+    # make the individual parameters accessible by dict like access
+    def __getitem__(self, key: str) -> Union[float, np.ndarray, xr.DataArray]:
+        return self.__dict__()[key]
+
+
+class MaximumPointGeometricSigma(LogNormalParameters):
+    """
+    Represents the log-normal distribution using the mode (x_max)
+    and maximum value (max_l) of l(x), and sigma_l.
+
+    Parameters:
+        x_max: Union[float, np.ndarray, xr.DataArray]
+            The mode of the distribution (x_max).
+        geometric_sigma_L: Union[float, np.ndarray, xr.DataArray]
+            The geometric standard deviation of the distribution in log space.
+        max_l: Union[float, np.ndarray, xr.DataArray]
+            The maximum value of L(x).
+    """
+
+    def __init__(
+        self,
+        x_max: Union[float, np.ndarray, xr.DataArray],
+        geometric_std_dev_l: Union[float, np.ndarray, xr.DataArray],
+        maximum_value: Union[float, np.ndarray, xr.DataArray],
+    ):
+        self.x_max = x_max
+        self.geometric_std_dev_l = geometric_std_dev_l
+        self.maximum_value = maximum_value
+
+    def to_base_triple(
+        self,
+    ) -> Tuple[
+        Union[float, np.ndarray, xr.DataArray],
+        Union[float, np.ndarray, xr.DataArray],
+        Union[float, np.ndarray, xr.DataArray],
+    ]:
+        """Convert to the base triple (mu_L, sigma_L, scale_L)."""
+        sigma_L = np.log(self.geometric_std_dev_l)
+        mu_L = np.log(self.x_max) + sigma_L**2
+        x_max = self.x_max
+        factor = (
+            1
+            / (np.sqrt(2 * np.pi) * sigma_L * x_max)
+            * np.exp(-0.5 * (np.log(x_max) - mu_L) ** 2 / sigma_L**2)
+        )
+        scale_L = self.maximum_value / factor
+        return mu_L, sigma_L, scale_L
+
+
+class MuSigmaScaleLinear(LogNormalParameters):
+    """
+    Represents the log-normal distribution using mu_L, sigma_L, and scale_L
+    directly, and transforms them into their respective child classes.
+
+    Parameters:
+        mu_L: Union[float, np.ndarray, xr.DataArray]
+            Mean of the log-normal distribution in log space (L(x)).
+        sigma_L: Union[float, np.ndarray, xr.DataArray]
+            Standard deviation of the log-normal distribution in log space (L(x)).
+        scale_L: Union[float, np.ndarray, xr.DataArray]
+            Scale factor for the L(x) distribution.
+    """
+
+    def __init__(
+        self,
+        mu_L: Union[float, np.ndarray, xr.DataArray],
+        sigma_L: Union[float, np.ndarray, xr.DataArray],
+        scale_L: Union[float, np.ndarray, xr.DataArray],
+    ):
+        self.mu_L = mu_L
+        self.sigma_L = sigma_L
+        self.scale_L = scale_L
+
+    def to_base_triple(
+        self,
+    ) -> Tuple[
+        Union[float, np.ndarray, xr.DataArray],
+        Union[float, np.ndarray, xr.DataArray],
+        Union[float, np.ndarray, xr.DataArray],
+    ]:
+        """Convert to the base triple (mu_L, sigma_L, scale_L)."""
+        return self.mu_L, self.sigma_L, self.scale_L
+
+
+class MuSigmaScaleLog(LogNormalParameters):
+    """
+    Represents the log-normal distribution using mu_l, sigma_l, and scale_l
+    directly, and transforms them into their respective child classes.
+
+    Parameters:
+        mu_l: Union[float, np.ndarray, xr.DataArray]
+            Mean of the log-normal distribution in log space (l(x)).
+        sigma_l: Union[float, np.ndarray, xr.DataArray]
+            Standard deviation of the log-normal distribution in log space (l(x)).
+        scale_l: Union[float, np.ndarray, xr.DataArray]
+            Scale factor for the l(x) distribution.
+    """
+
+    def __init__(
+        self,
+        mu_l: Union[float, np.ndarray, xr.DataArray],
+        sigma_l: Union[float, np.ndarray, xr.DataArray],
+        scale_l: Union[float, np.ndarray, xr.DataArray],
+    ):
+        self.mu_l = mu_l
+        self.sigma_l = sigma_l
+        self.scale_l = scale_l
+
+    def to_base_triple(
+        self,
+    ) -> Tuple[
+        Union[float, np.ndarray, xr.DataArray],
+        Union[float, np.ndarray, xr.DataArray],
+        Union[float, np.ndarray, xr.DataArray],
+    ]:
+        """Convert to the base triple (mu_L, sigma_L, scale_L)."""
+        mu_L = self.mu_l + self.sigma_l**2
+        x_max = np.exp(self.mu_l)
+        sigma_L = self.sigma_l
+        factor_l = LogNormalDistribution.logspace(
+            y=x_max,
+            mu=self.mu_l,
+            sigma=self.sigma_l,
+            scale=1,
+        )
+        factor_L = LogNormalDistribution.linearspace(
+            x=x_max,
+            mu=mu_L,
+            sigma=sigma_L,
+            scale=1,
+        )
+
+        scale_L = self.scale_l * factor_l / factor_L
+        return mu_L, self.sigma_l, scale_L
+
+
+class GeometricMuSigmaScaleLog(LogNormalParameters):
+    """
+    Represents the log-normal distribution using mu_l, sigma_l, and scale_l
+    directly, and transforms them into their respective child classes.
+
+    Parameters:
+        mu_l: Union[float, np.ndarray, xr.DataArray]
+            Mean of the log-normal distribution in log space (l(x)).
+        sigma_l: Union[float, np.ndarray, xr.DataArray]
+            Standard deviation of the log-normal distribution in log space (l(x)).
+        scale_l: Union[float, np.ndarray, xr.DataArray]
+            Scale factor for the l(x) distribution.
+    """
+
+    def __init__(
+        self,
+        geometric_mu_l: Union[float, np.ndarray, xr.DataArray],
+        geometric_std_dev: Union[float, np.ndarray, xr.DataArray],
+        scale_l: Union[float, np.ndarray, xr.DataArray],
+    ):
+        self.geometric_mu_l = geometric_mu_l
+        self.geometric_std_dev = geometric_std_dev
+        self.scale_l = scale_l
+
+        self.mu_l = np.log(self.geometric_mu_l)
+        self.sigma_l = np.log(self.geometric_std_dev)
+
+    def to_base_triple(
+        self,
+    ) -> Tuple[
+        Union[float, np.ndarray, xr.DataArray],
+        Union[float, np.ndarray, xr.DataArray],
+        Union[float, np.ndarray, xr.DataArray],
+    ]:
+        """Convert to the base triple (mu_L, sigma_L, scale_L)."""
+        mu_L = self.mu_l + self.sigma_l**2
+        x_max = np.exp(self.mu_l)
+        sigma_L = self.sigma_l
+        factor_l = LogNormalDistribution.logspace(
+            y=x_max,
+            mu=self.mu_l,
+            sigma=self.sigma_l,
+            scale=1,
+        )
+        factor_L = LogNormalDistribution.linearspace(
+            x=x_max,
+            mu=mu_L,
+            sigma=sigma_L,
+            scale=1,
+        )
+
+        scale_L = self.scale_l * factor_l / factor_L
+        return mu_L, self.sigma_l, scale_L
