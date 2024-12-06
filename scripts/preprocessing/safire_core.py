@@ -296,18 +296,23 @@ datas = datas.assign_attrs(
     {
         "flight_id": "varying, see also flight_number",
         "modified_by": "Nils Niebaum",
-        "date_combined": datetime.datetime.now(datetime.UTC).strftime("%Y-%m-%d %H:%M:%S"),
+        "date_combined": datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),
         "git commit": get_git_revision_hash(),
         "GitHub Repository": "https://github.com/nilsnevertree/sdm-eurec4a",
     }
 )
+
+# %%
 # Round the time to the nearest second
 logging.info("Round UTC time to seconds accuracy")
 attrs = datas["time"].attrs
+encoding = datas["time"].encoding
 datas["time"] = datas["time"].dt.round("s")
 datas["time"].attrs.update(attrs)
 datas["time"].attrs.update(comment="Time rounded to the nearest second.")
+datas["time"].encoding = encoding
+# %%
 
-logging.info("Save the produced datset to netcdf file")
+logging.info("Save the produced dataset to netcdf file")
 datas.to_netcdf(DESTINATION_DIRECTORY / DESTINATION_FILENAME)
 logging.info("Finished SAFIR-CORE pre-processing")

@@ -422,8 +422,55 @@ def water_vapour_pressure(
     if simplified:
         e = q_v * p / epsilon
     else:
-        e = q_v * p / (epsilon + q_v - epsilon * q_v)
+        e = q_v * p / (q_v - epsilon * q_v + epsilon)
     return e
+
+
+def specific_humidity_from_water_vapour_pressure(
+    water_vapour_pressure: xr.DataArray,
+    pressure: xr.DataArray,
+    simplified: bool = False,
+) -> xr.DataArray:
+    """
+    Calculate the specific humidity from the water vapour pressure and the pressure.
+    This follows (2.80) from Introduction to Clouds: From the Microscale to Climate.
+
+    Simplified version uses:
+    q_v = (epsilon * e) /  p
+    e = q_v * p / epsilon
+
+    Non simplified version uses:
+    q_v = (epsilon * e) / (p - e + epsilon * e)
+    e = q_v * p / (epsilon + q_v - epsilon * q_v)
+
+
+    Citation
+    --------
+    (2.80) from Introduction to Clouds: From the Microscale to Climate
+    Ulrike Lohmann, Felix Lüönd, Fabian Mahrt, and Gregor Feingold
+    ISBN: 978-1-107-01822-8 978-1-139-08751-3
+
+
+    Parameters
+    ----------
+    water_vapour_pressure : xr.DataArray
+        The water vapour pressure in Pa.
+    pressure : xr.DataArray
+        The pressure in Pa.
+
+    Returns
+    -------
+    np.ndarray
+        The specific humidity in kg/kg.
+    """
+    e = water_vapour_pressure
+    p = pressure
+    epsilon = 0.622
+    if simplified:
+        q_v = epsilon * e / p
+    else:
+        q_v = epsilon * e / (p - e + epsilon * e)
+    return q_v
 
 
 def relative_humidity(
@@ -698,7 +745,48 @@ def relative_humidity_from_tps(
     return relhum
 
 
-def potential_temperature_from_tp(
+def specific_humidity_from_relative_humidity_temperature_pressure(
+    relative_humidity: xr.DataArray,
+    temperature: xr.DataArray,
+    pressure: xr.DataArray,
+    simplified: bool = False,
+) -> xr.DataArray:
+    """
+    Calculate the specific humidity from the relative humidity, temperature and pressure.
+
+    Parameters
+    ----------
+    relative_humidity : xr.DataArray
+        The relative humidity in %.
+    temperature : xr.DataArray
+        The temperature in Kelvin.
+    pressure : xr.DataArray
+        The pressure in Pa.
+    simplified : bool, optional
+        If set to True, the simplified version is used.
+        Default is False.
+
+    Returns
+    -------
+    np.ndarray
+        The specific humidity in kg/kg.
+    """
+    es = saturation_vapour_pressure(temperature)
+    # calculate the vapour pressure
+    e = relative_humidity * es / 100
+    q_v = specific_humidity_from_water_vapour_pressure(e, pressure, simplified)
+
+    attrs = dict(
+        name="specific_humidity",
+        units="kg/kg",
+        long_name="Specific humidity",
+        description="Specific humidity calculated from relative humidity, temperature and pressure.",
+    )
+    q_v = __attrs_if_dataarray__(da=q_v, attrs=attrs)
+    return q_v
+
+
+def potential_temperature_from_temperature_pressure(
     air_temperature: xr.DataArray,
     pressure: xr.DataArray,
     pressure_reference: Union[
@@ -735,3 +823,43 @@ def potential_temperature_from_tp(
     )
     theta = __attrs_if_dataarray__(da=theta, attrs=attrs)
     return theta
+
+
+def temperature_from_potential_temperature_pressure(
+    potential_temperature: xr.DataArray,
+    pressure: xr.DataArray,
+    pressure_reference: Union[
+        float, np.ndarray, xr.DataArray
+    ] = 100000,  # default value used for drop sondes dataset
+    R_over_cp: float = 0.286,
+):
+    """
+    Calculate the potential temperature from the air temperature and the pressure.
+
+    Parameters
+    ----------
+    air_temperature : xr.DataArray or xr.DataArray
+        The air temperature in Kelvin.
+    pressure : xr.DataArray  or xr.DataArray
+        The pressure in Pa.
+    pressure_reference : float
+        The reference pressure in Pa.
+    R_over_cp : float, optional
+        The ratio of the gas constant of air to the specific heat capacity at
+        constant pressure. Default is 0.286.
+
+    Returns
+    -------
+    np.ndarray
+        The potential temperature in Kelvin.
+    """
+    factor = (pressure_reference / pressure) ** R_over_cp
+    air_temperature = potential_temperature / factor
+    attrs = dict(
+        name="temperature",
+        units="K",
+        long_name="Ambient temperature",
+        description="Ambient temperature calculated from potential temperature and pressure.",
+    )
+    air_temperature = __attrs_if_dataarray__(da=air_temperature, attrs=attrs)
+    return air_temperature

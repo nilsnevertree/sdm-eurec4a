@@ -3,16 +3,16 @@
 paths:
   # The paths need to be relative to the root directory of the project.
   # The path to the input file
-  input_filepath: data/observation/cloud_composite/processed/cloud_composite.nc
+  input_filepath: data/observation/cloud_composite/processed/cloud_composite_SI_units_20241025.nc
   # The path to the directory where the output data will be stored
-  output_directory: data/observation/cloud_composite/processed/identified_clouds/
+  output_directory: data/observation/cloud_composite/processed/identified_clusters/
   # The output file name. If NULL is provided, the input file will be automatically made:
   # f"identified_clouds_{mask_name}.nc"
   output_file_name : NULL
 # The settings for the cloud identification
 setup:
   # The name of the mask that shall be used
-  mask_name : 'cloud_mask'
+  mask_name : 'rain_mask'
   # The minimum duration of the cloud holes in timesteps, for them to be considered as cloud holes
   # this defines how far each cloud in a cluster can be apart from each other
   min_duration_cloud_holes : 5 # in timesteps

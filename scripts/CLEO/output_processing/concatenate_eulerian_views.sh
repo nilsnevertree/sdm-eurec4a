@@ -8,8 +8,8 @@
 #SBATCH --mail-user=nils-ole.niebaumy@mpimet.mpg.de
 #SBATCH --mail-type=FAIL
 #SBATCH --account=mh1126
-#SBATCH --output=./logfiles/eulerian_view/concatenate/%j/%j_out.out
-#SBATCH --error=./logfiles/eulerian_view/concatenate/%j/%j_err.out
+#SBATCH --output=./logfiles/eulerian_view/concatenate/%j_out.out
+#SBATCH --error=./logfiles/eulerian_view/concatenate/%j_err.out
 
 
 
@@ -32,6 +32,8 @@ echo "Init path2data: ${path2data}"
 echo "Init python script: ${concatenate_pythonscript}"
 echo "============================================"
 
+path2data
+
 
 if [ ! -d "$path2data" ]; then
     echo "Invalid path to data"
@@ -44,14 +46,11 @@ else
 fi
 echo "============================================"
 
-output_dir=${path2data}/combined
-result_file_name=eulerian_dataset_combined_v2.nc
-
 ### ------------------ Load Modules -------------------- ###
 env=/work/mh1126/m301096/conda/envs/sdm_pysd_env312
 python=${env}/bin/python
-source activate ${env}
+mamba activate ${env}
 
 # ### ------------------ Concatenate Eulerian View --------------- ###
-${python}  ${concatenate_pythonscript} --data_dir ${path2data} --output_dir ${output_dir} --result_file_name ${result_file_name}
+python  ${concatenate_pythonscript} --data_dir ${path2data}
 echo "============================================"
