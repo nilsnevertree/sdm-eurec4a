@@ -174,10 +174,9 @@ def latlon_dict_to_polygon(area):
     )
 
 
-def x_y_flatten(da: xr.DataArray, axis: str):
+def x_y_flatten(da: xr.DataArray, axis: str) -> Union[xr.DataArray, xr.DataArray]:
     """
-    Flatten a 2D data array along the specified axis. The data array is flattened in
-    Fortran order after the DataArray is transposed properly.
+    Flatten a 2D data array along the specified axis.
 
     Note
     ----
@@ -231,22 +230,10 @@ def x_y_flatten(da: xr.DataArray, axis: str):
     [0 0 0 0 1 1 1 1 2 2 2 2]
     """
 
-    if da.ndim > 2:
-        raise ValueError(f"The data array must have max. 2 dimensions but has {da.ndim}.")
-
     da = da.transpose(axis, ...)
-    y = da.data
-    if isinstance(y, dask_array.core.Array):
-        print("Loading the dask array into memory.")
-        y = y.compute()
-
-    x = da[axis].data
-    x = np.tile(x, da.shape[-1])
-    y = y.flatten(order="F")  # very important
-    idx = x.argsort()
-    x = x[idx]
-    y = y[idx]
-    return x, y
+    dims = da.dims
+    da = da.stack(z=tuple(dims))
+    return da[axis], da
 
 
 def shape_dim_as_dataarray(da, output_dim: str):
