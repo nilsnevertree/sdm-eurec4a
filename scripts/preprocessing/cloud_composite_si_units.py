@@ -9,12 +9,13 @@ https://doi.org/10.25326/237 which is stored locally in
     - convert time to datetime object
     - creates radius variable and uses it as coordinate for size bins
     - modify attributes
-    - save the produced datset to netcdf file
+    - save the produced dataset to netcdf file
 The produced dataset is stored in ../data/observation/cloud_composite/processed
 """
 
 import datetime
 import logging
+import sys
 
 from pathlib import Path
 
@@ -34,8 +35,9 @@ from sdm_eurec4a import RepositoryPath
 
 USER_CONSENT_NEEDED = False
 
-# REPO_PATH = Path(__file__).resolve().parent.parent.parent
-REPO_PATH = RepositoryPath("levante").repo_dir
+REPO_PATH = Path(__file__).resolve().parent.parent.parent
+# REPO_PATH = RepositoryPath("levante").repo_dir
+# REPO_PATH = RepositoryPath("nils_private").repo_dir
 
 ORIGIN_DIRECTORY = REPO_PATH / Path("data/observation/cloud_composite/raw")
 DESTINATION_DIRECTORY = REPO_PATH / Path("data/observation/cloud_composite/processed")
@@ -43,11 +45,41 @@ DESTINATION_DIRECTORY.mkdir(parents=True, exist_ok=True)
 DESTINATION_FILENAME = "cloud_composite_SI_units_20241025.nc"
 DESTINATION_FILEPATH = DESTINATION_DIRECTORY / DESTINATION_FILENAME
 
-logging.basicConfig(
-    filename=DESTINATION_DIRECTORY / "cloud_composite_preprocessing.log",
-    level=logging.INFO,
-    format="%(asctime)s - %(levelname)s - %(message)s",
-)
+log_file_path = DESTINATION_DIRECTORY / "cloud_composite_preprocessing.log"
+
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
+
+# create a file handler
+handler = logging.FileHandler(log_file_path)
+handler.setLevel(logging.INFO)
+
+# create a console handler
+console_handler = logging.StreamHandler()
+console_handler.setLevel(logging.INFO)
+
+# create a logging format
+formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
+handler.setFormatter(formatter)
+console_handler.setFormatter(formatter)
+
+# add the handlers to the logger
+logger.addHandler(handler)
+logger.addHandler(console_handler)
+
+
+def handle_exception(exc_type, exc_value, exc_traceback):
+    if issubclass(exc_type, KeyboardInterrupt):
+        sys.__excepthook__(exc_type, exc_value, exc_traceback)
+        return
+
+    logger.critical(
+        "Execution terminated due to an Exception", exc_info=(exc_type, exc_value, exc_traceback)
+    )
+
+
+sys.excepthook = handle_exception
+
 logging.info("============================================================")
 logging.info("Start cloud composite pre-processing")
 logging.info("Git hash: %s", get_git_revision_hash())
@@ -56,7 +88,7 @@ logging.info("Destination directory: %s", DESTINATION_DIRECTORY.relative_to(REPO
 logging.info("Destination filename: %s", DESTINATION_FILENAME)
 
 if USER_CONSENT_NEEDED == True:
-    print(f"Save the produced datset to netcdf file?\n{DESTINATION_FILEPATH}")
+    print(f"Save the produced dataset to netcdf file?\n{DESTINATION_FILEPATH}")
     user_input = input("Do you want to continue running the script? (y/n): ")
     if user_input.lower() == "y":
         print("Saving dataset\nPlease wait...")
@@ -129,9 +161,9 @@ logging.info("Rename variables")
 # Use longer names for variable to make it more readable
 # do not rename the dimension time and size
 VARNAME_MAPPING = {
-    "lon": "lon",
-    "lat": "lat",
-    "alt": "alt",
+    "lon": "longitude",
+    "lat": "latitude",
+    "alt": "altitude",
     "PSD": "particle_size_distribution",
     "MSD": "mass_size_distribution",
     "LWC": "liquid_water_content",
@@ -149,6 +181,26 @@ VARNAME_MAPPING = {
     "flight_number": "flight_number",
 }
 datas = datas.rename(VARNAME_MAPPING)
+
+# add long names to liquid water content, diameter and median volume diameter and bin_width
+
+logging.info("Add long names to variables")
+long_name_mapping = {
+    "liquid_water_content": "Liquid water content",
+    "diameter": "Diameter",
+    "median_volume_diameter": "Median volume diameter",
+    "bin_width": "Bin width",
+}
+for key, value in long_name_mapping.items():
+    datas[key].attrs.update(long_name=value)
+
+logging.info("Use latex compatible unit for variables")
+unit_mapping = {
+    "liquid_water_content": "g m^{-3}",
+}
+for key, value in unit_mapping.items():
+    datas[key].attrs.update(unit=value)
+
 
 # Convert time to datetime object
 # Note, that the time is in seconds since 2020-01-01 00:00:00
@@ -206,14 +258,16 @@ logging.info("Modify and add attributes")
 datas.assign_attrs(
     {
         "flight_id": "varying, see also flight_number",
-        "Modified_by": "Nils Niebaum",
-        "Modification_date_UTC": datetime.datetime.now(datetime.UTC).strftime("%Y-%m-%d %H:%M:%S"),
+        "modified_by": "Nils Niebaum",
+        "modification_date_UTC": datetime.datetime.now(datetime.timezone.utc).strftime(
+            "%Y-%m-%d %H:%M:%S"
+        ),
         "GitHub Repository": "https://github.com/nilsnevertree/sdm-eurec4a",
         "GitHub Commit": get_git_revision_hash(),
     }
 )
 
-logging.info("Convert the particle size distribution from #/L/µm to SI units m^3/m")
+logging.info("Convert the particle size distribution from #/L/µm to SI units m^{-3} m^{-1}")
 # Convert from #/l to #/m^3 ->  * 1e3
 # Convert from µm to m -> 1e6
 datas["particle_size_distribution"] = datas["particle_size_distribution"] * 1e3 * 1e6
@@ -310,7 +364,7 @@ datas["drizzle_rain_mask"].attrs.update(
 )
 
 
-logging.info("Start storing produced datset to netcdf file")
+logging.info("Start storing produced dataset to netcdf file")
 datas.to_netcdf(DESTINATION_FILEPATH)
 logging.info("Finished cloud composite pre-processing")
 

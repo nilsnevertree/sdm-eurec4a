@@ -47,12 +47,15 @@ OUTPUT_DIR = REPO_PATH / Path(SETTINGS["paths"]["output_directory"])
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
 INPUT_FILEPATH_CLOUDS = REPO_PATH / Path(SETTINGS["paths"]["input_filepath_clouds"])
-input_filename_clouds = str(INPUT_FILEPATH_CLOUDS).split(".")[0].split("/")[-1]
+INPUT_FILENAME_CLOUDS = INPUT_FILEPATH_CLOUDS.stem
+
 INPUT_FILEPATH_DROPSONDES = REPO_PATH / Path(SETTINGS["paths"]["input_filepath_dropsondes"])
 
+print(SETTINGS["paths"]["output_file_name"])
+
 if SETTINGS["paths"]["output_file_name"] is None:
-    OUTPUT_FILE_NAME = f"distance_dropsondes_{input_filename_clouds}.nc"
-    settings_output_name = f"distance_dropsondes_{input_filename_clouds}.yaml"
+    OUTPUT_FILE_NAME = f"distance_dropsondes_{INPUT_FILENAME_CLOUDS}.nc"
+    settings_output_name = f"distance_dropsondes_{INPUT_FILENAME_CLOUDS}.yaml"
 else:
     OUTPUT_FILE_NAME = SETTINGS["paths"]["output_file_name"]
     settings_output_name = SETTINGS["paths"]["output_file_name"].split(".")[0] + ".yaml"
@@ -123,10 +126,16 @@ def main():
 
     ds_combined = xr.Dataset(
         data_vars={
-            "lat_cloud_composite": identified_clouds.rename({"time": "time_identified_clouds"}).lat,
-            "lon_cloud_composite": identified_clouds.rename({"time": "time_identified_clouds"}).lon,
-            "lat_drop_sondes": drop_sondes.rename({"time": "time_drop_sondes"}).flight_lat,
-            "lon_drop_sondes": drop_sondes.rename({"time": "time_drop_sondes"}).flight_lon,
+            "latitude_cloud_composite": identified_clouds.rename({"time": "time_identified_clouds"})[
+                "latitude"
+            ],
+            "longitude_cloud_composite": identified_clouds.rename({"time": "time_identified_clouds"})[
+                "longitude"
+            ],
+            "latitude_drop_sondes": drop_sondes.rename({"time": "time_drop_sondes"})["flight_latitude"],
+            "longitude_drop_sondes": drop_sondes.rename({"time": "time_drop_sondes"})[
+                "flight_longitude"
+            ],
         },
         attrs={
             "title": "Distance between identified clouds and dropsondes datasets",
@@ -134,7 +143,7 @@ def main():
             "author": "Nils Niebaum",
             "author email": "nils-ole.niebaum@mpimet.mpg.de",
             "featureType": "trajectory",
-            "creation_time": datetime.datetime.now(datetime.UTC).strftime("%Y-%m-%d %H:%M:%S"),
+            "creation_time": datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),
         },
     )
     ds_combined = ds_combined.drop_vars(["sonde_id"])
@@ -145,8 +154,8 @@ def main():
     )
 
     # Create dummy arrays for time to be chunkable and store them in the combined dataset
-    ds_combined["t_ic"] = (("time_identified_clouds"), ds_combined.time_identified_clouds.data)
-    ds_combined["t_ds"] = (("time_drop_sondes"), ds_combined.time_drop_sondes.data)
+    ds_combined["t_ic"] = (("time_identified_clouds"), ds_combined["time_identified_clouds"].data)
+    ds_combined["t_ds"] = (("time_drop_sondes"), ds_combined["time_drop_sondes"].data)
     ds_combined["t_ic"] = ds_combined["t_ic"].chunk({"time_identified_clouds": 1000})
     ds_combined["t_ds"] = ds_combined["t_ds"].chunk({"time_drop_sondes": -1})
 
@@ -156,10 +165,10 @@ def main():
         logging.info("Compute spatial distance")
         hdistance = xr.apply_ufunc(
             great_circle_distance_np,
-            ds_combined.lat_cloud_composite,
-            ds_combined.lon_cloud_composite,
-            ds_combined.lat_drop_sondes,
-            ds_combined.lon_drop_sondes,
+            ds_combined["latitude_cloud_composite"],
+            ds_combined["longitude_cloud_composite"],
+            ds_combined["latitude_drop_sondes"],
+            ds_combined["longitude_drop_sondes"],
             # input_core_dims=[['time_cc'], ['time_cc'], ["time_ds"], ["time_ds"]],
             # output_core_dims=[["time_cc", "time_ds"]],
             vectorize=True,
@@ -191,10 +200,10 @@ def main():
     # %%
     # Load the dataarrays and store them in the combined dataset
     tdistance = xr.open_dataarray(
-        OUTPUT_DIR / "temp_temporal.nc", chunks={"time_cc": 1000, "time_ds": -1}
+        OUTPUT_DIR / "temp_temporal.nc"  # , chunks={"time_cc": 1000, "time_ds": -1}
     )
     hdistance = xr.open_dataarray(
-        OUTPUT_DIR / "temp_spatial.nc", chunks={"time_cc": 1000, "time_ds": -1}
+        OUTPUT_DIR / "temp_spatial.nc"  # , chunks={"time_cc": 1000, "time_ds": -1}
     )
 
     logging.info("Create combined dataset")

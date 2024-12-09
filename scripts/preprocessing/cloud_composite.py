@@ -8,7 +8,7 @@ https://doi.org/10.25326/237 which is stored locally in
     - convert time to datetime object
     - use diameter as coordinate for size bins
     - modify attributes
-    - save the produced datset to netcdf file
+    - save the produced dataset to netcdf file
 The produced dataset is stored in ../data/observation/cloud_composite/processed
 """
 
@@ -251,8 +251,10 @@ try:
         {
             "creation_date": "varying, see single source files",
             "flight_id": "varying, see also flight_number",
-            "Modified_by": "Nils Niebaum",
-            "Modification_date_UTC": datetime.datetime.now(datetime.UTC).strftime("%Y-%m-%d %H:%M:%S"),
+            "modified_by": "Nils Niebaum",
+            "modification_date_UTC": datetime.datetime.now(datetime.timezone.utc).strftime(
+                "%Y-%m-%d %H:%M:%S"
+            ),
         }
     )
 
@@ -261,7 +263,7 @@ except Exception as e:
     raise e
 
 
-print(f"Save the produced datset to netcdf file?\n{DESTINATION_DIRECTORY / 'cloud_composite.nc'}")
+print(f"Save the produced dataset to netcdf file?\n{DESTINATION_DIRECTORY / 'cloud_composite.nc'}")
 user_input = input("Do you want to continue running the script? (y/n): ")
 if user_input.lower() == "y":
     print("Saving dataset\nPlease wait...")

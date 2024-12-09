@@ -146,11 +146,15 @@ def test_rectangle_spatial_mask_lat_lon_nodims():
 def test_x_y_flatten_DataArray():
     """Tests for the x_y_flatten function usage with a DataArray."""
     da = xr.DataArray(
-        np.arange(2 * 4).reshape(2, 4),
+        np.reshape(
+            np.arange(2 * 4),
+            newshape=(2, 4),
+            order="C",
+        ),
         dims=("dim_0", "dim_1"),
         coords={
-            "dim_0": np.arange(2),
             "dim_1": np.arange(4),
+            "dim_0": np.arange(2),
         },
     )
     x, y = x_y_flatten(da, "dim_0")
@@ -161,7 +165,10 @@ def test_x_y_flatten_DataArray():
 
 def test_x_y_flatten_DataArray_3D():
     da = xr.DataArray(
-        np.arange(24).reshape(4, 3, 2),
+        np.reshape(
+            np.arange(24),
+            newshape=(4, 3, 2),
+        ),
         dims=("lon", "lat", "time"),
         coords={
             "time": np.arange(2),
@@ -169,10 +176,10 @@ def test_x_y_flatten_DataArray_3D():
             "lon": np.arange(4),
         },
     )
-    with pytest.raises(Exception) as e_info:
-        x_y_flatten(da, axis="time")
+    x, y = x_y_flatten(da, axis="time")
 
-    assert str(e_info.value) == "The data array must have max. 2 dimensions but has 3."
+    np.testing.assert_array_equal(x, np.concatenate([np.zeros(3 * 4), np.ones(3 * 4)]))
+    np.testing.assert_array_equal(y, np.concatenate([np.arange(0, 24, 2), np.arange(1, 24, 2)]))
 
 
 def test_shape_dim_as_dataarray():

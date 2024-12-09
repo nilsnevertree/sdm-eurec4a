@@ -60,13 +60,23 @@ def consecutive_events_xr(
         >>> da_mask = [1,0,1,1,1,0,0,1,1,1,1,0]
         >>> consecutive_events(da_mask, min_duration = 3)
     """
+    # make sure that the mask is boolean
+    if (
+        np.issubdtype(da_mask.dtype, float)
+        or np.issubdtype(da_mask.dtype, int)
+        or np.issubdtype(da_mask.dtype, bool)
+    ):
+        da_mask = da_mask.astype(bool)
+    else:
+        raise ValueError(f"da_mask must be boolean but is type: {da_mask.dtype}")
+
     if da_mask[axis].ndim != 1:
         raise ValueError(f"axis must be one dimensional but is {da_mask[axis].ndim}")
-    # make sure that the mask is boolean
-    try:
-        da_mask = da_mask.astype(bool)
-    except Exception as e:
-        raise ValueError(f"da_mask must be boolean. Error: {e}")
+
+    # try:
+    #     da_mask = da_mask.astype(bool)
+    # except Exception as e:
+    #     raise ValueError(f"da_mask must be boolean. Error: {e}")
     # get the original axis order of the da_mask
     axis_order = da_mask.dims
     # reorder axis
@@ -174,10 +184,16 @@ def consecutive_events_np(
     """
 
     # make sure that the mask is boolean
-    try:
+    # try:
+    if (
+        np.issubdtype(mask.dtype, float)
+        or np.issubdtype(mask.dtype, int)
+        or np.issubdtype(mask.dtype, bool)
+    ):
         mask = mask.astype(bool)
-    except Exception as e:
-        raise ValueError(f"da_mask must be boolean. Error: {e}")
+    else:
+        raise ValueError(f"da_mask must be boolean but is type: {mask.dtype}")
+
     # get the original axis order of the da_mask
     axis_order = np.arange(mask.ndim)
     # reorder axis
@@ -575,12 +591,12 @@ def match_clouds_and_cloudcomposite(
     --------
     >>> ds_cloudcomposite = xr.Dataset(
     ...     {
-    ...         "cloud_composite": (("time", "lat", "lon"), np.random.rand(5, 5, 5)),
+    ...         "cloud_composite": (("time", "latitude", "longitude"), np.random.rand(5, 5, 5)),
     ...     },
     ...     coords={
     ...         "time": pd.date_range("2020-01-01", periods=5),
-    ...         "lat": np.arange(5),
-    ...         "lon": np.arange(5),
+    ...         "latitude": np.arange(5),
+    ...         "longitude": np.arange(5),
     ...     },
     ... )
     >>> ds_clouds = xr.Dataset(
@@ -594,13 +610,13 @@ def match_clouds_and_cloudcomposite(
     ... )
     >>> match_multiple_clouds_and_cloudcomposite(ds_clouds, ds_cloudcomposite)
     <xarray.Dataset>
-    Dimensions:          (lat: 5, lon: 5, time: 3)
+    Dimensions:          (latitude: 5, longitude: 5, time: 3)
     Coordinates:
         * time             (time) datetime64[ns] 2020-01-01 2020-01-02 2020-01-03
-        * lat              (lat) int64 0 1 2 3 4
-        * lon              (lon) int64 0 1 2 3 4
+        * latitude              (latitude) int64 0 1 2 3 4
+        * longitude              (longitude) int64 0 1 2 3 4
     Data variables:
-        cloud_composite  (time, lat, lon) float64 0.548 0.592 0.046 0.607 ... 0.236 0.604 0.959 0.22
+        cloud_composite  (time, latitude, longitude) float64 0.548 0.592 0.046 0.607 ... 0.236 0.604 0.959 0.22
     """
 
     # create a list of time arrays for each cloud
