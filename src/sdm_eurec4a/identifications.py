@@ -63,10 +63,19 @@ def consecutive_events_xr(
     if da_mask[axis].ndim != 1:
         raise ValueError(f"axis must be one dimensional but is {da_mask[axis].ndim}")
     # make sure that the mask is boolean
-    try:
+    if (
+        np.issubdtype(da_mask.dtype, float)
+        or np.issubdtype(da_mask.dtype, int)
+        or np.issubdtype(da_mask.dtype, bool)
+    ):
         da_mask = da_mask.astype(bool)
-    except Exception as e:
-        raise ValueError(f"da_mask must be boolean. Error: {e}")
+    else:
+        raise ValueError(f"da_mask must be boolean but is type: {da_mask.dtype}")
+
+    # try:
+    #     da_mask = da_mask.astype(bool)
+    # except Exception as e:
+    #     raise ValueError(f"da_mask must be boolean. Error: {e}")
     # get the original axis order of the da_mask
     axis_order = da_mask.dims
     # reorder axis
@@ -174,10 +183,17 @@ def consecutive_events_np(
     """
 
     # make sure that the mask is boolean
-    try:
+    # try:
+    if (
+        np.issubdtype(mask.dtype, float)
+        or np.issubdtype(mask.dtype, int)
+        or np.issubdtype(mask.dtype, bool)
+    ):
         mask = mask.astype(bool)
-    except Exception as e:
-        raise ValueError(f"da_mask must be boolean. Error: {e}")
+
+    else:
+        raise ValueError(f"da_mask must be boolean but is type: {mask.dtype}")
+
     # get the original axis order of the da_mask
     axis_order = np.arange(mask.ndim)
     # reorder axis
