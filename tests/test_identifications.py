@@ -138,7 +138,7 @@ def test_consecutive_events_np_boolfail():
     mask_convertable = np.array([np.nan, 0, 3])
     consecutive_events_np(mask_convertable, min_duration=1, axis=0)
     mask_non_convertable = np.array([np.nan, 0, "something"])
-
+    print(mask_non_convertable.dtype)
     with pytest.raises(ValueError):
         consecutive_events_np(mask_non_convertable, min_duration=1, axis=0)
 

@@ -60,8 +60,6 @@ def consecutive_events_xr(
         >>> da_mask = [1,0,1,1,1,0,0,1,1,1,1,0]
         >>> consecutive_events(da_mask, min_duration = 3)
     """
-    if da_mask[axis].ndim != 1:
-        raise ValueError(f"axis must be one dimensional but is {da_mask[axis].ndim}")
     # make sure that the mask is boolean
     if (
         np.issubdtype(da_mask.dtype, float)
@@ -71,6 +69,9 @@ def consecutive_events_xr(
         da_mask = da_mask.astype(bool)
     else:
         raise ValueError(f"da_mask must be boolean but is type: {da_mask.dtype}")
+
+    if da_mask[axis].ndim != 1:
+        raise ValueError(f"axis must be one dimensional but is {da_mask[axis].ndim}")
 
     # try:
     #     da_mask = da_mask.astype(bool)
@@ -190,7 +191,6 @@ def consecutive_events_np(
         or np.issubdtype(mask.dtype, bool)
     ):
         mask = mask.astype(bool)
-
     else:
         raise ValueError(f"da_mask must be boolean but is type: {mask.dtype}")
 
