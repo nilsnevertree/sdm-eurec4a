@@ -147,7 +147,7 @@ def test_x_y_flatten_DataArray():
     """Tests for the x_y_flatten function usage with a DataArray."""
     da = xr.DataArray(
         np.reshape(
-            a=np.arange(2 * 4),
+            np.arange(2 * 4),
             newshape=(2, 4),
             order="C",
         ),
@@ -166,7 +166,7 @@ def test_x_y_flatten_DataArray():
 def test_x_y_flatten_DataArray_3D():
     da = xr.DataArray(
         np.reshape(
-            a=np.arange(24),
+            np.arange(24),
             newshape=(4, 3, 2),
         ),
         dims=("lon", "lat", "time"),
