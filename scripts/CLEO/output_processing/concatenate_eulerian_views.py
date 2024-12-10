@@ -1,43 +1,19 @@
 # %%
-import argparse
 
-from pathlib import Path
-
-
-# Create argument parser
-def is_notebook() -> bool:
-    try:
-        shell = get_ipython().__class__.__name__
-        if shell == "ZMQInteractiveShell":
-            return True  # Jupyter notebook or qtconsole
-        elif shell == "TerminalInteractiveShell":
-            return False  # Terminal running IPython
-        else:
-            return False  # Other type (?)
-    except NameError:
-        return False  # Probably standard Python interpreter
-
-
-import os
 import sys
-
+import logging
+import argparse
 from pathlib import Path
-from typing import Union
-import matplotlib.pyplot as plt
 
-import awkward as ak
 import numpy as np
 import pandas as pd
 import xarray as xr
-import mpi4py
-import logging
 
 from sdm_eurec4a import RepositoryPath
+import datetime
 
 RP = RepositoryPath("levante")
-
 repo_dir = RP.repo_dir
-data_dir = RP.data_dir
 
 
 # add domain masks
@@ -71,14 +47,11 @@ try:
 
     comm = MPI.COMM_WORLD
     rank = comm.Get_rank()  # [0,1,2,3,4,5,6,7,8,9]
-    npro = comm.Get_size()  # 10
+    number_ranks = comm.Get_size()  # 10
 except:
     print("::: Warning: Proceeding without mpi4py! :::")
     rank = 0
-    npro = 1
-
-
-import datetime
+    number_ranks = 1
 
 # === logging ===
 # create log file
@@ -123,7 +96,7 @@ def handle_exception(exc_type, exc_value, exc_traceback):
 # %%
 
 logging.info(f"====================")
-logging.info(f"Start with rank {rank} of {npro}")
+logging.info(f"Start with rank {rank} of {number_ranks}")
 
 # path2CLEO = Path("/home/m/m301096/CLEO")
 # path2CLEO.is_dir()
@@ -147,26 +120,21 @@ output_dir = master_data_dir / f"combined"
 output_dir.mkdir(exist_ok=True, parents=False)
 output_file_path = output_dir / f"eulerian_dataset_combined.nc"
 
-
-pattern = "cluster_*/"
-
-data_dir_list = np.array(sorted(list(master_data_dir.glob(pattern))))
-
 relative_path_to_eulerian_dataset = Path("processed/eulerian_dataset.nc")
-
-eulerian_dataset_path_list = data_dir_list / relative_path_to_eulerian_dataset
+pattern = "cluster_*/"
 
 logging.info(f"Enviroment: {sys.prefix}")
 logging.info("Concatenate eulerian views in:")
 logging.info(master_data_dir)
+logging.info(f"Subfolder pattern: {pattern}")
+logging.info(f"Relative path to eulerian dataset: {relative_path_to_eulerian_dataset}")
+logging.info(f"Save the combined eulerian view to: {output_file_path}")
 
-logger.info("Save the combined eulerian view to:")
-logger.info(output_file_path)
+data_dir_list = np.array(sorted(list(master_data_dir.glob(pattern))))
+eulerian_dataset_path_list = data_dir_list / relative_path_to_eulerian_dataset
 
-
-# %%
-sublist_data_dirs = np.array_split(np.array(data_dir_list), npro)[rank]
-sublist_eulerian_dataset_paths = np.array_split(np.array(eulerian_dataset_path_list), npro)[rank]
+sublist_data_dirs = np.array_split(np.array(data_dir_list), number_ranks)[rank]
+sublist_eulerian_dataset_paths = np.array_split(np.array(eulerian_dataset_path_list), number_ranks)[rank]
 total_npro = len(sublist_data_dirs)
 
 sucessful = []
@@ -208,7 +176,7 @@ number_sucessful = len(cloud_id_list)
 number_total = len(sublist_data_dirs)
 
 # %%
-if npro == 0:
+if number_ranks == 0:
 
     logging.info(f"All processes finished with {number_sucessful}/{number_total} sucessful")
     logging.info(f"Sucessful clouds are: {list(cloud_id_list)}")
@@ -235,17 +203,17 @@ if npro == 0:
         dict(
             description="Combined eulerian view for all clouds.",
             author="Nils Niebaum",
-            date=str(pd.Timestamp.now()),
+            date=datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),
         )
     )
 
     logging.info("Add domain masks")
     add_domain_masks(ds)
 
-    logger.info(f"Attempt to save combined dataset to: {output_file_path}")
+    logging.info(f"Attempt to save combined dataset to: {output_file_path}")
     ds.to_netcdf(output_file_path)
-    logger.info(f"Closing dataset")
-    logger.info(f"Done")
+    logging.info(f"Closing dataset")
+    logging.info(f"Done")
 
 else:
 
@@ -278,10 +246,10 @@ else:
     logging.info("Add domain masks")
     add_domain_masks(ds)
 
-    logger.info(f"Attempt to save combined dataset to: {temporary_file_path}")
+    logging.info(f"Attempt to save combined dataset to: {temporary_file_path}")
     ds.to_netcdf(temporary_file_path)
-    logger.info(f"Closing dataset")
-    logger.info(f"Done")
+    logging.info(f"Closing dataset")
+    logging.info(f"Done")
 
     # combine the results from all ranks
     logging.info("Combine all netcdf files from all ranks")
@@ -292,7 +260,7 @@ else:
     logging.info(f"{all_cloud_id_list}")
 
     if rank != 0:
-        logger.info(f"Finished with rank {rank}")
+        logging.info(f"Finished with rank {rank}")
 
     else:
 
@@ -315,10 +283,10 @@ else:
         )
         ds.sortby("cloud_id")
 
-        logger.info(f"Attempt to save combined dataset to: {output_file_path}")
+        logging.info(f"Attempt to save combined dataset to: {output_file_path}")
         ds.to_netcdf(output_file_path)
 
-        logger.info(f"Saved combined dataset to: {output_file_path}")
+        logging.info(f"Saved combined dataset to: {output_file_path}")
 
         # remove temporary files
         logging.info("Close dataset")
@@ -327,5 +295,3 @@ else:
         for temporary_file_path in all_temporary_file_path:
             temporary_file_path.unlink()
         logging.info("Finished complete process")
-
-    # %%

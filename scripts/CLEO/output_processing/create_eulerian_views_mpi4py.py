@@ -104,12 +104,13 @@ parser.add_argument("-d", "--data_dir", type=str, help="Path to data directory",
 args = parser.parse_args()
 
 master_data_dir = Path(args.data_dir)
+subfolder_pattern = "cluster*"
 
 
 logging.info(f"Enviroment: {sys.prefix}")
-logging.info("Create eulerian view in:")
-logging.info(master_data_dir)
-data_dir_list = sorted(list(master_data_dir.iterdir()))
+logging.info(f"Create eulerian view in: {master_data_dir}")
+logging.info(f"Subfolder pattern: {subfolder_pattern}")
+data_dir_list = sorted(list(master_data_dir.glob(subfolder_pattern)))
 
 
 def ak_differentiate(sa: supersdata.SupersAttribute) -> supersdata.SupersAttribute:
