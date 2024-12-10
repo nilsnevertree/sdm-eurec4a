@@ -2,15 +2,13 @@
 #SBATCH --job-name=e1d_eulerian_master
 #SBATCH --partition=compute
 #SBATCH --nodes=1
-#SBATCH --ntasks-per-node=1
 #SBATCH --mem=100G
-#SBATCH --time=00:10:00
+#SBATCH --time=00:30:00
 #SBATCH --mail-user=nils-ole.niebaumy@mpimet.mpg.de
 #SBATCH --mail-type=FAIL
 #SBATCH --account=mh1126
-#SBATCH --output=./logfiles/eulerian_view/combined/%j_out.out
-#SBATCH --error=./logfiles/eulerian_view/combined/%j_err.out
-
+#SBATCH --output=/home/m/m301096/repositories/sdm-eurec4a/logs/eulerian_master/%j_out.log
+#SBATCH --error=/home/m/m301096/repositories/sdm-eurec4a/logs/eulerian_master/%j_err.log
 
 ### ---------------------------------------------------- ###
 ### ------------------ Input Parameters ---------------- ###
