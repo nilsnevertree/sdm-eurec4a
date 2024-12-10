@@ -21,9 +21,9 @@
 ### ---------------------------------------------------- ###
 
 ### ------------------ Load Modules -------------------- ###
+source ${HOME}/.bashrc
 env=/work/mh1126/m301096/conda/envs/sdm_pysd_env312
-mamba activate ${env}
-python=${env}/bin/python
+conda activate ${env}
 
 # ------------------ Set Variables --------------------- #
 echo "--------------------------------------------"
@@ -35,8 +35,8 @@ echo "============================================"
 
 # Set microphysics setup
 # microphysics="null_microphysics"
-microphysics="condensation"
-# microphysics="collision_condensation"
+# microphysics="condensation"
+microphysics="collision_condensation"
 # microphysics="coalbure_condensation_small"
 # microphysics="coalbure_condensation_large"
 
@@ -44,13 +44,13 @@ path2CLEO=${HOME}/CLEO/
 path2sdm_eurec4a=${HOME}/repositories/sdm-eurec4a
 
 create=true
-concatenate=false
+concatenate=true
 
 create_pythonscript=${path2sdm_eurec4a}/scripts/CLEO/output_processing/create_eulerian_views_mpi4py.py
 concatenate_pythonscript=${path2sdm_eurec4a}/scripts/CLEO/output_processing/concatenate_eulerian_views.py
 
 
-path2data=${path2CLEO}/data/output_v4.1/${microphysics}/
+path2data=${path2CLEO}/data/debug_output/long_duration_128/${microphysics}/
 
 echo "============================================"
 echo "path2data: ${path2data}"
