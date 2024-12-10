@@ -48,7 +48,7 @@ create_pythonscript=${path2sdm_eurec4a}/scripts/CLEO/output_processing/create_eu
 concatenate_pythonscript=${path2sdm_eurec4a}/scripts/CLEO/output_processing/concatenate_eulerian_views.py
 
 
-path2data=${path2CLEO}/data/debug_output/long_duration_128/${microphysics}/
+path2data=${path2CLEO}/data/debug_output/short_duration_1024/${microphysics}/
 
 echo "============================================"
 echo "path2data: ${path2data}"
