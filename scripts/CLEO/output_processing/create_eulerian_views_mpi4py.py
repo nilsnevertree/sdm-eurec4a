@@ -30,6 +30,7 @@ from sdm_eurec4a.visulization import set_custom_rcParams
 from sdm_eurec4a.conversions import msd_from_psd_dataarray
 
 from sdm_eurec4a import RepositoryPath
+import secrets
 
 set_custom_rcParams()
 
@@ -49,15 +50,25 @@ except:
     rank = 0
     npro = 1
 
+# create shared logging directory
+if rank == 0:
+    # Generate a shared directory name based on UTC time and random hex
+    time_str = datetime.datetime.now(datetime.timezone.utc).strftime("%Y%m%d-%H%M%S")
+    random_hex = secrets.token_hex(4)
+    log_dir = repo_dir / "logs" / f"create_eulerian_views/{time_str}-{random_hex}"
+    log_dir.mkdir(exist_ok=True, parents=True)
+else:
+    log_dir = None
+
+# Broadcast the shared directory name to all processes
+log_dir = comm.bcast(log_dir, root=0)
+# create individual log file
+log_file_path = log_dir / f"{rank}.log"
+
 
 # === logging ===
 # create log file
 
-time_str = datetime.datetime.now(datetime.timezone.utc).strftime("%Y%m%d-%H%M%S")
-
-log_file_dir = repo_dir / "logs" / f"create_eulerian_views/{time_str}"
-log_file_dir.mkdir(exist_ok=True, parents=True)
-log_file_path = log_file_dir / f"{rank}.log"
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -68,7 +79,7 @@ handler.setLevel(logging.INFO)
 
 # create a console handler
 console_handler = logging.StreamHandler()
-console_handler.setLevel(logging.INFO)
+console_handler.setLevel(logging.ERROR)
 
 # create a logging format
 formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
