@@ -2,7 +2,7 @@
 #SBATCH --job-name=e1d_eulerian_master
 #SBATCH --partition=compute
 #SBATCH --nodes=1
-#SBATCH --mem=100G
+#SBATCH --mem=256G
 #SBATCH --time=00:30:00
 #SBATCH --mail-user=nils-ole.niebaumy@mpimet.mpg.de
 #SBATCH --mail-type=FAIL
@@ -48,7 +48,7 @@ create_pythonscript=${path2sdm_eurec4a}/scripts/CLEO/output_processing/create_eu
 concatenate_pythonscript=${path2sdm_eurec4a}/scripts/CLEO/output_processing/concatenate_eulerian_views.py
 
 
-path2data=${path2CLEO}/data/debug_output/long_duration_128/${microphysics}/
+path2data=${path2CLEO}/data/output_v4.0/${microphysics}/
 
 echo "============================================"
 echo "path2data: ${path2data}"
@@ -67,7 +67,7 @@ echo "============================================"
 
 if [ "$create" = true ]; then
     echo "Create eulerian views"
-    mpirun -np 40 python ${create_pythonscript} --data_dir ${path2data}
+    mpirun -np 20 python ${create_pythonscript} --data_dir ${path2data}
     echo "============================================"
 fi
 
