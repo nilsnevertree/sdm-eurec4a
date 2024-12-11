@@ -176,7 +176,7 @@ number_sucessful = len(cloud_id_list)
 number_total = len(sublist_data_dirs)
 
 # %%
-if number_ranks == 0:
+if number_ranks == 1:
 
     logging.info(f"All processes finished with {number_sucessful}/{number_total} sucessful")
     logging.info(f"Sucessful clouds are: {list(cloud_id_list)}")

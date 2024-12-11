@@ -899,12 +899,13 @@ for step, data_dir in enumerate(sublist_data_dirs):
 
         radii = 1e-6 * ds["radius_bins"]
         bin_width = 0.5 * ((radii.shift(radius_bins=-1) - radii.shift(radius_bins=1)))
+        bin_width = bin_width.fillna(0)
 
         ds_psd = DoubleLogNormal(**psd_params_dict)(radii=radii) * bin_width
 
-        r = ~np.isnan(ds_psd)
-        observation_psd = (ds_psd).where(r)
-        cleo_psd = (ds["xi"] / ds["gridbox_volume"]).isel(gridbox=-1).mean("time").where(r)
+        # r = ~np.isnan(ds_psd)
+        observation_psd = ds_psd
+        cleo_psd = (ds["xi"] / ds["gridbox_volume"]).isel(gridbox=-1).mean("time")  # .where(r)
 
         observation_msd = msd_from_psd_dataarray(
             da=observation_psd, radius_name="radius_bins", radius_scale_factor=1e-6
@@ -950,7 +951,7 @@ for step, data_dir in enumerate(sublist_data_dirs):
         fig.suptitle(f"Cloud ID: {cloud_id}")
         fig.tight_layout()
 
-        fig.savefig(fig_dir / f"comparison_psd_msd_cloud_id_{cloud_id}.png")
+        fig.savefig(fig_dir / f"comparison_psd_msd_cluster_{cloud_id}.png")
 
         sucessful.append(cloud_id)
 
