@@ -69,7 +69,7 @@ def set_custom_rcParams() -> list:
     BIGGER_SIZE = 15
     HUGHER_SIZE = 18
     plt.rc("font", size=MEDIUM_SIZE)  # Default text sizes
-    plt.rc("figure", titlesize=BIGGER_SIZE)  # Figure title size
+    plt.rc("figure", titlesize=MEDIUM_SIZE)  # Figure title size
     plt.rc("figure", labelsize=MEDIUM_SIZE)  # X and Y labels size
 
     plt.rc("axes", titlesize=MEDIUM_SIZE)  # Axes title size
