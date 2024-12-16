@@ -491,6 +491,7 @@ def create_eulerian_dataset(
         dataset.set_attribute(dataset["sdgbxindex"].attribute_to_indexer_unique(new_name="gridbox"))
     except KeyError:
         pass
+
     try:
         dataset.set_attribute(
             dataset["radius"].attribute_to_indexer_binned(bins=radius_bins, new_name="radius_bins")

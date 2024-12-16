@@ -32,16 +32,16 @@ echo "git branch: $(git symbolic-ref --short HEAD)"
 echo "============================================"
 
 # Set microphysics setup
-# microphysics="null_microphysics"
+microphysics="null_microphysics"
 # microphysics="condensation"
-microphysics="collision_condensation"
+# microphysics="collision_condensation"
 # microphysics="coalbure_condensation_small"
 # microphysics="coalbure_condensation_large"
 
 path2CLEO=${HOME}/CLEO/
 path2sdm_eurec4a=${HOME}/repositories/sdm-eurec4a
 
-create=true
+create=false
 concatenate=true
 
 create_pythonscript=${path2sdm_eurec4a}/scripts/CLEO/output_processing/create_eulerian_views_mpi4py.py
