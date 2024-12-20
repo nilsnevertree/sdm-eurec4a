@@ -985,3 +985,23 @@ def find_unit_key(attrs: dict) -> Union[str, None]:
         if key in attrs:
             return key
     return None
+
+
+def plot_one_one(ax: plt.Axes, **kwargs: dict):
+    """
+    This function plots a one-to-one line on a given axis.
+
+    Parameters:
+    -----------
+    ax : plt.Axes
+        The matplotlib Axes object to plot on.
+    **kwargs : dict
+        Additional keyword arguments for the plot function.
+        It uses the ax.plot function to plot the one-to-one line.
+    """
+    # get current axis limits
+    lims = [
+        np.min([ax.get_xlim(), ax.get_ylim()]),  # min of both axes
+        np.max([ax.get_xlim(), ax.get_ylim()]),  # max of both axes
+    ]
+    ax.plot(lims, lims, **kwargs)
