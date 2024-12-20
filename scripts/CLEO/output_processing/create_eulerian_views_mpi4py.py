@@ -631,6 +631,184 @@ def create_eulerian_xr_dataset(
     return ds
 
 
+def create_inflow_outflow_reservoir_dataset(
+    dataset: supersdata.SupersDataNew,
+    dim0_name: str = "time",
+    dim1_name: str = "sdgbxindex",
+    attribute_names: Union[Tuple[str], None] = None,
+) -> Tuple[
+    supersdata.SupersDataSimple,
+    supersdata.SupersDataSimple,
+    supersdata.SupersDataSimple,
+]:
+
+    # use only the Superdroplets, which are in more than one timestep!
+    # For this, the ak.num > 1
+    # An example would be this array:
+    # [
+    #      [0,1,2,3],   -> usable
+    #      [0,1],       -> usable
+    #      [0],         -> UNUSABLE
+    #      [3, 4, 5],   -> usable
+    #  ]
+    data = dataset[dim0_name].data
+    mask = ak.num(data, axis=-1) > 1
+
+    # create the empty dataset for the inflow, outflow and reservoir
+    dataset_inflow = supersdata.SupersDataSimple([])
+    dataset_outflow = supersdata.SupersDataSimple([])
+    dataset_reservoir = supersdata.SupersDataSimple([])
+
+    # if no attribute names are given, compute all attributes
+    if attribute_names is None:
+        attribute_names = tuple(dataset.attributes.keys())
+
+    # iterate over all attributes and create the inflow, outflow and reservoir
+    for key in attribute_names:
+        attribute = dataset[key]
+        data = attribute.data
+        data = data[mask]
+
+        # The inflow is the second value of the array, because the first is the initialisation!
+        # The first value of the array would be in the cloud gridbox
+        inflow_array = data[:, 1]
+        # The outflow of the data is the last value along the SD-Id dimension
+        outflow_array = data[:, -1]
+        # The reservoir is the data without the first and last value of the dataset
+        reservoir_data = data[:, 1:-1]
+        reservoir_data = ak.flatten(reservoir_data, axis=-1)
+
+        dataset_inflow.set_attribute(
+            supersdata.SupersAttribute(
+                name=key, data=inflow_array, units=attribute.units, metadata=attribute.metadata
+            )
+        )
+        dataset_outflow.set_attribute(
+            supersdata.SupersAttribute(
+                name=key, data=outflow_array, units=attribute.units, metadata=attribute.metadata
+            )
+        )
+        dataset_reservoir.set_attribute(
+            supersdata.SupersAttribute(
+                name=key, data=reservoir_data, units=attribute.units, metadata=attribute.metadata
+            )
+        )
+
+    dataset_inflow.set_attribute(dataset_inflow[dim0_name].attribute_to_indexer_unique())
+    dataset_inflow.index_by_indexer(dataset_inflow[dim0_name])
+
+    dataset_outflow.set_attribute(dataset_outflow[dim0_name].attribute_to_indexer_unique())
+    dataset_outflow.index_by_indexer(dataset_outflow[dim0_name])
+
+    dataset_reservoir.set_attribute(dataset_reservoir[dim0_name].attribute_to_indexer_unique())
+    dataset_reservoir.set_attribute(dataset_reservoir[dim1_name].attribute_to_indexer_unique())
+    dataset_reservoir.index_by_indexer(dataset_reservoir[dim0_name])
+    dataset_reservoir.index_by_indexer(dataset_reservoir[dim1_name])
+    return dataset_inflow, dataset_outflow, dataset_reservoir
+
+
+def add_inflow_outflow_reservoir(ds: xr.Dataset, dataset: supersdata.SupersDataNew) -> None:
+
+    dataset_inflow, dataset_outflow, dataset_reservoir = create_inflow_outflow_reservoir_dataset(
+        dataset=dataset,
+        dim0_name="time",
+        dim1_name="sdgbxindex",
+        attribute_names=("mass_represented",),
+    )
+
+    # create the xarray dataset
+    da_inflow = dataset_inflow.attribute_to_DataArray_reduction(
+        "mass_represented", reduction_func=ak.sum
+    )
+    da_outflow = dataset_outflow.attribute_to_DataArray_reduction(
+        "mass_represented", reduction_func=ak.sum
+    )
+    da_reservoir = dataset_reservoir.attribute_to_DataArray_reduction(
+        "mass_represented", reduction_func=ak.sum
+    )
+
+    # outflow should be negative
+    da_outflow = -da_outflow
+    da_reservoir = da_reservoir
+
+    ds_box_model = xr.Dataset(
+        {
+            "inflow": da_inflow,
+            "outflow": da_outflow,
+            "reservoir": da_reservoir,
+        }
+    )
+
+    # !!!!!!!!!!!!
+    # The data is now given in kg per timestep, which we keep it!
+
+    ds_box_model = ds_box_model.rename({"sdgbxindex": "gridbox"})
+    ds_box_model = ds_box_model.fillna(0)
+    attrs = {key: ds_box_model[key].attrs.copy() for key in ds_box_model.data_vars}
+
+    ds_box_model = ds_box_model
+
+    ds_box_model["reservoir"] = ds_box_model["reservoir"].sum("gridbox")
+
+    for key in ds_box_model.data_vars:
+        ds_box_model[key].attrs = attrs[key]
+
+    ds_box_model["inflow"].attrs = dict(
+        long_name="Inflow",
+        description="Inflow of mass into the domain. Given in total mass per timestep.",
+        units="kg dT^{-1}",
+    )
+    ds_box_model["outflow"].attrs = dict(
+        long_name="Outflow",
+        description="Outflow of mass out of the domain. Given in total mass per timestep.",
+        units="kg dT^{-1}",
+    )
+    ds_box_model["reservoir"].attrs = dict(
+        long_name="Reservoir",
+        description="Reservoir of mass in the domain. Given in total mass inside the domain.",
+        units="kg",
+    )
+
+    # for the first timestep, the reservoir is equal to the inflow
+    # ds_box_model['reservoir'][0] = ds_box_model['inflow'][0]
+
+    # ds_box_model['inflow_integrate'] = ds_box_model['inflow'].cumsum('time', keep_attrs=True)
+    # ds_box_model['inflow_integrate'] = ds_box_model['inflow_integrate'].shift(time = 0)
+    # ds_box_model['inflow_integrate'].attrs['units'] = 'kg'
+
+    # ds_box_model['outflow_integrate'] = ds_box_model['outflow'].cumsum('time', keep_attrs=True)
+    # ds_box_model['outflow_integrate'] = ds_box_model['outflow_integrate'].shift(time = 0)
+    # ds_box_model['outflow_integrate'].attrs['units'] = 'kg'
+
+    ds_box_model["reservoir_change"] = ds_box_model["reservoir"].diff("time")
+    ds_box_model["reservoir_change"] = ds_box_model["reservoir_differentiate"].shift(time=0)
+    ds_box_model["reservoir_change"].attrs = dict(
+        long_name="Reservoir change",
+        description="Change of the reservoir mass in the domain per timestep dT.",
+        units="kg dT^{-1}",
+    )
+
+    # the first change in the reservoir is the first timestep - 0
+    ds_box_model["reservoir_differentiate"][0] = ds_box_model["reservoir"][0] - 0
+
+    # add the source terms
+
+    da_source = ds["massdelta_condensation"]
+    # make sure to have kg per gridbox
+    da_source = da_source * ds["gridbox_volume"]
+    # make sure to have per timestep NOT per second
+    da_source = da_source * ds["time"].diff("time").mean()
+    # only use sub cloud layer gridboxes, as the
+    da_source = da_source.sel(gridbox=slice(0, ds["max_gridbox"].max() - 1))
+
+    ds_box_model["source"] = da_source.isel(gridbox=slice(None, None)).sum("gridbox").shift(time=0)
+    ds_box_model["source"].attrs = dict(
+        long_name="Source term",
+        description="Source term of mass in the domain. Given in total mass per timestep. It is equal to the evaporation of mass in the sub cloud layer of the domain.",
+        units="kg dT^{-1}",
+    )
+
+
 # Functions to add thermodynamic variables and gridbox properties to the dataset
 
 
@@ -875,8 +1053,8 @@ for step, data_dir in enumerate(sublist_data_dirs):
 
         add_thermodynamics(ds, ds_zarr)
         add_gridbox_properties(ds, gridbox_dict)
-        add_liquid_water_content(ds)
-        add_vertical_profiles(ds)
+        # add_liquid_water_content(ds)
+        # add_vertical_profiles(ds)
         add_precipitation(ds)
 
         # add the monitor massdelta condensation
@@ -888,6 +1066,11 @@ for step, data_dir in enumerate(sublist_data_dirs):
             description="Condensation mass as caputured by CLEOs condensation monitor. The massdelta condensation is converted from g to kg m-3 s-1.",
             units=r"$kg m^{-3} s^{-1}$",
         )
+
+        logging.info("Add the inflow, outflow and reservoir to the dataset")
+        # Use the SupersDataNew class to read the dataset
+        dataset = supersdata.SupersDataNew(dataset=str(zarr_path), consts=consts)
+        add_inflow_outflow_reservoir(ds, dataset)
 
         logging.info(f"Make sure to have float precission for all variables to be able to include NaNs")
 
@@ -902,68 +1085,68 @@ for step, data_dir in enumerate(sublist_data_dirs):
         ds.to_netcdf(output_path)
         logging.info("Successfully stored dataset")
 
-        logging.info(f"Plot the PSD and MSD for cloud_id: {cloud_id}")
+        # logging.info(f"Plot the PSD and MSD for cloud_id: {cloud_id}")
 
-        fig_dir = data_dir / "figures"
+        # fig_dir = data_dir / "figures"
 
-        psd_params = ds_psd_parameters.sel(cloud_id=cloud_id)
-        psd_params_dict = parameters_dataset_to_dict(psd_params, mapping)
+        # psd_params = ds_psd_parameters.sel(cloud_id=cloud_id)
+        # psd_params_dict = parameters_dataset_to_dict(psd_params, mapping)
 
-        radii = 1e-6 * ds["radius_bins"]
-        bin_width = 0.5 * ((radii.shift(radius_bins=-1) - radii.shift(radius_bins=1)))
-        bin_width = bin_width.fillna(0)
+        # radii = 1e-6 * ds["radius_bins"]
+        # bin_width = 0.5 * ((radii.shift(radius_bins=-1) - radii.shift(radius_bins=1)))
+        # bin_width = bin_width.fillna(0)
 
-        ds_psd = DoubleLogNormal(**psd_params_dict)(radii=radii) * bin_width
+        # ds_psd = DoubleLogNormal(**psd_params_dict)(radii=radii) * bin_width
 
-        # r = ~np.isnan(ds_psd)
-        observation_psd = ds_psd
-        cleo_psd = (ds["xi"] / ds["gridbox_volume"]).isel(gridbox=-1).mean("time")  # .where(r)
+        # # r = ~np.isnan(ds_psd)
+        # observation_psd = ds_psd
+        # cleo_psd = (ds["xi"] / ds["gridbox_volume"]).isel(gridbox=-1).mean("time")  # .where(r)
 
-        observation_msd = msd_from_psd_dataarray(
-            da=observation_psd, radius_name="radius_bins", radius_scale_factor=1e-6
-        )
-        cleo_msd = msd_from_psd_dataarray(
-            da=cleo_psd, radius_name="radius_bins", radius_scale_factor=1e-6
-        )
+        # observation_msd = msd_from_psd_dataarray(
+        #     da=observation_psd, radius_name="radius_bins", radius_scale_factor=1e-6
+        # )
+        # cleo_msd = msd_from_psd_dataarray(
+        #     da=cleo_psd, radius_name="radius_bins", radius_scale_factor=1e-6
+        # )
 
-        fig, axs = plt.subplots(1, 2, figsize=(12, 6))
+        # fig, axs = plt.subplots(1, 2, figsize=(12, 6))
 
-        for i, (tt, cc) in enumerate(zip([observation_psd, observation_msd], [cleo_psd, cleo_msd])):
-            axs[i].plot(
-                1e-3 * ds["radius_bins"],
-                tt,
-                color="blue",
-                label="Observational fit",
-            )
-            axs[i].plot(
-                1e-3 * ds["radius_bins"],
-                cc,
-                color="red",
-                label="CLEO data",
-            )
-            axs[i].plot(
-                1e-3 * ds["radius_bins"],
-                cc - tt,
-                color="k",
-                label="Difference CLEO - Observation",
-            )
+        # for i, (tt, cc) in enumerate(zip([observation_psd, observation_msd], [cleo_psd, cleo_msd])):
+        #     axs[i].plot(
+        #         1e-3 * ds["radius_bins"],
+        #         tt,
+        #         color="blue",
+        #         label="Observational fit",
+        #     )
+        #     axs[i].plot(
+        #         1e-3 * ds["radius_bins"],
+        #         cc,
+        #         color="red",
+        #         label="CLEO data",
+        #     )
+        #     axs[i].plot(
+        #         1e-3 * ds["radius_bins"],
+        #         cc - tt,
+        #         color="k",
+        #         label="Difference CLEO - Observation",
+        #     )
 
-            axs[i].set_title(
-                f"Below are the sums over all radii for\nObservation fit,  CLEO data,  Differences\n{np.nansum(tt):.2e},  {np.nansum(cc):.2e},  {np.nansum(cc - tt):.2e}"
-            )
-            axs[i].set_xscale("log")
-            axs[i].set_yscale("log")
-            axs[i].legend()
+        #     axs[i].set_title(
+        #         f"Below are the sums over all radii for\nObservation fit,  CLEO data,  Differences\n{np.nansum(tt):.2e},  {np.nansum(cc):.2e},  {np.nansum(cc - tt):.2e}"
+        #     )
+        #     axs[i].set_xscale("log")
+        #     axs[i].set_yscale("log")
+        #     axs[i].legend()
 
-        axs[0].set_xlabel(r"Radius [$mm$]")
-        axs[1].set_xlabel(r"Radius [$mm$]")
-        axs[0].set_ylabel(r"Number concentration [$m^{-3}$]")
-        axs[1].set_ylabel(r"Mass concentration [$kg m^{-3}$]")
+        # axs[0].set_xlabel(r"Radius [$mm$]")
+        # axs[1].set_xlabel(r"Radius [$mm$]")
+        # axs[0].set_ylabel(r"Number concentration [$m^{-3}$]")
+        # axs[1].set_ylabel(r"Mass concentration [$kg m^{-3}$]")
 
-        fig.suptitle(f"Cloud ID: {cloud_id}")
-        fig.tight_layout()
+        # fig.suptitle(f"Cloud ID: {cloud_id}")
+        # fig.tight_layout()
 
-        fig.savefig(fig_dir / f"comparison_psd_msd_cluster_{cloud_id}.png")
+        # fig.savefig(fig_dir / f"comparison_psd_msd_cluster_{cloud_id}.png")
 
         sucessful.append(cloud_id)
 
