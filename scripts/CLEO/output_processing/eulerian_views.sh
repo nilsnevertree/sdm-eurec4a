@@ -1,8 +1,7 @@
 #!/bin/bash
 #SBATCH --job-name=e1d_eulerian_master
 #SBATCH --partition=compute
-#SBATCH --nodes=1
-#SBATCH --mem=256G
+#SBATCH --mem=60G
 #SBATCH --time=00:30:00
 #SBATCH --mail-user=nils-ole.niebaumy@mpimet.mpg.de
 #SBATCH --mail-type=FAIL
@@ -41,10 +40,12 @@ microphysics="null_microphysics"
 path2CLEO=${HOME}/CLEO/
 path2sdm_eurec4a=${HOME}/repositories/sdm-eurec4a
 
-create=true
+create=false
+inflow_outflow=true
 concatenate=false
 
 create_pythonscript=${path2sdm_eurec4a}/scripts/CLEO/output_processing/create_eulerian_views_mpi4py.py
+inflow_outflow_pyhtonscript=${path2sdm_eurec4a}/scripts/CLEO/output_processing/create_inflow_outflow_mpi4py.py
 concatenate_pythonscript=${path2sdm_eurec4a}/scripts/CLEO/output_processing/concatenate_eulerian_views.py
 
 
@@ -68,6 +69,13 @@ echo "============================================"
 if [ "$create" = true ]; then
     echo "Create eulerian views"
     mpirun -np 20 python ${create_pythonscript} --data_dir ${path2data}
+    echo "============================================"
+fi
+
+if [ "$inflow_outflow" = true ]; then
+    echo "Create Inflow Outflow"
+    # python ${inflow_outflow_pyhtonscript} --data_dir ${path2data}
+    mpirun -np 20 python ${inflow_outflow_pyhtonscript} --data_dir ${path2data}
     echo "============================================"
 fi
 
