@@ -103,13 +103,12 @@ parser = argparse.ArgumentParser(
     description="Create inflow outflow dataset for data_dir which contains zarr dir in ./eurec4a1d_sol.zarr and config files in ./config/eurec4a1d_setup.txt"
 )
 # %%
-# # Add arguments
-# parser.add_argument("-d", "--data_dir", type=str, help="Path to data directory", required=True)
-# # Parse arguments
-# args = parser.parse_args()
-# master_data_dir = Path(args.data_dir)
+# Add arguments
+parser.add_argument("-d", "--data_dir", type=str, help="Path to data directory", required=True)
+# Parse arguments
+args = parser.parse_args()
+master_data_dir = Path(args.data_dir)
 
-master_data_dir = Path("/home/m/m301096/CLEO//data/output_v4.0/null_microphysics/")
 
 subfolder_pattern = "cluster*"
 
@@ -345,7 +344,9 @@ for step, data_dir in enumerate(sublist_data_dirs):
         )
 
         ds["source"] = (
-            ds_zarr["massdelta_cond"]
+            1e18
+            * 1e-3
+            * ds_zarr["massdelta_cond"]
             .sel(gridbox=slice(0, ds_zarr["gridbox"].max() - 1))
             .sum("gridbox")
             .shift(time=0)
