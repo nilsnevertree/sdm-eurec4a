@@ -40,8 +40,8 @@ microphysics="null_microphysics"
 path2CLEO=${HOME}/CLEO/
 path2sdm_eurec4a=${HOME}/repositories/sdm-eurec4a
 
-eulerian_view=false
-concatenate_eulerian_view=false
+eulerian_view=true
+concatenate_eulerian_view=true
 
 inflow_outflow=true
 concatenate_inflow_outflow=true
