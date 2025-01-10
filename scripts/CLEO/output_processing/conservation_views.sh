@@ -6,8 +6,8 @@
 #SBATCH --mail-user=nils-ole.niebaumy@mpimet.mpg.de
 #SBATCH --mail-type=FAIL
 #SBATCH --account=mh1126
-#SBATCH --output=/home/m/m301096/repositories/sdm-eurec4a/logs/eulerian_master/%j_out.log
-#SBATCH --error=/home/m/m301096/repositories/sdm-eurec4a/logs/eulerian_master/%j_err.log
+#SBATCH --output=/home/m/m301096/repositories/sdm-eurec4a/logs/conservation_master/%j_out.log
+#SBATCH --error=/home/m/m301096/repositories/sdm-eurec4a/logs/conservation_master/%j_err.log
 
 ### ---------------------------------------------------- ###
 ### ------------------ Input Parameters ---------------- ###
