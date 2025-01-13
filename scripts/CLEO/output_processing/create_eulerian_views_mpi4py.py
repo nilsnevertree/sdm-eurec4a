@@ -600,7 +600,7 @@ def create_eulerian_xr_dataset(
         # left attributes
         "mass_left": sum_reduction,
         # "xi_left": sum_reduction,
-        # "number_superdroplets_left": sum_reduction,
+        "number_superdroplets_left": sum_reduction,
         "mass_difference": sum_reduction,
     }
 
@@ -608,12 +608,12 @@ def create_eulerian_xr_dataset(
     da_list = []
     for varname in reduction_map:
         reduction_func: Callable = reduction_map[varname]["reduction_func"]
-        add_metadata: dict = reduction_map[varname]["add_metadata"]
+        metadata: dict = reduction_map[varname]["metadata"]
         da = eulerian.attribute_to_DataArray_reduction(
             attribute_name=varname,
             reduction_func=reduction_func,
         )
-        da.attrs.update(add_metadata)
+        da.attrs.update(metadata)
         da_list.append(da)
 
     # create the dataset by merging the DataArrays
