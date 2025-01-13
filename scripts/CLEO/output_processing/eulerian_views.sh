@@ -75,7 +75,7 @@ echo "============================================"
 
 if [ "$create_eulerian_view" = true ]; then
     echo "Create eulerian views"
-    mpirun -np 40 python ${create_script} --data_dir ${path2data}
+    mpirun -np 20 python ${create_script} --data_dir ${path2data}
     wait
     echo "============================================"
 fi
