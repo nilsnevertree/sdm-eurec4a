@@ -581,11 +581,11 @@ def create_eulerian_xr_dataset(
 
     # create a dataset with the necessary reductions
     sum_reduction = dict(
-        reduction_func=ak.sum,
-        add_metadata={"reduction_func": "ak.sum Summation over all SDs in the bin"},
+        reduction_func=ak.nansum,
+        metadata={"reduction_func": "ak.nansum Summation over all SDs in the bin, omitting nans"},
     )
     mean_reduction = dict(
-        reduction_func=ak.mean, add_metadata={"reduction_func": "ak.mean Mean over all SDs in the bin"}
+        reduction_func=ak.mean, metadata={"reduction_func": "ak.mean Mean over all SDs in the bin"}
     )
 
     reduction_map = {
