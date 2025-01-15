@@ -31,8 +31,8 @@ echo "git branch: $(git symbolic-ref --short HEAD)"
 echo "============================================"
 
 # Set microphysics setup
-microphysics="null_microphysics"
-# microphysics="condensation"
+# microphysics="null_microphysics"
+microphysics="condensation"
 # microphysics="collision_condensation"
 # microphysics="coalbure_condensation_small"
 # microphysics="coalbure_condensation_large"
@@ -41,7 +41,7 @@ path2CLEO=${HOME}/CLEO/
 path2sdm_eurec4a=${HOME}/repositories/sdm-eurec4a
 
 create_eulerian_view=true
-concatenate_eulerian_view=true
+# concatenate_eulerian_view=true
 
 # inflow_outflow=true
 # concatenate_inflow_outflow=true
@@ -75,7 +75,7 @@ echo "============================================"
 
 if [ "$create_eulerian_view" = true ]; then
     echo "Create eulerian views"
-    mpirun -np 20 python ${create_script} --data_dir ${path2data}
+    mpirun -np 15 python ${create_script} --data_dir ${path2data}
     wait
     echo "============================================"
 fi
