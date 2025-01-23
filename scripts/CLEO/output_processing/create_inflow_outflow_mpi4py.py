@@ -221,13 +221,13 @@ def create_inflow_outflow_reservoir_xr_dataset(
 
     # create the xarray dataset
     dataset_inflow = dataset_inflow.attribute_to_DataArray_reduction(
-        "mass_represented", reduction_func=ak.sum
+        "mass_represented", reduction_func=ak.nansum
     )
     dataset_outflow = dataset_outflow.attribute_to_DataArray_reduction(
-        "mass_represented", reduction_func=ak.sum
+        "mass_represented", reduction_func=ak.nansum
     )
     dataset_reservoir = dataset_reservoir.attribute_to_DataArray_reduction(
-        "mass_represented", reduction_func=ak.sum
+        "mass_represented", reduction_func=ak.nansum
     )
 
     # outflow should be negative
