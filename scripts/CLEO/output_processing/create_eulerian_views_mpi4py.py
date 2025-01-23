@@ -1,17 +1,14 @@
 import argparse
 
 from pathlib import Path
-import os
 import sys
 
 from pathlib import Path
-from typing import Union
-import matplotlib.pyplot as plt
+from typing import Union, Callable
 
 import awkward as ak
 import numpy as np
 import xarray as xr
-import mpi4py
 import logging
 from mpi4py import MPI
 import datetime
@@ -20,16 +17,14 @@ from sdm_eurec4a import RepositoryPath
 
 from pySD.sdmout_src import pygbxsdat, pysetuptxt, supersdata
 from sdm_eurec4a.conversions import relative_humidity_from_tps
-import sdm_eurec4a.input_processing.models as smodels
 
-from pySD.initsuperdropsbinary_src.probdists import DoubleLogNormal
 from typing import Tuple
 
 from sdm_eurec4a.visulization import set_custom_rcParams
 
-from sdm_eurec4a.conversions import msd_from_psd_dataarray
 
 from sdm_eurec4a import RepositoryPath
+import secrets
 
 set_custom_rcParams()
 
@@ -49,15 +44,25 @@ except:
     rank = 0
     npro = 1
 
+# create shared logging directory
+if rank == 0:
+    # Generate a shared directory name based on UTC time and random hex
+    time_str = datetime.datetime.now(datetime.timezone.utc).strftime("%Y%m%d-%H%M%S")
+    random_hex = secrets.token_hex(4)
+    log_dir = repo_dir / "logs" / f"create_eulerian_views/{time_str}-{random_hex}"
+    log_dir.mkdir(exist_ok=True, parents=True)
+else:
+    log_dir = None
+
+# Broadcast the shared directory name to all processes
+log_dir = comm.bcast(log_dir, root=0)
+# create individual log file
+log_file_path = log_dir / f"{rank}.log"
+
 
 # === logging ===
 # create log file
 
-time_str = datetime.datetime.now(datetime.timezone.utc).strftime("%Y%m%d-%H%M%S")
-
-log_file_dir = repo_dir / "logs" / f"create_eulerian_views/{time_str}"
-log_file_dir.mkdir(exist_ok=True, parents=True)
-log_file_path = log_file_dir / f"{rank}.log"
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -68,7 +73,7 @@ handler.setLevel(logging.INFO)
 
 # create a console handler
 console_handler = logging.StreamHandler()
-console_handler.setLevel(logging.INFO)
+console_handler.setLevel(logging.ERROR)
 
 # create a logging format
 formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
@@ -104,12 +109,13 @@ parser.add_argument("-d", "--data_dir", type=str, help="Path to data directory",
 args = parser.parse_args()
 
 master_data_dir = Path(args.data_dir)
+subfolder_pattern = "cluster*"
 
 
 logging.info(f"Enviroment: {sys.prefix}")
-logging.info("Create eulerian view in:")
-logging.info(master_data_dir)
-data_dir_list = sorted(list(master_data_dir.iterdir()))
+logging.info(f"Create eulerian view in: {master_data_dir}")
+logging.info(f"Subfolder pattern: {subfolder_pattern}")
+data_dir_list = sorted(list(master_data_dir.glob(subfolder_pattern)))
 
 
 def ak_differentiate(sa: supersdata.SupersAttribute) -> supersdata.SupersAttribute:
@@ -479,6 +485,7 @@ def create_eulerian_dataset(
         dataset.set_attribute(dataset["sdgbxindex"].attribute_to_indexer_unique(new_name="gridbox"))
     except KeyError:
         pass
+
     try:
         dataset.set_attribute(
             dataset["radius"].attribute_to_indexer_binned(bins=radius_bins, new_name="radius_bins")
@@ -574,11 +581,11 @@ def create_eulerian_xr_dataset(
 
     # create a dataset with the necessary reductions
     sum_reduction = dict(
-        reduction_func=ak.sum,
-        add_metadata={"reduction_func": "ak.sum Summation over all SDs in the bin"},
+        reduction_func=ak.nansum,
+        metadata={"reduction_func": "ak.nansum Summation over all SDs in the bin, omitting nans"},
     )
     mean_reduction = dict(
-        reduction_func=ak.mean, add_metadata={"reduction_func": "ak.mean Mean over all SDs in the bin"}
+        reduction_func=ak.mean, metadata={"reduction_func": "ak.mean Mean over all SDs in the bin"}
     )
 
     reduction_map = {
@@ -588,25 +595,25 @@ def create_eulerian_xr_dataset(
         "number_superdroplets": sum_reduction,
         "mass_represented": sum_reduction,
         # differentiated attributes
-        "mass_difference": sum_reduction,
-        "mass_difference_timestep": sum_reduction,
-        "evaporated_fraction": mean_reduction,
+        # "mass_difference_timestep": sum_reduction,
+        # "evaporated_fraction": mean_reduction,
         # left attributes
         "mass_left": sum_reduction,
-        "xi_left": sum_reduction,
+        # "xi_left": sum_reduction,
         "number_superdroplets_left": sum_reduction,
+        "mass_difference": sum_reduction,
     }
 
     # create individual DataArrays
     da_list = []
     for varname in reduction_map:
-        reduction_func = reduction_map[varname]["reduction_func"]
-        add_metadata = reduction_map[varname]["add_metadata"]
+        reduction_func: Callable = reduction_map[varname]["reduction_func"]
+        metadata: dict = reduction_map[varname]["metadata"]
         da = eulerian.attribute_to_DataArray_reduction(
             attribute_name=varname,
             reduction_func=reduction_func,
         )
-        da.attrs.update(add_metadata)
+        da.attrs.update(metadata)
         da_list.append(da)
 
     # create the dataset by merging the DataArrays
@@ -619,8 +626,6 @@ def create_eulerian_xr_dataset(
 
 
 # Functions to add thermodynamic variables and gridbox properties to the dataset
-
-
 def add_thermodynamics(ds: xr.Dataset, ds_zarr: xr.Dataset) -> None:
     """
     This function adds the thermodynamic variables to the dataset. The
@@ -676,15 +681,6 @@ def add_gridbox_properties(ds: xr.Dataset, gridbox_dict: dict, gridbox_key: str 
         units="$m$",
     )
 
-    ds["surface_area"] = (
-        ("gridbox",),
-        np.full_like(ds["gridbox"], np.diff(gridbox_dict["xhalf"]) * np.diff(gridbox_dict["yhalf"])),
-    )
-    ds["surface_area"].attrs.update(
-        long_name="Gridbox center coordinate 3",
-        units="$m$",
-    )
-
     ds["gridbx_coord3_norm"] = ds["gridbox_coord3"] / ds["gridbox_coord3"].max()
     ds["gridbx_coord3_norm"].attrs.update(
         long_name="Normalized gridbox center coordinate 3",
@@ -699,13 +695,30 @@ def add_gridbox_properties(ds: xr.Dataset, gridbox_dict: dict, gridbox_key: str 
         units="$m^3$",
     )
 
+    ds["surface_area"] = (
+        ("gridbox",),
+        np.full_like(ds["gridbox"], np.diff(gridbox_dict["xhalf"]) * np.diff(gridbox_dict["yhalf"])),
+    )
+    ds["surface_area"].attrs.update(
+        long_name="Surface Area of a gridbox / the domain",
+        units="$m^2$",
+    )
 
-def add_liquid_water_content(ds: xr.Dataset) -> None:
-    ds["liquid_water_content"] = ds["mass_represented"] / ds["gridbox_volume"]
+
+def add_liquid_water_content(ds: xr.Dataset, ds_zarr: xr.Dataset) -> None:
+
+    ds["liquid_water_content"] = (ds["mass_represented"] / ds["gridbox_volume"]).sum("radius_bins")
     ds["liquid_water_content"].attrs.update(
         long_name="Liquid Water Content",
         description="Liquid Water Content per gridbox",
         units=r"$kg m^{-3}$",
+    )
+
+    ds["mass_moment1"] = ds_zarr["massmom1"] * 1e-3
+    ds["mass_moment1"].attrs.update(
+        long_name="First mass moment",
+        description="First mass moment of the mass distribution per gridbox",
+        units=r"$kg$",
     )
 
 
@@ -792,10 +805,6 @@ def parameters_dataset_to_dict(ds: xr.Dataset, mapping: Union[dict[str, str], Tu
     return parameters
 
 
-ds_psd_parameters = xr.open_dataset(
-    sdm_data_dir / "model/input_v4.0/particle_size_distribution_parameters_linear_space.nc"
-)
-
 # define the bin edges in micrometers
 radii_edges = np.geomspace(10, 4e3, 151)
 
@@ -862,8 +871,8 @@ for step, data_dir in enumerate(sublist_data_dirs):
 
         add_thermodynamics(ds, ds_zarr)
         add_gridbox_properties(ds, gridbox_dict)
-        add_liquid_water_content(ds)
-        add_vertical_profiles(ds)
+        add_liquid_water_content(ds, ds_zarr)
+        # add_vertical_profiles(ds)
         add_precipitation(ds)
 
         # add the monitor massdelta condensation
@@ -875,7 +884,6 @@ for step, data_dir in enumerate(sublist_data_dirs):
             description="Condensation mass as caputured by CLEOs condensation monitor. The massdelta condensation is converted from g to kg m-3 s-1.",
             units=r"$kg m^{-3} s^{-1}$",
         )
-
         logging.info(f"Make sure to have float precission for all variables to be able to include NaNs")
 
         for var in ds:
@@ -888,68 +896,6 @@ for step, data_dir in enumerate(sublist_data_dirs):
         logging.info(f"Attempt to store dataset to: {output_path}")
         ds.to_netcdf(output_path)
         logging.info("Successfully stored dataset")
-
-        logging.info(f"Plot the PSD and MSD for cloud_id: {cloud_id}")
-
-        fig_dir = data_dir / "figures"
-
-        psd_params = ds_psd_parameters.sel(cloud_id=cloud_id)
-        psd_params_dict = parameters_dataset_to_dict(psd_params, mapping)
-
-        radii = 1e-6 * ds["radius_bins"]
-        bin_width = 0.5 * ((radii.shift(radius_bins=-1) - radii.shift(radius_bins=1)))
-
-        ds_psd = DoubleLogNormal(**psd_params_dict)(radii=radii) * bin_width
-
-        r = ~np.isnan(ds_psd)
-        observation_psd = (ds_psd).where(r)
-        cleo_psd = (ds["xi"] / ds["gridbox_volume"]).isel(gridbox=-1).mean("time").where(r)
-
-        observation_msd = msd_from_psd_dataarray(
-            da=observation_psd, radius_name="radius_bins", radius_scale_factor=1e-6
-        )
-        cleo_msd = msd_from_psd_dataarray(
-            da=cleo_psd, radius_name="radius_bins", radius_scale_factor=1e-6
-        )
-
-        fig, axs = plt.subplots(1, 2, figsize=(12, 6))
-
-        for i, (tt, cc) in enumerate(zip([observation_psd, observation_msd], [cleo_psd, cleo_msd])):
-            axs[i].plot(
-                1e-3 * ds["radius_bins"],
-                tt,
-                color="blue",
-                label="Observational fit",
-            )
-            axs[i].plot(
-                1e-3 * ds["radius_bins"],
-                cc,
-                color="red",
-                label="CLEO data",
-            )
-            axs[i].plot(
-                1e-3 * ds["radius_bins"],
-                cc - tt,
-                color="k",
-                label="Difference CLEO - Observation",
-            )
-
-            axs[i].set_title(
-                f"Below are the sums over all radii for\nObservation fit,  CLEO data,  Differences\n{np.nansum(tt):.2e},  {np.nansum(cc):.2e},  {np.nansum(cc - tt):.2e}"
-            )
-            axs[i].set_xscale("log")
-            axs[i].set_yscale("log")
-            axs[i].legend()
-
-        axs[0].set_xlabel(r"Radius [$mm$]")
-        axs[1].set_xlabel(r"Radius [$mm$]")
-        axs[0].set_ylabel(r"Number concentration [$m^{-3}$]")
-        axs[1].set_ylabel(r"Mass concentration [$kg m^{-3}$]")
-
-        fig.suptitle(f"Cloud ID: {cloud_id}")
-        fig.tight_layout()
-
-        fig.savefig(fig_dir / f"comparison_psd_msd_cloud_id_{cloud_id}.png")
 
         sucessful.append(cloud_id)
 

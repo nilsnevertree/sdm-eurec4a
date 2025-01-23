@@ -526,19 +526,19 @@ def create_eulerian_xr_dataset(
         "mass_represented": sum_reduction,
         # differentiated attributes
         "mass_difference": sum_reduction,
-        "mass_difference_timestep": sum_reduction,
-        "evaporated_fraction": mean_reduction,
+        # "mass_difference_timestep": sum_reduction,
+        # "evaporated_fraction": mean_reduction,
         # left attributes
         "mass_left": sum_reduction,
-        "xi_left": sum_reduction,
-        "number_superdroplets_left": sum_reduction,
+        # "xi_left": sum_reduction,
+        # "number_superdroplets_left": sum_reduction,
     }
 
     # create individual DataArrays
     da_list = []
     for varname in reduction_map:
-        reduction_func = reduction_map[varname]["reduction_func"]
-        add_metadata = reduction_map[varname]["add_metadata"]
+        reduction_func: dict = reduction_map[varname]["reduction_func"]
+        add_metadata: dict = reduction_map[varname]["add_metadata"]
         da = eulerian.attribute_to_DataArray_reduction(
             attribute_name=varname,
             reduction_func=reduction_func,
@@ -613,15 +613,6 @@ def add_gridbox_properties(ds: xr.Dataset, gridbox_dict: dict, gridbox_key: str 
         units="$m$",
     )
 
-    ds["surface_area"] = (
-        ("gridbox",),
-        np.full_like(ds["gridbox"], np.diff(gridbox_dict["xhalf"]) * np.diff(gridbox_dict["yhalf"])),
-    )
-    ds["surface_area"].attrs.update(
-        long_name="Gridbox center coordinate 3",
-        units="$m$",
-    )
-
     ds["gridbx_coord3_norm"] = ds["gridbox_coord3"] / ds["gridbox_coord3"].max()
     ds["gridbx_coord3_norm"].attrs.update(
         long_name="Normalized gridbox center coordinate 3",
@@ -636,13 +627,29 @@ def add_gridbox_properties(ds: xr.Dataset, gridbox_dict: dict, gridbox_key: str 
         units="$m^3$",
     )
 
+    ds["surface_area"] = (
+        ("gridbox",),
+        np.full_like(ds["gridbox"], np.diff(gridbox_dict["xhalf"]) * np.diff(gridbox_dict["yhalf"])),
+    )
+    ds["surface_area"].attrs.update(
+        long_name="Surface Area of a gridbox / the domain",
+        units="$m^2$",
+    )
 
-def add_liquid_water_content(ds: xr.Dataset) -> None:
-    ds["liquid_water_content"] = ds["mass_represented"] / ds["gridbox_volume"]
+
+def add_liquid_water_content(ds: xr.Dataset, ds_zarr: xr.Dataset) -> None:
+    ds["liquid_water_content"] = (ds["mass_represented"] / ds["gridbox_volume"]).sum("radius_bins")
     ds["liquid_water_content"].attrs.update(
         long_name="Liquid Water Content",
-        description="Liquid Water Content per gridbox",
+        description="Total liquid water content per gridbox",
         units=r"$kg m^{-3}$",
+    )
+
+    ds["mass_moment1"] = ds_zarr["massmom1"] * 1e-3
+    ds["mass_moment1"].attrs.update(
+        long_name="First mass moment",
+        description="First mass moment of the mass distribution per gridbox",
+        units=r"$kg$",
     )
 
 
@@ -727,7 +734,7 @@ print("Add thermodynamic variables and gridbox properties to the dataset")
 
 add_thermodynamics(ds, ds_zarr)
 add_gridbox_properties(ds, gridbox_dict)
-add_liquid_water_content(ds)
+add_liquid_water_content(ds, ds_zarr)
 add_vertical_profiles(ds)
 add_precipitation(ds)
 

@@ -1,6 +1,8 @@
 import string
 import textwrap
 import warnings
+from typing import Union
+from pathlib import Path
 
 from colorsys import hls_to_rgb, rgb_to_hls
 from typing import Dict, Tuple, Union
@@ -26,6 +28,8 @@ from matplotlib.legend_handler import (
 from matplotlib.lines import Line2D
 from matplotlib.patches import Polygon
 
+
+from sdm_eurec4a import replace_path_suffix
 
 # Use colorblind-safe colors
 _default_colors = [
@@ -69,7 +73,7 @@ def set_custom_rcParams() -> list:
     BIGGER_SIZE = 15
     HUGHER_SIZE = 18
     plt.rc("font", size=MEDIUM_SIZE)  # Default text sizes
-    plt.rc("figure", titlesize=BIGGER_SIZE)  # Figure title size
+    plt.rc("figure", titlesize=MEDIUM_SIZE)  # Figure title size
     plt.rc("figure", labelsize=MEDIUM_SIZE)  # X and Y labels size
 
     plt.rc("axes", titlesize=MEDIUM_SIZE)  # Axes title size
@@ -587,7 +591,7 @@ def plot_thermodynamics(
     fit_dict: Union[dict, None] = None,
     fig_title: str = "",
     default_colors: list = get_current_colors(),
-    dark_colors: list = None,
+    dark_colors: Union[list, None] = None,
     plot_kwargs: dict = dict(alpha=0.75, linewidth=0.7),
     plot_fit_kwargs: dict = dict(alpha=0.75, linewidth=1.5),
 ) -> Tuple[mpl_figure.Figure, np.ndarray]:
@@ -985,3 +989,75 @@ def find_unit_key(attrs: dict) -> Union[str, None]:
         if key in attrs:
             return key
     return None
+
+
+def plot_one_one(ax: mpl_axes.Axes, N: int = 100, **kwargs: dict):
+    """
+    This function plots a one-to-one line on a given axis.
+
+    Parameters:
+    -----------
+    ax : plt.Axes
+        The matplotlib Axes object to plot on.
+    N : int, optional
+        The number of points to plot. Default is 100.
+    **kwargs : dict
+        Additional keyword arguments for the plot function.
+        It uses the ax.plot function to plot the one-to-one line.
+    """
+    # get current axis limits
+    lims = np.linspace(
+        np.nanmin([ax.get_xlim(), ax.get_ylim()]),  # min of both axes
+        np.nanmax([ax.get_xlim(), ax.get_ylim()]),  # max of both axes
+        N,
+    )
+    ax.plot(lims, lims, **kwargs)
+
+
+def save_figure(
+    fig: mpl_figure.Figure,
+    fig_dir: Path = Path("."),
+    name: Union[Path, str] = "test",
+    formats: dict = {
+        ".png": dict(dpi=300),
+        ".pdf": dict(),
+    },
+) -> None:
+    """
+    Save a figure to the fig_dir with the given name.
+
+    Parameters
+    ----------
+    fig : matplotlib.figure.Figure
+        The figure to save.
+    fig_dir : Path
+        The directory to save the figure
+    name : Path
+        The path to store the figure at, relative to ``fig_dir``.
+    formats : dict
+        The formats to save the figure in.
+        The keys are the suffixes of the file, the values are the keyword arguments for the savefig method.
+        Defaults is:
+
+        {
+            '.png' : dict(dpi = 300),
+            '.pdf' : dict(),
+        }
+
+    Returns
+    -------
+    None
+    """
+
+    if isinstance(name, str):
+        name = Path(name)
+
+    for ext, kwargs in formats.items():
+
+        if "." != ext[0]:
+            warnings.warn("The extension should start with a dot.\nCorrection performed.")
+            ext = "." + ext
+
+        save_name = replace_path_suffix(name, ext)
+
+        fig.savefig(fig_dir / save_name, **kwargs)

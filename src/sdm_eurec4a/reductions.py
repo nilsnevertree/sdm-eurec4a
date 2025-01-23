@@ -328,7 +328,7 @@ def validate_datasets_same_attrs(datasets: list, skip_attrs: list = []) -> bool:
 
 def mean_and_stderror_of_mean(
     data: xr.DataArray,
-    dims: Tuple[str],
+    dims: Union[Tuple[str], str],
     min_sample_size: int = 1,
     data_std: Union[xr.DataArray, None] = None,
 ) -> Tuple[xr.DataArray, xr.DataArray]:
@@ -375,7 +375,11 @@ def mean_and_stderror_of_mean(
     https://en.wikipedia.org/wiki/Central_limit_theorem
     """
 
-    if not isinstance(dims, (list, tuple)):
+    if isinstance(dims, (list, tuple)):
+        dims = dims
+    elif isinstance(dims, str):
+        dims = (dims,)
+    else:
         raise TypeError("dims must be a list of strings")
 
     dim = dims[0]
