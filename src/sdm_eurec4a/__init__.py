@@ -14,15 +14,10 @@ class RepositoryPath:
     _known_development_regimes = dict(
         levante=dict(
             repo_dir=Path("/home/m/m301096/repositories/sdm-eurec4a/"),
-            data_dir=Path("/work/mh1126/m301096/softlinks/sdm-eurec4a/data"),
-        ),
-        nils_levante=dict(
-            repo_dir=Path("/home/m/m301096/repositories/sdm-eurec4a/"),
-            data_dir=Path("/work/mh1126/m301096/softlinks/sdm-eurec4a/data"),
-        ),
-        nils_private=dict(
-            repo_dir=Path("C:/Users/Niebaum/Documents/Repositories/sdm-eurec4a"),
-            data_dir=Path("C:/Users/Niebaum/Documents/Repositories/sdm-eurec4a/data"),
+            data_dir=Path("/home/m/m301096/repositories/sdm-eurec4a/data/"),
+            fig_dir=Path("/home/m/m301096/repositories/sdm-eurec4a/results/"),
+            CLEO_dir=Path("/home/m/m301096/CLEO/"),
+            CLEO_data_dir=Path("/home/m/m301096/CLEO/data/"),
         ),
     )
 
@@ -33,26 +28,35 @@ class RepositoryPath:
                 f"Known development regimes: {RepositoryPath._known_development_regimes}"
             )
         else:
-            self.repo_dir = RepositoryPath._known_development_regimes[development_regime]["repo_dir"]
-            self.data_dir = RepositoryPath._known_development_regimes[development_regime]["data_dir"]
 
-    def set_repo_dir(self, repo_dir):
-        self.repo_dir = repo_dir
+            self._development_regime = development_regime
+            self._repo_dict = RepositoryPath._known_development_regimes[development_regime]
 
-    def set_data_dir(self, data_dir):
-        self.data_dir = data_dir
+    @property
+    def repo_dir(self) -> Path:
+        return self._repo_dict["repo_dir"]
 
-    def get_repo_dir(self):
-        return self.repo_dir
+    @property
+    def data_dir(self) -> Path:
+        return self._repo_dict["data_dir"]
 
-    def get_data_dir(self):
-        return self.data_dir
+    @property
+    def fig_dir(self) -> Path:
+        return self._repo_dict["fig_dir"]
 
-    def __call__(self) -> Path:
-        return self.repo_dir
+    @property
+    def CLEO_dir(self) -> Path:
+        return self._repo_dict["CLEO_dir"]
+
+    @property
+    def CLEO_data_dir(self) -> Path:
+        return self._repo_dict["CLEO_data_dir"]
+
+    def __call__(self) -> dict:
+        return self._repo_dict
 
     def __str__(self) -> str:
-        return str(self.repo_dir)
+        return f"{self._development_regime}\n" + str(self._repo_dict)
 
 
 def get_git_revision_hash() -> str:
