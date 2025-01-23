@@ -29,6 +29,8 @@ from matplotlib.lines import Line2D
 from matplotlib.patches import Polygon
 
 
+from sdm_eurec4a import replace_path_suffix
+
 # Use colorblind-safe colors
 _default_colors = [
     "#CC6677",
@@ -1012,26 +1014,6 @@ def plot_one_one(ax: mpl_axes.Axes, N: int = 100, **kwargs: dict):
     ax.plot(lims, lims, **kwargs)
 
 
-def replace_suffix(path: Path, suffix: str) -> Path:
-    """
-    Replace the suffix of a path with a new suffix.
-
-    Parameters
-    ----------
-    path : Path
-        The path to replace the suffix of.
-    suffix : str
-        The new suffix to use.
-
-    Returns
-    -------
-    Path
-        The path with the new suffix.
-    """
-
-    return path.parent / Path(path.stem + suffix)
-
-
 def save_figure(
     fig: mpl_figure.Figure,
     fig_dir: Path = Path("."),
@@ -1076,6 +1058,6 @@ def save_figure(
             warnings.warn("The extension should start with a dot.\nCorrection performed.")
             ext = "." + ext
 
-        save_name = replace_suffix(name, ext)
+        save_name = replace_path_suffix(name, ext)
 
         fig.savefig(fig_dir / save_name, **kwargs)

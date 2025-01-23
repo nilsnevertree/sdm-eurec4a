@@ -73,3 +73,23 @@ def get_git_revision_hash() -> str:
         The full git revision hash.
     """
     return subprocess.check_output(["git", "rev-parse", "HEAD"]).decode("ascii").strip()
+
+
+def replace_path_suffix(path: Path, suffix: str) -> Path:
+    """
+    Replace the suffix of a path with a new suffix.
+
+    Parameters
+    ----------
+    path : Path
+        The path to replace the suffix of.
+    suffix : str
+        The new suffix to use.
+
+    Returns
+    -------
+    Path
+        The path with the new suffix.
+    """
+
+    return path.parent / Path(path.stem + suffix)
