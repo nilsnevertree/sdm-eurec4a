@@ -701,6 +701,7 @@ class LeastSquareFit:
         self.fit_kwargs = fit_kwargs
         self.plot_kwargs = plot_kwargs
         self.fit_result = None
+        self.x_guess = self.x0
 
     def __default_cost_func__(self, x: np.ndarray, t: np.ndarray, y: np.ndarray, **kwargs) -> np.ndarray:
         """
@@ -836,17 +837,20 @@ class LeastSquareFit:
         return self._x0
 
     @property
-    def x_guess(self):
+    def x_guess(self) -> np.ndarray:
         """
         The guess of the parameters.
         It is updated after each fit.
-        This property is read-only.
         """
 
         if self.fit_result is None:
             return self.x0
         else:
-            return self.fit_result.x
+            return self._x_guess
+
+    @x_guess.setter
+    def x_guess(self, x: np.ndarray):
+        self._x_guess = x
 
     def __x_to_parameters__(self, x: np.ndarray) -> dict:
         """This function converts the list of parameter values x to a dictionary with the parameter names given by the function annotations."""
@@ -858,7 +862,7 @@ class LeastSquareFit:
         return dict(zip(keys, x))
 
     @property
-    def parameters(self):
+    def parameters(self) -> dict:
         """
         Final parameters for the model function after the fit.
         The parameters are stored in a dictionary with the parameter names given by the function annotations.
@@ -919,6 +923,7 @@ class LeastSquareFit:
                 args=(np.ravel(self.t_train), np.ravel(self.y_train)),
                 **least_squares_kwargs,
             )
+        self.x_guess = self.fit_result.x
 
     def predict(
         self, t_test: Union[np.ndarray, xr.DataArray]
