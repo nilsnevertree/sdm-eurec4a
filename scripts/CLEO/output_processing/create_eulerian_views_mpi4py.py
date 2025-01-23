@@ -805,10 +805,6 @@ def parameters_dataset_to_dict(ds: xr.Dataset, mapping: Union[dict[str, str], Tu
     return parameters
 
 
-ds_psd_parameters = xr.open_dataset(
-    sdm_data_dir / "model/input_v4.0/particle_size_distribution_parameters_linear_space.nc"
-)
-
 # define the bin edges in micrometers
 radii_edges = np.geomspace(10, 4e3, 151)
 
@@ -900,69 +896,6 @@ for step, data_dir in enumerate(sublist_data_dirs):
         logging.info(f"Attempt to store dataset to: {output_path}")
         ds.to_netcdf(output_path)
         logging.info("Successfully stored dataset")
-
-        # logging.info(f"Plot the PSD and MSD for cloud_id: {cloud_id}")
-
-        # fig_dir = data_dir / "figures"
-
-        # psd_params = ds_psd_parameters.sel(cloud_id=cloud_id)
-        # psd_params_dict = parameters_dataset_to_dict(psd_params, mapping)
-
-        # radii = 1e-6 * ds["radius_bins"]
-        # bin_width = 0.5 * ((radii.shift(radius_bins=-1) - radii.shift(radius_bins=1)))
-        # bin_width = bin_width.fillna(0)
-
-        # ds_psd = DoubleLogNormal(**psd_params_dict)(radii=radii) * bin_width
-
-        # # r = ~np.isnan(ds_psd)
-        # observation_psd = ds_psd
-        # cleo_psd = (ds["xi"] / ds["gridbox_volume"]).isel(gridbox=-1).mean("time")  # .where(r)
-
-        # observation_msd = msd_from_psd_dataarray(
-        #     da=observation_psd, radius_name="radius_bins", radius_scale_factor=1e-6
-        # )
-        # cleo_msd = msd_from_psd_dataarray(
-        #     da=cleo_psd, radius_name="radius_bins", radius_scale_factor=1e-6
-        # )
-
-        # fig, axs = plt.subplots(1, 2, figsize=(12, 6))
-
-        # for i, (tt, cc) in enumerate(zip([observation_psd, observation_msd], [cleo_psd, cleo_msd])):
-        #     axs[i].plot(
-        #         1e-3 * ds["radius_bins"],
-        #         tt,
-        #         color="blue",
-        #         label="Observational fit",
-        #     )
-        #     axs[i].plot(
-        #         1e-3 * ds["radius_bins"],
-        #         cc,
-        #         color="red",
-        #         label="CLEO data",
-        #     )
-        #     axs[i].plot(
-        #         1e-3 * ds["radius_bins"],
-        #         cc - tt,
-        #         color="k",
-        #         label="Difference CLEO - Observation",
-        #     )
-
-        #     axs[i].set_title(
-        #         f"Below are the sums over all radii for\nObservation fit,  CLEO data,  Differences\n{np.nansum(tt):.2e},  {np.nansum(cc):.2e},  {np.nansum(cc - tt):.2e}"
-        #     )
-        #     axs[i].set_xscale("log")
-        #     axs[i].set_yscale("log")
-        #     axs[i].legend()
-
-        # axs[0].set_xlabel(r"Radius [$mm$]")
-        # axs[1].set_xlabel(r"Radius [$mm$]")
-        # axs[0].set_ylabel(r"Number concentration [$m^{-3}$]")
-        # axs[1].set_ylabel(r"Mass concentration [$kg m^{-3}$]")
-
-        # fig.suptitle(f"Cloud ID: {cloud_id}")
-        # fig.tight_layout()
-
-        # fig.savefig(fig_dir / f"comparison_psd_msd_cluster_{cloud_id}.png")
 
         sucessful.append(cloud_id)
 
