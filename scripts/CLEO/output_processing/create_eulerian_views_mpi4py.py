@@ -876,8 +876,11 @@ for step, data_dir in enumerate(sublist_data_dirs):
         add_precipitation(ds)
 
         # add the monitor massdelta condensation
+        # massdelta_cond is given in g, so we need to convert it to kg with 1e3
+        # NOTE: if you use an old version of CLEO, a factor of 1e18 might be missing.
+        # This is resolved at least in v0.30.1
         ds["massdelta_condensation"] = (
-            1e18 * 1e-3 * ds_zarr["massdelta_cond"] / ds["time"].diff("time") / ds["gridbox_volume"]
+            1e-3 * ds_zarr["massdelta_cond"] / ds["time"].diff("time") / ds["gridbox_volume"]
         )
         ds["massdelta_condensation"].attrs.update(
             long_name="Condensation mass",
