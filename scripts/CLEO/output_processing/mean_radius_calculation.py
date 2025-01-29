@@ -5,6 +5,7 @@ import numpy as np
 import logging
 from pathlib import Path
 import sys
+import argparse
 
 from typing import Tuple
 
@@ -129,7 +130,16 @@ microphysics = (
     "coalbure_condensation_large",
 )
 # %%
-data_dir = Path("/home/m/m301096/CLEO/data/output_v4.0/")
+parser = argparse.ArgumentParser(
+    description="Create eulerian view for data_dir which contains all subfolders of cloud data it should contain the subfolder cluster_*/processed/eulerian_dataset.nc"
+)
+
+# Add arguments
+parser.add_argument("-d", "--data_dir", type=str, help="Path to data directory", required=True)
+# Parse arguments
+args = parser.parse_args()
+
+data_dir = Path(args.data_dir)
 
 eulerian_data_path = lambda microphysics: data_dir / Path(
     f"{microphysics}/combined/eulerian_dataset_combined.nc"
