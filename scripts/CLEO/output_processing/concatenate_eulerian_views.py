@@ -17,36 +17,7 @@ import datetime
 RP = RepositoryPath("levante")
 repo_dir = RP.repo_dir
 
-
-client, cluster = slurm_cluster.init_dask_slurm_cluster(
-    scale=1, processes=32, walltime="00:10:00", memory="100GB"
-)
-
-
-# add domain masks
-def add_domain_masks(ds: xr.Dataset) -> None:
-    # create domain mask and sub cloud layer mask
-    ds["domain_mask"] = ds["gridbox"] <= ds["max_gridbox"]
-    ds["domain_mask"].attrs.update(
-        long_name="Domain Mask",
-        description="Boolean mask indicating valid gridbox in the domain for each cloud",
-        units="1",
-    )
-
-    ds["cloud_layer_mask"] = ds["gridbox"] == ds["max_gridbox"]
-    ds["cloud_layer_mask"].attrs.update(
-        long_name="Cloud Layer Mask",
-        description="Boolean mask indicating if the gridbox is part of the cloud layer",
-        units="1",
-    )
-
-    ds["sub_cloud_layer_mask"] = ds["gridbox"] < ds["max_gridbox"]
-    ds["sub_cloud_layer_mask"].attrs.update(
-        long_name="Sub Cloud Layer Mask",
-        description="Boolean mask indicating if the gridbox is part of the sub cloud layer",
-        units="1",
-    )
-
+# %%
 
 # === logging ===
 # create log file
@@ -111,9 +82,9 @@ args = parser.parse_args()
 master_data_dir = Path(args.data_dir)
 
 
-output_dir = master_data_dir / f"combined"
+output_dir = master_data_dir / "combined"
 output_dir.mkdir(exist_ok=True, parents=False)
-output_file_path = output_dir / f"eulerian_dataset_combined.nc"
+output_file_path = output_dir / "eulerian_dataset_combined.nc"
 
 relative_path_to_eulerian_dataset = Path("processed/eulerian_dataset.nc")
 pattern = "cluster_*/"
@@ -167,19 +138,23 @@ number_sucessful = len(cloud_id_list)
 number_total = len(data_dir_list)
 
 # %%
-
 logging.info(f"All processes finished with {number_sucessful}/{number_total} sucessful")
 logging.info(f"Sucessful clouds are: {list(cloud_id_list)}")
 
 logging.info("Attempt to open all sucessful clouds and combine them with xr.open_mfdataset")
 
-cloud_id_index = pd.Index(cloud_id_list, name="cloud_id")
-ds = xr.open_mfdataset(file_path_list, combine="nested", concat_dim=[cloud_id_index], parallel=True)
 
+# create the concatenation index
+cloud_id_index = pd.Index(cloud_id_list, name="cloud_id")
+ds = xr.open_mfdataset(
+    file_path_list, combine="nested", concat_dim=[cloud_id_index], chunks={"cloud_id": 1}
+)
+
+# %%
 logging.info("Add cloud_id and max_gridbox to the dataset")
 ds["cloud_id"].attrs.update(dict(long_name="Cloud identification number", units=""))
 max_gridbox = xr.concat(max_gridbox_list, dim=cloud_id_index)
-ds["max_gridbox"] = max_gridbox
+ds["max_gridbox"] = max_gridbox.compute()
 ds["max_gridbox"].attrs.update(
     dict(
         long_name="Maximum gridbox value for each cloud. Above this value, the cloud has no data.",
@@ -187,8 +162,8 @@ ds["max_gridbox"].attrs.update(
     )
 )
 
-ds = ds.sortby("cloud_id")
 
+ds = ds.sortby("cloud_id")
 ds.attrs.update(
     dict(
         description="Combined eulerian view for all clouds.",
@@ -198,8 +173,33 @@ ds.attrs.update(
 )
 
 logging.info("Add domain masks")
-add_domain_masks(ds)
+# create domain mask and sub cloud layer mask
+ds["domain_mask"] = ds["gridbox"] <= ds["max_gridbox"]
+ds["domain_mask"].compute()
+ds["domain_mask"].attrs.update(
+    long_name="Domain Mask",
+    description="Boolean mask indicating valid gridbox in the domain for each cloud",
+    units="1",
+)
 
+ds["cloud_layer_mask"] = ds["gridbox"] == ds["max_gridbox"]
+ds["cloud_layer_mask"].compute()
+ds["cloud_layer_mask"].attrs.update(
+    long_name="Cloud Layer Mask",
+    description="Boolean mask indicating if the gridbox is part of the cloud layer",
+    units="1",
+)
+
+ds["sub_cloud_layer_mask"] = ds["gridbox"] < ds["max_gridbox"]
+ds["sub_cloud_layer_mask"] = ds["sub_cloud_layer_mask"].compute()
+ds["sub_cloud_layer_mask"].attrs.update(
+    long_name="Sub Cloud Layer Mask",
+    description="Boolean mask indicating if the gridbox is part of the sub cloud layer",
+    units="1",
+)
+
+# %%
+ds = ds.chunk({"cloud_id": 3})
 logging.info(f"Attempt to save combined dataset to: {output_file_path}")
 ds.to_netcdf(output_file_path)
 logging.info(f"Closing dataset")
