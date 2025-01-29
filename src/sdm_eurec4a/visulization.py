@@ -1,7 +1,7 @@
 import string
 import textwrap
 import warnings
-from typing import Union
+from typing import Union, Tuple, Literal, List, Callable, Dict
 from pathlib import Path
 
 from colorsys import hls_to_rgb, rgb_to_hls
@@ -1061,3 +1061,41 @@ def save_figure(
         save_name = replace_path_suffix(name, ext)
 
         fig.savefig(fig_dir / save_name, **kwargs)
+
+
+def add_second_x_axis(
+    ax: plt.Axes,
+    new_xticks_func: Callable,
+    xlabel: str,
+    position: Literal["top", "bottom"] = "bottom",
+    offset_position: Union[
+        Tuple[Literal["outward", "axes", "data"], float], Literal["center", "zero"]
+    ] = ("zero"),
+) -> plt.Axes:
+    xticks = ax.get_xticks()
+    xlim = ax.get_xlim()
+    ax2: plt.Axes = ax.twiny()
+    # Offset the twin axis below the host
+    ax2.spines[position].set_position(offset_position)
+
+    ax2.xaxis.set_ticks_position(position)
+    ax2.xaxis.set_label_position(position)
+
+    # Turn on the frame for the twin axis, but then hide all
+    # but the bottom spine
+    ax2.set_frame_on(False)
+    ax2.patch.set_visible(False)
+
+    # as @ali14 pointed out, for python3, use this
+    # for sp in ax2.spines.values():
+    # and for python2, use this
+    for key, sp in ax2.spines.items():
+        sp.set_visible(False)
+    ax2.spines[position].set_visible(True)
+
+    new_xticks = new_xticks_func(xticks)
+
+    ax2.set_xticks(xticks, new_xticks)
+    ax2.set_xlabel(xlabel)
+    ax2.set_xlim(xlim)
+    # ax2.tick_params(top=False, labeltop=False, bottom=True, labelbottom=True)
