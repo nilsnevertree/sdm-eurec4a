@@ -1,11 +1,11 @@
 #!/bin/bash
-#SBATCH --job-name=e1d_eulerian_master
+#SBATCH --job-name=e1d_conservation
 #SBATCH --partition=compute
 #SBATCH --mem=55G
-#SBATCH --time=00:05:00
+#SBATCH --time=00:10:00
 #SBATCH --mail-user=nils-ole.niebaumy@mpimet.mpg.de
 #SBATCH --mail-type=FAIL
-#SBATCH --account=mh1126
+#SBATCH --account=um1487
 #SBATCH --output=/home/m/m301096/repositories/sdm-eurec4a/logs/conservation_master/%j_out.log
 #SBATCH --error=/home/m/m301096/repositories/sdm-eurec4a/logs/conservation_master/%j_err.log
 
@@ -31,22 +31,22 @@ echo "git branch: $(git symbolic-ref --short HEAD)"
 echo "============================================"
 
 # Set microphysics setup
-microphysics="null_microphysics"
+# microphysics="null_microphysics"
 # microphysics="condensation"
-# microphysics="collision_condensation"
+microphysics="collision_condensation"
 # microphysics="coalbure_condensation_small"
 # microphysics="coalbure_condensation_large"
 
 path2CLEO=${HOME}/CLEO/
 path2sdm_eurec4a=${HOME}/repositories/sdm-eurec4a
 
-inflow_outflow=true
+create_inflow_outflow=true
 concatenate_inflow_outflow=true
 
 inflow_outflow_pyhtonscript=${path2sdm_eurec4a}/scripts/CLEO/output_processing/create_inflow_outflow_mpi4py.py
 concatenate_io_pythonscript=${path2sdm_eurec4a}/scripts/CLEO/output_processing/concatenate_inflow_outflow.py
 
-path2data=${path2CLEO}/data/output_v4.0/${microphysics}/
+path2data=${path2CLEO}/data/output_v4.1/${microphysics}/
 
 echo "============================================"
 echo "path2data: ${path2data}"
@@ -66,7 +66,7 @@ else
 fi
 echo "============================================"
 
-if [ "$inflow_outflow" = true ]; then
+if [ "$create_inflow_outflow" = true ]; then
     echo "Create Inflow Outflow"
     # python ${inflow_outflow_pyhtonscript} --data_dir ${path2data}
     mpirun -np 20 python ${inflow_outflow_pyhtonscript} --data_dir ${path2data}

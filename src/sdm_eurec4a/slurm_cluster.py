@@ -37,7 +37,7 @@ def init_dask_slurm_cluster(
         Default is "m301096-dask-cluster".
     account : str
         Account to be used for the job.
-        Default is "mh1126".
+        Default is "um1487".
     data_dir : str
         Directory to store the temporary data.
         This directory should be accessible from all nodes.

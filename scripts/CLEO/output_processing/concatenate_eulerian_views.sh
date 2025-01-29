@@ -3,11 +3,11 @@
 #SBATCH --partition=compute
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
-#SBATCH --mem=100G
-#SBATCH --time=00:25:00
+#SBATCH --mem=1G
+#SBATCH --time=00:35:00
 #SBATCH --mail-user=nils-ole.niebaumy@mpimet.mpg.de
 #SBATCH --mail-type=FAIL
-#SBATCH --account=mh1126
+#SBATCH --account=um1487
 #SBATCH --output=./logfiles/eulerian_view/concatenate/%j_out.out
 #SBATCH --error=./logfiles/eulerian_view/concatenate/%j_err.out
 
@@ -47,7 +47,7 @@ fi
 echo "============================================"
 
 ### ------------------ Load Modules -------------------- ###
-env=/work/mh1126/m301096/conda/envs/sdm_pysd_env312
+env=/work/um1487/m301096/conda/envs/sdm_pysd_python312
 python=${env}/bin/python
 mamba activate ${env}
 
