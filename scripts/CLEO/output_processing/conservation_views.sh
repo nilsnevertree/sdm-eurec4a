@@ -20,6 +20,7 @@
 ### ------------------ Load Modules -------------------- ###
 source ${HOME}/.bashrc
 env=/work/mh1126/m301096/conda/envs/sdm_pysd_env312
+env=/work/um1487/m301096/conda/envs/sdm_pysd_python312
 conda activate ${env}
 
 # ------------------ Set Variables --------------------- #
@@ -32,8 +33,8 @@ echo "============================================"
 
 # Set microphysics setup
 # microphysics="null_microphysics"
-# microphysics="condensation"
-microphysics="collision_condensation"
+microphysics="condensation"
+# microphysics="collision_condensation"
 # microphysics="coalbure_condensation_small"
 # microphysics="coalbure_condensation_large"
 

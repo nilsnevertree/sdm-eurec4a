@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --job-name=e1d_conservation
 #SBATCH --partition=compute
-#SBATCH --mem=55G
+#SBATCH --mem=1G
 #SBATCH --time=00:10:00
 #SBATCH --mail-user=nils-ole.niebaumy@mpimet.mpg.de
 #SBATCH --mail-type=FAIL
@@ -35,7 +35,7 @@ path2sdm_eurec4a=${HOME}/repositories/sdm-eurec4a
 
 mean_radius_pythonscript=${path2sdm_eurec4a}/scripts/CLEO/output_processing/mean_radius_calculation.py
 
-path2data=${path2CLEO}/data/output_v4.1/${microphysics}/
+path2data=${path2CLEO}/data/output_v4.1/
 
 echo "============================================"
 echo "path2data: ${path2data}"
