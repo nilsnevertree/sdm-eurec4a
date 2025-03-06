@@ -504,3 +504,163 @@ def mean_and_stderror_of_mean_dataset(
             ds_sem[var] = 0 * da
 
     return ds_mean, ds_sem
+
+
+### Interpolation Dataset
+def interpolate_omit_nan(
+    x: np.ndarray,
+    xp: np.ndarray,
+    fp: np.ndarray,
+    method: Literal["linear", "cubic"] = "linear",
+    kwargs: dict = {},
+) -> np.ndarray:
+    """
+    Interpolate a 1-D function, omitting NaN values in the input arrays.
+    Parameters
+    ----------
+    x : np.ndarray
+        The x-coordinates at which to evaluate the interpolated values.
+    xp : np.ndarray
+        The x-coordinates of the data points, must be increasing.
+    fp : np.ndarray
+        The y-coordinates of the data points, same length as `xp`.
+    method : str, optional
+        The interpolation method to use. Supported methods are 'linear' and 'cubic'.
+        Default is 'linear'.
+    Returns
+    -------
+    np.ndarray
+        The interpolated values, with NaNs where interpolation could not be performed.
+    Notes
+    -----
+    - If there are fewer than 3 valid (non-NaN) points in `xp` and `fp`, the function
+        will return an array of NaNs.
+    - For 'cubic' interpolation, `scipy.interpolate.CubicSpline` is used.
+    Examples
+    --------
+    >>> import numpy as np
+    >>> x = np.array([0, 1, 2, 3, 4])
+    >>> xp = np.array([0, 1, 2, np.nan, 4])
+    >>> fp = np.array([0, 1, 4, np.nan, 16])
+    >>> interpolate_omit_nan(x, xp, fp)
+    array([ 0.,  1.,  4., nan, 16.])
+    """
+    # Function implementation here
+
+    # create mask for valid points
+    mask = np.isfinite(xp) & np.isfinite(fp)
+
+    # only run interpolation if there are at least 3 valid points
+    if np.sum(mask) > 2:
+
+        # apply mask to remove nans from the data
+        xp = xp[mask]
+        fp = fp[mask]
+
+        # interpolate linear, using the np.interp function
+        if method == "linear":
+            result = np.interp(x=x, xp=xp, fp=fp, left=np.nan, right=np.nan, **kwargs)
+        # interpolate cubic, using the scipy.interpolate.CubicSpline function
+        elif method == "cubic":
+            result = scipy.interpolate.interp1d(xp, fp, kind="cubic", **kwargs)(x)
+    # otherwise, return array of NaNs
+    else:
+        result = np.full_like(x, np.nan)
+
+    return result
+
+
+# Pytest test routines
+def test_interpolate_linear():
+    x = np.array([0, 1, 2, 3, 4])
+    xp = np.array([0, 1, 2, np.nan, 4])
+    fp = np.array([0, 1, 4, np.nan, 16])
+    expected = np.array([0.0, 1.0, 4.0, np.nan, 16.0])
+    result = interpolate_omit_nan(x, xp, fp, method="linear")
+    np.testing.assert_array_equal(result, expected)
+
+
+def test_interpolate_cubic():
+    x = np.array([0, 1, 2, 3, 4])
+    xp = np.array([0, 1, 2, 3, 4])
+    fp = np.array([0, 1, 8, 27, 64])
+    expected = np.array([0.0, 1.0, 8.0, 27.0, 64.0])
+    result = interpolate_omit_nan(x, xp, fp, method="cubic")
+    np.testing.assert_array_equal(result, expected)
+
+
+def test_interpolate_insufficient_points():
+    x = np.array([0, 1, 2, 3, 4])
+    xp = np.array([0, np.nan, np.nan, np.nan, 4])
+    fp = np.array([0, np.nan, np.nan, np.nan, 16])
+    expected = np.full_like(x, np.nan)
+    result = interpolate_omit_nan(x, xp, fp, method="linear")
+    np.testing.assert_array_equal(result, expected)
+
+
+def interpolate_dataset(
+    ds: xr.Dataset, mapped_dim: xr.DataArray, new_dim: xr.DataArray, old_dim_name: str
+) -> xr.Dataset:
+    """
+    Iinterpolate a dataset along a new dimension, which has dependency on multiple coords.
+    This function is an xarray wrapper for the `interpolate_omit_nan` function.
+
+    Imagine a dataset with the dimensions [``bla``, ``flup``, ...] and you want to interpolate along the dimension ``bla``.
+    You have a mapping, for instance a normalization array, which maps the old dimension ``bla`` to a new dimension.
+    This mapping depends on dimension ``flup``.
+
+    With this function, you can transform the dataset and replace the old dimension ``bla`` with the new dimension given in the mapping_dim.
+
+    Parameters
+    ----------
+    ds : xr.Dataset
+        The dataset to interpolate.
+    mapped_dim : xr.DataArray
+        The mapping of the old to the new dimension.
+        So this DataArray should contain the values of the new dimension.
+        It needs to have the old dimension as a coordinate.
+    new_dim : xr.DataArray
+        The new dimension to interpolate to.
+        Its values need to correspond to the values of the `mapped_dim`.
+        The DataArray should have a name.
+    old_dim_name : str
+        The name of the old dimension which shall be replaced.
+
+    Returns
+    -------
+    xr.Dataset
+        The interpolated dataset.
+
+
+    """
+
+    ds_interpolated = xr.Dataset()
+
+    # perform the interpolation for all variables in the dataset
+    for variable in ds.data_vars:
+        dims = ds[variable].dims
+        attrs = ds[variable].attrs.copy()
+        data = ds[variable]
+
+        # only apply on the data variables, which have the dimensions, from which the mapped dimension is a subset.
+        # This means, if mapped dimension DataArray has dimensions [bla, flup] and bla is the old dimension,
+        # the data variable should have at least the dimensions [bla, flup, ...]
+        if set(mapped_dim.dims).issubset(set(dims)):
+
+            result = xr.apply_ufunc(
+                interpolate_omit_nan,
+                new_dim,
+                mapped_dim,
+                data,
+                input_core_dims=[[new_dim.name], [old_dim_name], [old_dim_name]],
+                output_core_dims=[[new_dim.name]],
+                vectorize=True,
+                kwargs={"method": "linear"},
+            )
+            result.attrs.update(attrs)
+
+            ds_interpolated[variable] = result
+        else:
+            ds_interpolated[variable] = data
+    ds_interpolated[new_dim.name].attrs = new_dim.attrs.copy()
+    return ds_interpolated
