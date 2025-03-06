@@ -826,12 +826,6 @@ def label_from_attrs(
             units = f"${units}$"
 
         units = units.replace("$", " ")
-    elif "unit" in da.attrs:
-        units = f"{da.attrs['unit']}"
-        if "$" not in units:
-            units = f"${units}$"
-
-        units = units.replace("$", " ")
     else:
         units = "???"
 
