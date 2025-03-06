@@ -1,6 +1,7 @@
-from typing import Tuple, Union
+from typing import Tuple, Union, Literal
 
 import numpy as np
+import scipy.interpolate
 import pandas as pd
 import xarray as xr
 
@@ -8,7 +9,9 @@ from dask import array as dask_array
 from shapely.geometry import Point, Polygon
 
 
-def polygon2mask(lon, lat, pg, lat_name="lat", lon_name="lon"):
+def polygon2mask(
+    dobj: Union[xr.DataArray, xr.Dataset], pg: Polygon, lat_name: str = "lat", lon_name: str = "lon"
+):
     """
     This funciton creates a mask for a given DataArray or DataSet based on a shapely
     Polygon or MultiPolygon. Polygon points are expected be (lon, lat) tuples. To fit
@@ -43,7 +46,7 @@ def polygon2mask(lon, lat, pg, lat_name="lat", lon_name="lon"):
     # )
 
     # create the mask
-    lon_2d, lat_2d = xr.broadcast(lon, lat)
+    lon_2d, lat_2d = xr.broadcast(dobj[lon_name], dobj[lat_name])
 
     mask = xr.DataArray(
         np.reshape(
@@ -174,7 +177,7 @@ def latlon_dict_to_polygon(area):
     )
 
 
-def x_y_flatten(da: xr.DataArray, axis: str) -> Union[xr.DataArray, xr.DataArray]:
+def x_y_flatten(da: xr.DataArray, axis: str) -> Tuple[xr.DataArray, xr.DataArray]:
     """
     Flatten a 2D data array along the specified axis.
 
@@ -306,7 +309,7 @@ def shape_dim_as_dataarray(da, output_dim: str):
     return da[output_dim].expand_dims(dim=expand_dict, axis=axis_list)
 
 
-def validate_datasets_same_attrs(datasets: list, skip_attrs: list = []) -> bool:
+def validate_datasets_same_attrs(datasets: list, skip_attrs: list = []) -> np.bool_:
     """
     Check if all datasets have the same attributes except for the ones in skip_attrs.
 
@@ -329,6 +332,7 @@ def validate_datasets_same_attrs(datasets: list, skip_attrs: list = []) -> bool:
 def mean_and_stderror_of_mean(
     data: xr.DataArray,
     dims: Union[Tuple[str], str],
+    keep_attrs: bool = True,
     min_sample_size: int = 1,
     data_std: Union[xr.DataArray, None] = None,
 ) -> Tuple[xr.DataArray, xr.DataArray]:
@@ -353,6 +357,8 @@ def mean_and_stderror_of_mean(
         Dimensions of the ``data`` array must contain at least the dimensions in the ``dims`` list.
     dims : list[str]
         List of dimensions along which the mean is calculated.
+    keep_attrs : bool, optional
+        Whether to keep the attributes of the data array. Default is True.
     min_sample_size : int, optional
         Minimum number of samples required to calculate the mean. Default is 1.
     data_std : xr.DataArray, optional
@@ -375,6 +381,7 @@ def mean_and_stderror_of_mean(
     https://en.wikipedia.org/wiki/Central_limit_theorem
     """
 
+    # make sure to have dims as a tuple
     if isinstance(dims, (list, tuple)):
         dims = dims
     elif isinstance(dims, str):
@@ -382,27 +389,278 @@ def mean_and_stderror_of_mean(
     else:
         raise TypeError("dims must be a list of strings")
 
+    attrs = data.attrs.copy()
+    name = data.name
+    # calculate the first dimension in the list
     dim = dims[0]
+    # mean
     m = data.mean(dim=dim)
+    # standard error of the mean (SEM) for all valid points.
+    # compute the sample size along the dimension
     sample_size = (~data.isnull()).sum(dim)
     sample_size = sample_size.where(sample_size >= min_sample_size, other=1)
     if data_std is None:
         s = data.std(dim=dim) / np.sqrt(sample_size)
     else:
-        s: xr.DataArray = np.sqrt(
-            data.std(dim=dim) ** 2 / sample_size + (data_std**2).sum(dim=dim) / sample_size**2
-        )
+        s = (data.std(dim=dim) ** 2 / sample_size + (data_std**2).sum(dim=dim) / sample_size**2) ** (0.5)
 
     if len(dims) > 1:
         for dim in dims[1:]:
             mm = m.mean(dim)
             sample_size = (~m.isnull()).sum(dim)
             sample_size = sample_size.where(sample_size >= min_sample_size, other=1)
-            ss: xr.DataArray = np.sqrt(
-                m.std(dim=dim) ** 2 / sample_size + (s**2).sum(dim=dim) / sample_size**2
-            )
+            ss = (m.std(dim=dim) ** 2 / sample_size + (s**2).sum(dim=dim) / sample_size**2) ** (0.5)
             m = mm
             s = ss
     else:
         pass
+
+    if keep_attrs == True:
+        m.attrs.update(attrs)
+        s.attrs.update(attrs)
+        m.name = name
+        s.name = name
     return m, s
+
+
+def mean_and_stderror_of_mean_dataset(
+    ds: xr.Dataset,
+    dims: Union[Tuple[str], str],
+    keep_attrs: bool = True,
+    min_sample_size: int = 1,
+    ds_std: Union[xr.Dataset, None] = None,
+) -> Tuple[xr.Dataset, xr.Dataset]:
+    """
+    Calculate the standard error of the mean as given by the Central Limit Theorem for a dataset.
+    The formular for the std error of the mean is given by:
+    .. math::
+        SEM = \frac{std(data)}{\sqrt{N}}
+    where :math:`N` is the number of samples in the data.
+
+    This function is a wrapper around the ``mean_and_stderror_of_mean`` function and applies it to all data variables in the dataset.
+
+    Parameters
+    ----------
+    ds : xr.Dataset
+        The input dataset.
+        Dimensions of the ``data`` array must contain at least the dimensions in the ``dims`` list.
+    dims : list[str]
+        List of dimensions along which the mean is calculated.
+    keep_attrs : bool, optional
+        Whether to keep the attributes of the data variables. Default is True.
+    min_sample_size : int, optional
+        Minimum number of samples required to calculate the mean. Default is 1.
+    ds_std : xr.Dataset, optional
+        Standard error of the data.
+        Needs to be similar to ``ds`` and contain the same vairables.
+        Default is None for no standard error of the data.
+
+    Returns
+    -------
+    xr.Dataset
+        Mean of the data array along the specified dimensions.
+    xr.Dataset
+        Standard error of the mean of the data array.
+        As propagated error of the mean.
+
+    """
+
+    # make sure to have dims as a tuple
+    if isinstance(dims, (list, tuple)):
+        dims = dims
+    elif isinstance(dims, str):
+        dims = (dims,)
+    else:
+        raise TypeError("dims must be a list of strings")
+
+    ds_mean = xr.Dataset()
+    ds_sem = xr.Dataset()
+
+    for var in ds.data_vars:
+        da = ds[var]
+
+        # only apply on the data variables, which have the dimensions.
+        if set(dims).issubset(set(da.dims)):
+            if ds_std is not None:
+                try:
+                    data_std = ds_std[var]
+                except KeyError:
+                    raise KeyError(f"Variable {var} not found in the standard error dataset.")
+            else:
+                data_std = None
+
+            # calcaulte the mean and sem for the variable
+            m, s = mean_and_stderror_of_mean(
+                data=ds[var],
+                dims=dims,
+                keep_attrs=keep_attrs,
+                min_sample_size=min_sample_size,
+                data_std=data_std,
+            )
+            ds_mean[var] = m
+            ds_sem[var] = s
+        else:
+            ds_mean[var] = da
+            ds_sem[var] = 0 * da
+
+    return ds_mean, ds_sem
+
+
+### Interpolation Dataset
+def interpolate_omit_nan(
+    x: np.ndarray,
+    xp: np.ndarray,
+    fp: np.ndarray,
+    method: Literal["linear", "cubic"] = "linear",
+    kwargs: dict = {},
+) -> np.ndarray:
+    """
+    Interpolate a 1-D function, omitting NaN values in the input arrays.
+    Parameters
+    ----------
+    x : np.ndarray
+        The x-coordinates at which to evaluate the interpolated values.
+    xp : np.ndarray
+        The x-coordinates of the data points, must be increasing.
+    fp : np.ndarray
+        The y-coordinates of the data points, same length as `xp`.
+    method : str, optional
+        The interpolation method to use. Supported methods are 'linear' and 'cubic'.
+        Default is 'linear'.
+    Returns
+    -------
+    np.ndarray
+        The interpolated values, with NaNs where interpolation could not be performed.
+    Notes
+    -----
+    - If there are fewer than 3 valid (non-NaN) points in `xp` and `fp`, the function
+        will return an array of NaNs.
+    - For 'cubic' interpolation, `scipy.interpolate.CubicSpline` is used.
+    Examples
+    --------
+    >>> import numpy as np
+    >>> x = np.array([0, 1, 2, 3, 4])
+    >>> xp = np.array([0, 1, 2, np.nan, 4])
+    >>> fp = np.array([0, 1, 4, np.nan, 16])
+    >>> interpolate_omit_nan(x, xp, fp)
+    array([ 0.,  1.,  4., nan, 16.])
+    """
+    # Function implementation here
+
+    # create mask for valid points
+    mask = np.isfinite(xp) & np.isfinite(fp)
+
+    # only run interpolation if there are at least 3 valid points
+    if np.sum(mask) > 2:
+
+        # apply mask to remove nans from the data
+        xp = xp[mask]
+        fp = fp[mask]
+
+        # interpolate linear, using the np.interp function
+        if method == "linear":
+            result = np.interp(x=x, xp=xp, fp=fp, left=np.nan, right=np.nan, **kwargs)
+        # interpolate cubic, using the scipy.interpolate.CubicSpline function
+        elif method == "cubic":
+            result = scipy.interpolate.interp1d(xp, fp, kind="cubic", **kwargs)(x)
+    # otherwise, return array of NaNs
+    else:
+        result = np.full_like(x, np.nan)
+
+    return result
+
+
+# Pytest test routines
+def test_interpolate_linear():
+    x = np.array([0, 1, 2, 3, 4])
+    xp = np.array([0, 1, 2, np.nan, 4])
+    fp = np.array([0, 1, 4, np.nan, 16])
+    expected = np.array([0.0, 1.0, 4.0, np.nan, 16.0])
+    result = interpolate_omit_nan(x, xp, fp, method="linear")
+    np.testing.assert_array_equal(result, expected)
+
+
+def test_interpolate_cubic():
+    x = np.array([0, 1, 2, 3, 4])
+    xp = np.array([0, 1, 2, 3, 4])
+    fp = np.array([0, 1, 8, 27, 64])
+    expected = np.array([0.0, 1.0, 8.0, 27.0, 64.0])
+    result = interpolate_omit_nan(x, xp, fp, method="cubic")
+    np.testing.assert_array_equal(result, expected)
+
+
+def test_interpolate_insufficient_points():
+    x = np.array([0, 1, 2, 3, 4])
+    xp = np.array([0, np.nan, np.nan, np.nan, 4])
+    fp = np.array([0, np.nan, np.nan, np.nan, 16])
+    expected = np.full_like(x, np.nan)
+    result = interpolate_omit_nan(x, xp, fp, method="linear")
+    np.testing.assert_array_equal(result, expected)
+
+
+def interpolate_dataset(
+    ds: xr.Dataset, mapped_dim: xr.DataArray, new_dim: xr.DataArray, old_dim_name: str
+) -> xr.Dataset:
+    """
+    Iinterpolate a dataset along a new dimension, which has dependency on multiple coords.
+    This function is an xarray wrapper for the `interpolate_omit_nan` function.
+
+    Imagine a dataset with the dimensions [``bla``, ``flup``, ...] and you want to interpolate along the dimension ``bla``.
+    You have a mapping, for instance a normalization array, which maps the old dimension ``bla`` to a new dimension.
+    This mapping depends on dimension ``flup``.
+
+    With this function, you can transform the dataset and replace the old dimension ``bla`` with the new dimension given in the mapping_dim.
+
+    Parameters
+    ----------
+    ds : xr.Dataset
+        The dataset to interpolate.
+    mapped_dim : xr.DataArray
+        The mapping of the old to the new dimension.
+        So this DataArray should contain the values of the new dimension.
+        It needs to have the old dimension as a coordinate.
+    new_dim : xr.DataArray
+        The new dimension to interpolate to.
+        Its values need to correspond to the values of the `mapped_dim`.
+        The DataArray should have a name.
+    old_dim_name : str
+        The name of the old dimension which shall be replaced.
+
+    Returns
+    -------
+    xr.Dataset
+        The interpolated dataset.
+
+
+    """
+
+    ds_interpolated = xr.Dataset()
+
+    # perform the interpolation for all variables in the dataset
+    for variable in ds.data_vars:
+        dims = ds[variable].dims
+        attrs = ds[variable].attrs.copy()
+        data = ds[variable]
+
+        # only apply on the data variables, which have the dimensions, from which the mapped dimension is a subset.
+        # This means, if mapped dimension DataArray has dimensions [bla, flup] and bla is the old dimension,
+        # the data variable should have at least the dimensions [bla, flup, ...]
+        if set(mapped_dim.dims).issubset(set(dims)):
+
+            result = xr.apply_ufunc(
+                interpolate_omit_nan,
+                new_dim,
+                mapped_dim,
+                data,
+                input_core_dims=[[new_dim.name], [old_dim_name], [old_dim_name]],
+                output_core_dims=[[new_dim.name]],
+                vectorize=True,
+                kwargs={"method": "linear"},
+            )
+            result.attrs.update(attrs)
+
+            ds_interpolated[variable] = result
+        else:
+            ds_interpolated[variable] = data
+    ds_interpolated[new_dim.name].attrs = new_dim.attrs.copy()
+    return ds_interpolated
