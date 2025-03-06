@@ -1,6 +1,7 @@
-from typing import Tuple, Union
+from typing import Tuple, Union, Literal
 
 import numpy as np
+import scipy.interpolate
 import pandas as pd
 import xarray as xr
 
@@ -8,7 +9,9 @@ from dask import array as dask_array
 from shapely.geometry import Point, Polygon
 
 
-def polygon2mask(lon, lat, pg, lat_name="lat", lon_name="lon"):
+def polygon2mask(
+    dobj: Union[xr.DataArray, xr.Dataset], pg: Polygon, lat_name: str = "lat", lon_name: str = "lon"
+):
     """
     This funciton creates a mask for a given DataArray or DataSet based on a shapely
     Polygon or MultiPolygon. Polygon points are expected be (lon, lat) tuples. To fit
@@ -43,7 +46,7 @@ def polygon2mask(lon, lat, pg, lat_name="lat", lon_name="lon"):
     # )
 
     # create the mask
-    lon_2d, lat_2d = xr.broadcast(lon, lat)
+    lon_2d, lat_2d = xr.broadcast(dobj[lon_name], dobj[lat_name])
 
     mask = xr.DataArray(
         np.reshape(
@@ -174,7 +177,7 @@ def latlon_dict_to_polygon(area):
     )
 
 
-def x_y_flatten(da: xr.DataArray, axis: str) -> Union[xr.DataArray, xr.DataArray]:
+def x_y_flatten(da: xr.DataArray, axis: str) -> Tuple[xr.DataArray, xr.DataArray]:
     """
     Flatten a 2D data array along the specified axis.
 
@@ -306,7 +309,7 @@ def shape_dim_as_dataarray(da, output_dim: str):
     return da[output_dim].expand_dims(dim=expand_dict, axis=axis_list)
 
 
-def validate_datasets_same_attrs(datasets: list, skip_attrs: list = []) -> bool:
+def validate_datasets_same_attrs(datasets: list, skip_attrs: list = []) -> np.bool_:
     """
     Check if all datasets have the same attributes except for the ones in skip_attrs.
 
@@ -329,6 +332,7 @@ def validate_datasets_same_attrs(datasets: list, skip_attrs: list = []) -> bool:
 def mean_and_stderror_of_mean(
     data: xr.DataArray,
     dims: Union[Tuple[str], str],
+    keep_attrs: bool = True,
     min_sample_size: int = 1,
     data_std: Union[xr.DataArray, None] = None,
 ) -> Tuple[xr.DataArray, xr.DataArray]:
@@ -353,6 +357,8 @@ def mean_and_stderror_of_mean(
         Dimensions of the ``data`` array must contain at least the dimensions in the ``dims`` list.
     dims : list[str]
         List of dimensions along which the mean is calculated.
+    keep_attrs : bool, optional
+        Whether to keep the attributes of the data array. Default is True.
     min_sample_size : int, optional
         Minimum number of samples required to calculate the mean. Default is 1.
     data_std : xr.DataArray, optional
@@ -375,6 +381,7 @@ def mean_and_stderror_of_mean(
     https://en.wikipedia.org/wiki/Central_limit_theorem
     """
 
+    # make sure to have dims as a tuple
     if isinstance(dims, (list, tuple)):
         dims = dims
     elif isinstance(dims, str):
@@ -382,27 +389,118 @@ def mean_and_stderror_of_mean(
     else:
         raise TypeError("dims must be a list of strings")
 
+    attrs = data.attrs.copy()
+    name = data.name
+    # calculate the first dimension in the list
     dim = dims[0]
+    # mean
     m = data.mean(dim=dim)
+    # standard error of the mean (SEM) for all valid points.
+    # compute the sample size along the dimension
     sample_size = (~data.isnull()).sum(dim)
     sample_size = sample_size.where(sample_size >= min_sample_size, other=1)
     if data_std is None:
         s = data.std(dim=dim) / np.sqrt(sample_size)
     else:
-        s: xr.DataArray = np.sqrt(
-            data.std(dim=dim) ** 2 / sample_size + (data_std**2).sum(dim=dim) / sample_size**2
-        )
+        s = (data.std(dim=dim) ** 2 / sample_size + (data_std**2).sum(dim=dim) / sample_size**2) ** (0.5)
 
     if len(dims) > 1:
         for dim in dims[1:]:
             mm = m.mean(dim)
             sample_size = (~m.isnull()).sum(dim)
             sample_size = sample_size.where(sample_size >= min_sample_size, other=1)
-            ss: xr.DataArray = np.sqrt(
-                m.std(dim=dim) ** 2 / sample_size + (s**2).sum(dim=dim) / sample_size**2
-            )
+            ss = (m.std(dim=dim) ** 2 / sample_size + (s**2).sum(dim=dim) / sample_size**2) ** (0.5)
             m = mm
             s = ss
     else:
         pass
+
+    if keep_attrs == True:
+        m.attrs.update(attrs)
+        s.attrs.update(attrs)
+        m.name = name
+        s.name = name
     return m, s
+
+
+def mean_and_stderror_of_mean_dataset(
+    ds: xr.Dataset,
+    dims: Union[Tuple[str], str],
+    keep_attrs: bool = True,
+    min_sample_size: int = 1,
+    ds_std: Union[xr.Dataset, None] = None,
+) -> Tuple[xr.Dataset, xr.Dataset]:
+    """
+    Calculate the standard error of the mean as given by the Central Limit Theorem for a dataset.
+    The formular for the std error of the mean is given by:
+    .. math::
+        SEM = \frac{std(data)}{\sqrt{N}}
+    where :math:`N` is the number of samples in the data.
+
+    This function is a wrapper around the ``mean_and_stderror_of_mean`` function and applies it to all data variables in the dataset.
+
+    Parameters
+    ----------
+    ds : xr.Dataset
+        The input dataset.
+        Dimensions of the ``data`` array must contain at least the dimensions in the ``dims`` list.
+    dims : list[str]
+        List of dimensions along which the mean is calculated.
+    keep_attrs : bool, optional
+        Whether to keep the attributes of the data variables. Default is True.
+    min_sample_size : int, optional
+        Minimum number of samples required to calculate the mean. Default is 1.
+    ds_std : xr.Dataset, optional
+        Standard error of the data.
+        Needs to be similar to ``ds`` and contain the same vairables.
+        Default is None for no standard error of the data.
+
+    Returns
+    -------
+    xr.Dataset
+        Mean of the data array along the specified dimensions.
+    xr.Dataset
+        Standard error of the mean of the data array.
+        As propagated error of the mean.
+
+    """
+
+    # make sure to have dims as a tuple
+    if isinstance(dims, (list, tuple)):
+        dims = dims
+    elif isinstance(dims, str):
+        dims = (dims,)
+    else:
+        raise TypeError("dims must be a list of strings")
+
+    ds_mean = xr.Dataset()
+    ds_sem = xr.Dataset()
+
+    for var in ds.data_vars:
+        da = ds[var]
+
+        # only apply on the data variables, which have the dimensions.
+        if set(dims).issubset(set(da.dims)):
+            if ds_std is not None:
+                try:
+                    data_std = ds_std[var]
+                except KeyError:
+                    raise KeyError(f"Variable {var} not found in the standard error dataset.")
+            else:
+                data_std = None
+
+            # calcaulte the mean and sem for the variable
+            m, s = mean_and_stderror_of_mean(
+                data=ds[var],
+                dims=dims,
+                keep_attrs=keep_attrs,
+                min_sample_size=min_sample_size,
+                data_std=data_std,
+            )
+            ds_mean[var] = m
+            ds_sem[var] = s
+        else:
+            ds_mean[var] = da
+            ds_sem[var] = 0 * da
+
+    return ds_mean, ds_sem
