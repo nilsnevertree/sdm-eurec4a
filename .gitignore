@@ -142,7 +142,6 @@ target/
 
 # remove data folder from tracking
 data
-data*
-
+data_mh1226
 
 *out
