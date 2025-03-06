@@ -1,9 +1,10 @@
 import warnings
 
-from typing import Union
+from typing import Union, Literal
 
 import numpy as np
 import xarray as xr
+from sdm_eurec4a.constants import WaterConstants
 
 
 def __attrs_if_dataarray__(da: xr.DataArray, attrs: dict = {}, name: str = "") -> xr.DataArray:
@@ -863,3 +864,168 @@ def temperature_from_potential_temperature_pressure(
     )
     air_temperature = __attrs_if_dataarray__(da=air_temperature, attrs=attrs)
     return air_temperature
+
+
+# Functions to convert between different units of evaporation
+
+
+class EvaporationUnits:
+    # supported units
+    supported_types = dict(
+        mass="kg m^{-2} s^{-1}",
+        energy="W m^{-2}",
+        precipitation="mm h^{-1}",
+    )
+
+    def __init__(
+        self,
+        data: xr.DataArray,
+        input_type: Literal["mass", "energy", "precipitation"],
+        appendix_units: str = "",
+    ) -> None:
+        """
+        An evaporation object to convert between different units of evaporation.
+        The units can be either
+        - mass in kg/s
+        - energy in W/m^2
+        - precipitation in mm/h
+
+        Parameters
+        ----------
+        x : xr.DataArray
+            The evaporation in the input units.
+        input_units : Literal["mass", "energy", "precipitation"]
+            The input units of the evaporation.
+        appendix_units : str, optional
+            The appendix units of the evaporation. Default
+            is "".
+
+        Raises
+        ------
+        ValueError
+            If the input units are not valid.
+        """
+
+        if input_type not in EvaporationUnits.supported_types:
+            raise ValueError(
+                f"Invalid input units. Supported units are {EvaporationUnits.supported_types}"
+            )
+
+        self.type = input_type
+        self.appendix_units = appendix_units
+        self.__set_units__(appendix_units)
+        self.__set_units__(appendix_units)
+        self.__standardize_units__(data)
+
+    def __set_units__(self, appendix_units: str = "") -> None:
+        self.units = EvaporationUnits.supported_types[self.type]
+
+    def __standardize_units__(
+        self,
+        data: xr.DataArray,
+    ) -> None:
+        """
+        The standard units are mass in kg/s.
+        The function converts the input units to the standard units.
+        """
+
+        if self.type == "mass":
+            self.data = data
+        elif self.type == "energy":
+            self.data = data / WaterConstants.vapourization_heat
+            self.type = "mass"
+        elif self.type == "precipitation":
+            # mm/h = kg/m^2/s
+            self.data = data / 3600 * 1000 / WaterConstants.density
+            self.type = "mass"
+        else:
+            raise ValueError(
+                f"Invalid input type, needs to be one of {EvaporationUnits.supported_types.keys()}"
+            )
+
+        self.__set_units__()
+
+    def convert_to(
+        self, output_type: Literal["mass", "energy", "precipitation"]
+    ) -> Union[xr.DataArray, np.ndarray]:
+
+        if output_type == "mass":
+            da = self.data
+            da.attrs["units"] = EvaporationUnits.supported_types["mass"] + self.appendix_units
+            return da
+        elif output_type == "energy":
+            da = self.data * WaterConstants.vapourization_heat
+            da.attrs["units"] = EvaporationUnits.supported_types["energy"] + self.appendix_units
+            return da
+        elif output_type == "precipitation":
+            da = self.data * 3600 / 1000 * WaterConstants.density
+            da.attrs["units"] = EvaporationUnits.supported_types["precipitation"] + self.appendix_units
+            return da
+        else:
+            raise ValueError("Invalid units for conversion")
+
+
+def evaporation_mass2evaporation_precipitation(
+    x: Union[xr.DataArray, np.ndarray]
+) -> Union[xr.DataArray, np.ndarray]:
+    """
+    Convert evaporation from mass to precipitation units.
+
+    Parameters
+    ----------
+    x : Union[xr.DataArray, np.ndarray]
+        Evaporation in kg/s
+
+    Returns
+    -------
+    Union[xr.DataArray, np.ndarray]
+        Evaporation in mm/h
+    """
+
+    rho_water = 1000  # kg / m^3
+    # L_v = 2.2257e3
+
+    return x * 3600 / 1000 * rho_water
+
+
+def evaporation_precipitation2evaporation_mass(
+    x: Union[xr.DataArray, np.ndarray]
+) -> Union[xr.DataArray, np.ndarray]:
+    rho_water = 1000  # kg / m^3
+    L_v = 2257e3  # J / kg
+    return x / 3600 * 1000 / rho_water
+
+
+def evaporation_precipitation2evaporation_energy(
+    x: Union[xr.DataArray, np.ndarray]
+) -> Union[xr.DataArray, np.ndarray]:
+    rho_water = 1000  # kg / m^3
+    L_v = 2257e3  # J / kg
+
+    # x in mm/h
+
+    # output in W/m^2
+
+    x = x / 1000 * rho_water / 3600  # kg/m^2/s
+
+    return x * L_v  # W/m^2
+
+
+def evap_rate_mass2evap_rate_energy(
+    x: Union[xr.DataArray, np.ndarray]
+) -> Union[xr.DataArray, np.ndarray]:
+
+    L_v = 2257e3
+
+    # x in g/m^3/s
+    return x * L_v  # mW m^-3
+
+
+def evap_rate_energy2evap_rate_mass(
+    x: Union[xr.DataArray, np.ndarray]
+) -> Union[xr.DataArray, np.ndarray]:
+
+    L_v = 2257e3  # J / kg = W s / kg
+
+    # x in mW m^-3
+    return x / L_v  # g/m^3/s
