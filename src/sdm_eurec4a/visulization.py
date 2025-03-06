@@ -1,7 +1,7 @@
 import string
 import textwrap
 import warnings
-from typing import Union
+from typing import Union, Tuple, Literal, List, Callable, Dict, Sequence
 from pathlib import Path
 
 from colorsys import hls_to_rgb, rgb_to_hls
@@ -1016,9 +1016,8 @@ def plot_one_one(ax: mpl_axes.Axes, N: int = 100, **kwargs: dict):
 
 def save_figure(
     fig: mpl_figure.Figure,
-    fig_dir: Path = Path("."),
-    name: Union[Path, str] = "test",
-    formats: dict = {
+    filepath: Path,
+    formats: Union[List[str], Tuple[str], dict] = {
         ".png": dict(dpi=300),
         ".pdf": dict(),
     },
@@ -1030,13 +1029,12 @@ def save_figure(
     ----------
     fig : matplotlib.figure.Figure
         The figure to save.
-    fig_dir : Path
-        The directory to save the figure
-    name : Path
-        The path to store the figure at, relative to ``fig_dir``.
-    formats : dict
+    filepath : Path
+        The full path to store the figure at.
+    formats : dict or tuple
         The formats to save the figure in.
-        The keys are the suffixes of the file, the values are the keyword arguments for the savefig method.
+        If a tuple is given, no kwargs are forwarded to the savefig method.
+        If a dict is given, the keys are the suffixes of the file, the values are the keyword arguments for the savefig method.
         Defaults is:
 
         {
@@ -1049,8 +1047,9 @@ def save_figure(
     None
     """
 
-    if isinstance(name, str):
-        name = Path(name)
+    if isinstance(formats, (tuple, list)):
+        warnings.warn("Got formats in tuple or list format. Converting to dict.")
+        formats = {ext: {} for ext in formats}
 
     for ext, kwargs in formats.items():
 
@@ -1058,6 +1057,123 @@ def save_figure(
             warnings.warn("The extension should start with a dot.\nCorrection performed.")
             ext = "." + ext
 
-        save_name = replace_path_suffix(name, ext)
+        fig.savefig(filepath.with_suffix(ext), **kwargs)
 
-        fig.savefig(fig_dir / save_name, **kwargs)
+
+def add_additional_axis(
+    ax: mpl_axes.Axes,
+    new_ticks_func: Callable[[Sequence[float]], str],
+    label: str,
+    axis: Literal["x", "y"] = "x",
+    position: Literal["left", "right", "both", "default", "none", "top", "bottom"] = "bottom",
+    offset_position: Union[
+        Tuple[Literal["outward", "axes", "data"], float], Literal["center", "zero"]
+    ] = ("zero"),
+) -> mpl_axes.Axes:
+    """
+    With this function, you can add an additional axis to a given axis with the same tick positions, but different ticklables and different axis label.
+    The new ticklabels are created with the ``new_ticks_func`` callable, which transforms the original ticklables to the new ticklabels.
+    This Callable should take a sequence of floats and return a sequence of strings.
+
+    Parameters
+    ----------
+    ax : plt.Axes
+        The matplotlib Axes object to add the additional axis to.
+    new_ticks_func : Callable
+        The function to transform the original ticks to the new ticks.
+        It should take a sequence of floats and return a sequence of strings.
+    label : str
+        The label of the additional axis.
+    axis : str, optional
+        The axis to add the additional axis to. Default is 'x'.
+    position : str, optional
+        The position of the additional axis. Default is 'bottom'.
+        Possible values are:
+        - 'left'
+        - 'right'
+        - 'both'
+        - 'default'
+        - 'none'
+        - 'top'
+        - 'bottom'
+    offset_position : tuple or str, optional
+        The offset position of the additional axis. Default is ('zero').
+        If a tuple is given, the first element should be the position ('outward', 'axes', 'data') and the second element should be the offset.
+        If a string is given, the possible values are:
+        - 'center'
+        - 'zero'
+
+    Returns
+    -------
+    matplotlib.axes.Axes
+        The additional axes object, which contains the additional axis.
+
+    Examples
+    --------
+    >>> fig, ax = plt.subplots()
+    >>> ax.plot(x, y)
+    >>> ax2 = add_additional_axis(ax, new_ticks_func, label, axis='x')
+    >>> plt.show()
+    """
+
+    if axis == "x":
+
+        xticks = list(ax.get_xticks())
+        xlim = ax.get_xlim()
+        ax2: mpl_axes.Axes = ax.twiny()
+        # Offset the twin axis below the host
+        ax2.spines[position].set_position(offset_position)
+
+        ax2.xaxis.set_ticks_position(position)
+        ax2.xaxis.set_label_position(position)
+
+        # Turn on the frame for the twin axis, but then hide all
+        # but the bottom spine
+        ax2.set_frame_on(False)
+        ax2.patch.set_visible(False)
+
+        # as @ali14 pointed out, for python3, use this
+        # for sp in ax2.spines.values():
+        # and for python2, use this
+        for key, sp in ax2.spines.items():
+            sp.set_visible(False)
+        ax2.spines[position].set_visible(True)
+
+        new_xticks = new_ticks_func(xticks)
+
+        ax2.set_xticks(xticks, new_xticks)
+        ax2.set_xlabel(label)
+        ax2.set_xlim(xlim)
+        # ax2.tick_params(top=False, labeltop=False, bottom=True, labelbottom=True)
+
+    if axis == "y":
+
+        yticks = list(ax.get_yticks())
+        ylim = ax.get_ylim()
+        ax2: mpl_axes.Axes = ax.twinx()
+        # Offset the twin axis below the host
+        ax2.spines[position].set_position(offset_position)
+
+        ax2.yaxis.set_ticks_position(position)
+        ax2.yaxis.set_label_position(position)
+
+        # Turn on the frame for the twin axis, but then hide all
+        # but the bottom spine
+        ax2.set_frame_on(False)
+        ax2.patch.set_visible(False)
+
+        # as @ali14 pointed out, for python3, use this
+        # for sp in ax2.spines.values():
+        # and for python2, use this
+        for key, sp in ax2.spines.items():
+            sp.set_visible(False)
+        ax2.spines[position].set_visible(True)
+
+        new_yticks = new_ticks_func(yticks)
+
+        ax2.set_yticks(yticks, new_yticks)
+        ax2.set_xlabel(label)
+        ax2.set_ylim(ylim)
+        # ax2.tick_params(top=False, labeltop=False, bottom=True, labelbottom=True)
+
+    return ax2

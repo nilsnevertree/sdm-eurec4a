@@ -1,13 +1,6 @@
-from pathlib import Path
-import xarray as xr
-import numpy as np
-
-from dask_jobqueue import SLURMCluster
+from dask_jobqueue.slurm import SLURMCluster
 from dask.distributed import Client
 import dask.config
-
-from tempfile import NamedTemporaryFile, TemporaryDirectory  # Creating temporary Files/Dirs
-from getpass import getuser  # Libaray to copy things
 
 
 def init_dask_slurm_cluster(
@@ -16,7 +9,7 @@ def init_dask_slurm_cluster(
     walltime: str = "00:30:00",
     memory: str = "64GiB",
     name: str = "m301096-dask-cluster",
-    account: str = "mh1126",
+    account: str = "um1487",
     data_dir: str = "/scratch/m/m301096/dask_temp",
     log_dir: str = "/scratch/m/m301096/dask_logs",
     scheduler_options: dict = {"dashboard_address": ":8989"},
@@ -44,7 +37,7 @@ def init_dask_slurm_cluster(
         Default is "m301096-dask-cluster".
     account : str
         Account to be used for the job.
-        Default is "mh1126".
+        Default is "um1487".
     data_dir : str
         Directory to store the temporary data.
         This directory should be accessible from all nodes.

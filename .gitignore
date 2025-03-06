@@ -142,6 +142,7 @@ target/
 
 # remove data folder from tracking
 data
+data*
 
 
 *out
