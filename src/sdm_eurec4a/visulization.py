@@ -109,6 +109,70 @@ def set_custom_rcParams() -> list:
     return _default_colors
 
 
+def set_paper_rcParams() -> list:
+    """
+    Set the default configuration parameters for matplotlib. The colorblind-
+    save colors were chosen with the help of
+    https://davidmathlogic.com/colorblind.
+
+    Returns:
+    --------
+    colors (np.ndarray) Array containing the default colors in HEX format
+
+    Note:
+    -----
+    This function modifies the global matplotlib configuration.
+
+    Examples:
+    ---------
+        >>> set_custom_rcParams()
+    """
+
+    # Set default figure size
+    plt.rcParams["figure.figsize"] = (16 / 3, 9 / 3)
+
+    # Set font sizes
+    SMALL_SIZE = 10
+    MEDIUM_SIZE = 12
+    BIGGER_SIZE = 15
+    HUGHER_SIZE = 18
+    plt.rc("font", size=MEDIUM_SIZE)  # Default text sizes
+    plt.rc("figure", titlesize=MEDIUM_SIZE)  # Figure title size
+    plt.rc("figure", labelsize=MEDIUM_SIZE)  # X and Y labels size
+
+    plt.rc("axes", titlesize=MEDIUM_SIZE)  # Axes title size
+    plt.rc("axes", labelsize=MEDIUM_SIZE)  # X and Y labels size
+    plt.rc("xtick", labelsize=SMALL_SIZE)  # X tick labels size
+    plt.rc("ytick", labelsize=SMALL_SIZE)  # Y tick labels size
+    plt.rc("legend", fontsize=MEDIUM_SIZE)  # Legend fontsize
+
+    # Set axis spines visibility
+    plt.rc(
+        "axes.spines",
+        **{
+            "left": False,
+            "right": False,
+            "bottom": False,
+            "top": False,
+        },
+    )
+
+    # Set legend location
+    plt.rc(
+        "legend",
+        **dict(
+            loc="upper right",
+            frameon=True,
+            framealpha=0.5,
+            fancybox=False,
+            edgecolor="none",
+        ),
+    )
+
+    plt.rcParams["axes.prop_cycle"] = cycler(color=_default_colors)
+    return _default_colors
+
+
 def get_current_colors() -> list:
     """
     Get the current color cycle of the matplotlib rcParams.
