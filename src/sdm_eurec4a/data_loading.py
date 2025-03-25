@@ -10,8 +10,11 @@ import scipy.interpolate
 import xarray as xr
 from sdm_eurec4a.constants import WaterConstants
 from sdm_eurec4a.reductions import interpolate_dataset, mean_and_stderror_of_mean_dataset
+from sdm_eurec4a.visulization import adjust_lightness_array, adjust_lightness
+
 
 from itertools import combinations
+
 
 # eulerian_data_path = lambda data_dir, microphysics: data_dir / Path(
 #     f"{microphysics}/combined/eulerian_dataset_combined.nc"
@@ -19,15 +22,251 @@ from itertools import combinations
 # conservation_data_path = lambda data_dir, microphysics: data_dir / Path(
 #     f"{microphysics}/combined/conservation_dataset_combined.nc"
 # )
+def __eulerian_data_path__(data_dir: Path, microphysic: str) -> Path:
+    return data_dir / Path(f"{microphysic}/combined/eulerian_dataset_combined.nc")
 
 
-__microphysics__ = (
-    "null_microphysics",
-    "condensation",
-    "collision_condensation",
-    "coalbure_condensation_small",
-    "coalbure_condensation_large",
-)
+def __conservation_data_path__(data_dir: Path, microphysic: str) -> Path:
+    return data_dir / Path(f"{microphysic}/combined/conservation_dataset_combined.nc")
+
+
+def __post_process_conservation_dataset__(
+    ds: xr.Dataset, da_surface_area: xr.DataArray, timestep: float
+) -> xr.Dataset:
+    """
+    Post-process the conservation dataset to have the correct units and add additional variables.
+    """
+
+    ds["source"].attrs["long_name"] = "Column Integrated Evaporation"
+    ds["inflow"].attrs["long_name"] = "Cloud Base Precipitation Flux"
+    ds["outflow"].attrs["long_name"] = "Surface Precipitation Flux"
+
+    for var, new_var in zip(
+        ["source", "inflow", "outflow", "reservoir_change"],
+        [
+            "source_precipitation",
+            "inflow_precipitation",
+            "outflow_precipitation",
+            "reservoir_change_precipitation",
+        ],
+    ):
+        attrs = ds[var].attrs.copy()
+        # from  kg per dT per domain area
+        # dT = 2s
+
+        # # to    g per h per m^2
+        # ds[var] = ds[var] / 2 * 3600 / ds['surface_area'] * 1e6
+        # ds[var].attrs.update(attrs)
+        # ds[var].attrs['units'] = 'mg/m^2/h'
+
+        ds["surface_area"] = da_surface_area
+
+        # to    mm / h
+        ds[new_var] = ds[var] / 2 * 3600 / ds["surface_area"]  # kg / m^2 / h
+        ds[new_var] = 1e3 * ds[new_var] / WaterConstants.density  # mm / h
+        ds[new_var].attrs.update(attrs)
+        ds[new_var].attrs["units"] = r"mm \, h^{-1}"
+
+    for var, new_var in zip(
+        ["source", "inflow", "outflow", "reservoir_change"],
+        ["source_energy", "inflow_energy", "outflow_energy", "reservoir_change_energy"],
+    ):
+        attrs = ds[var].attrs.copy()
+        # from  kg per dT per domain area
+        # dT = 2s
+
+        # # to    g per h per m^2
+        # ds[var] = ds[var] / 2 * 3600 / ds['surface_area'] * 1e6
+        # ds[var].attrs.update(attrs)
+        # ds[var].attrs['units'] = 'mg/m^2/h'
+
+        # to    mm / h
+        ds[new_var] = ds[var] / timestep / ds["surface_area"]  # kg / m^2 / s
+        ds[new_var] = ds[new_var] * WaterConstants.vapourization_heat  # J/s = W / m^2
+        ds[new_var].attrs.update(attrs)
+        ds[new_var].attrs["units"] = r"W \, m^{-2}"
+
+    return ds
+
+
+def __post_process_eulerian_dataset__(ds: xr.Dataset) -> xr.Dataset:
+
+    ds["max_gridbox"] = ds["max_gridbox"].fillna(ds["gridbox"].max())
+
+    # convert the liquid water content to g/m^3
+    ds["liquid_water_content"] = 1e3 * ds["liquid_water_content"]
+    ds["liquid_water_content"].attrs["units"] = "g/m^3"
+    ds["liquid_water_content"].attrs["long_name"] = "Rain Water Content"
+
+    # select the cloud liquid water content
+    ds["cloud_liquid_water_content"] = ds["liquid_water_content"].sel(gridbox=ds["max_gridbox"])
+    ds["cloud_liquid_water_content"].attrs["long_name"] = "Cloud Rain Water Content"
+
+    # create variables for the mean radius of the distributions
+
+    # ds["cloud_xi_radius_mean"] = ds["xi_radius_mean"].sel(gridbox=ds["max_gridbox"])
+    # ds["cloud_xi_radius_mean"].attrs["long_name"] = "Cloud mean radius"
+    # ds["cloud_xi_radius_mean"].attrs["units"] = "µm"
+
+    # ds["small_cloud_xi_radius_mean"] = ds["small_xi_radius_mean"].sel(gridbox=ds["max_gridbox"])
+    # ds["small_cloud_xi_radius_mean"].attrs["long_name"] = "Cloud mean radius"
+    # ds["small_cloud_xi_radius_mean"].attrs["units"] = "µm"
+
+    ds["cloud_mass_radius_mean"] = ds["mass_radius_mean"].sel(gridbox=ds["max_gridbox"])
+    ds["cloud_mass_radius_mean"].attrs["long_name"] = "Cloud Mean Mass Radius"
+    ds["cloud_mass_radius_mean"].attrs["units"] = "µm"
+
+    # ds["small_cloud_mass_radius_mean"] = ds["small_mass_radius_mean"].sel(gridbox=ds["max_gridbox"])
+    # ds["small_cloud_mass_radius_mean"].attrs["long_name"] = "Cloud mean mass radius"
+    # ds["small_cloud_mass_radius_mean"].attrs["units"] = "µm"
+    # from kg/m^3/s
+    # # to mg/m^3/h
+    # ds['evaporation_rate']  = - ds['massdelta_condensation'] * 1e6 * 3600
+    # ds['evaporation_rate'].attrs['units'] = 'mg/m^3/h'
+    # ds['evaporation_rate'].attrs['long_name'] = 'Evaporation rate'
+
+    # from kg/m^3/s
+    # to mm/m/h
+    ds["evaporation_rate"] = -1e3 / WaterConstants.density * ds["massdelta_condensation"] * 3600
+    ds["evaporation_rate"].attrs["units"] = r"mm \, h^{-1} \, m^{-1}"
+    ds["evaporation_rate"].attrs["long_name"] = "Evaporation Rate"
+
+    # from kg / m^3 / s
+    # to W / m^3
+    ds["evaporation_rate_energy"] = (
+        ds["massdelta_condensation"] * WaterConstants.vapourization_heat
+    )  # J/s / m^3 = W / m^3
+    ds["evaporation_rate_energy"] = 1e3 * ds["evaporation_rate_energy"]  # mW / m^3
+    ds["evaporation_rate_energy"].attrs["units"] = r"mW \, m^{-3}"
+    ds["evaporation_rate_energy"].attrs["long_name"] = "Evaporation Rate"
+
+    return ds
+
+
+class MicrophysicsStyles:
+
+    available_setups = (
+        # "null_microphysics",
+        "condensation",
+        "collision_condensation",
+        "coalbure_condensation_small",
+        "coalbure_condensation_large",
+    )
+    all_setups = (
+        "null_microphysics",
+        "condensation",
+        "collision_condensation",
+        "coalbure_condensation_small",
+        "coalbure_condensation_large",
+    )
+
+    def __init__(self):
+
+        self.available_setups = MicrophysicsStyles.available_setups
+
+        markers = dict(
+            null_microphysics="$*$",
+            condensation="1",
+            collision_condensation="x",
+            coalbure_condensation_small="+",
+            coalbure_condensation_large="2",
+        )
+        descriptions = dict(
+            null_microphysics="No microphysics",
+            condensation="Evaporation only",
+            collision_condensation="Evaporation and Coalescence",
+            coalbure_condensation_small="Evaporation and Coalescence Breakup and Rebound with small number of fragments",
+            coalbure_condensation_large="Evaporation and Coalescence Breakup and Rebound with small number of fragments",
+        )
+        names = dict(
+            null_microphysics="NullMicro",
+            condensation="EvapOnly",
+            collision_condensation="EvapCoal",
+            coalbure_condensation_small="EvapCoalBuRe-few",
+            coalbure_condensation_large="EVapCoalBuRe-many",
+        )
+
+        colors = dict(
+            null_microphysics="grey",
+            condensation="purple",
+            collision_condensation="blue",
+            coalbure_condensation_small="red",
+            coalbure_condensation_large="orange",
+        )
+
+        dark_colors = {k: adjust_lightness(v, 0.75) for k, v in colors.items()}
+        light_colors = {k: adjust_lightness(v, 1.25) for k, v in colors.items()}
+
+        self.microphysics_styles = dict()
+
+        for key in MicrophysicsStyles.available_setups:
+            self.microphysics_styles[key] = dict(
+                name=names[key],
+                description=descriptions[key],
+                linestyle="None",
+                marker=markers[key],
+                color=colors[key],
+                dark_color=dark_colors[key],
+                light_color=light_colors[key],
+            )
+
+    def __validate_key__(self, key: str):
+        if key not in self.microphysics_styles.keys():
+            raise ValueError(f"Unknown microphysics style {key}")
+
+    def __getitem__(self, key: str):
+        self.__validate_key__(key)
+        return self.microphysics_styles[key]
+
+    def __iter__(self):
+        for key in self.microphysics_styles.keys():
+            yield key
+
+    def get_setup(
+        self,
+        key: Literal[
+            "null_microphysics",
+            "condensation",
+            "collision_condensation",
+            "coalbure_condensation_small",
+            "coalbure_condensation_large",
+        ],
+    ):
+        return self[key]
+
+    def get_style(
+        self,
+        key: Literal[
+            "null_microphysics",
+            "condensation",
+            "collision_condensation",
+            "coalbure_condensation_small",
+            "coalbure_condensation_large",
+        ],
+        colortype: Literal["normal", "dark", "light"] = "normal",
+    ) -> dict:
+
+        self.__validate_key__(key)
+
+        style = dict(
+            label=self[key]["name"],
+            linestyle=self[key]["linestyle"],
+            marker=self[key]["marker"],
+        )
+
+        if colortype not in ["normal", "dark", "light"]:
+            raise ValueError(f"Unknown color type {colortype}")
+        elif colortype == "normal":
+            style["color"] = self[key]["color"]
+        elif colortype == "dark":
+            style["color"] = self[key]["dark_color"]
+        elif colortype == "light":
+            style["color"] = self[key]["light_color"]
+
+        return style
+
+
+__microphysics__ = tuple(MicrophysicsStyles())
 
 
 class CleoDataset:
@@ -107,11 +346,11 @@ class CleoDataset:
         ## Data loading and timestepping analysis
         for mp in self.microphysics:
             try:
-                ds = xr.open_dataset(self.__conservation_data_path__(mp))
+                ds = xr.open_dataset(__conservation_data_path__(data_dir=self.data_dir, microphysic=mp))
             except ValueError:
                 raise ValueError(f"Missing conservation dataset {mp}")
             try:
-                ds = xr.open_dataset(self.__eulerian_data_path__(mp))
+                ds = xr.open_dataset(__eulerian_data_path__(data_dir=self.data_dir, microphysic=mp))
             except ValueError:
                 raise ValueError(f"Missing eulerian dataset {mp}")
 
@@ -127,7 +366,7 @@ class CleoDataset:
         # iterate over all microphysics
         for mp in self.microphysics:
             print(mp)
-            ds_euler = xr.open_dataset(self.__eulerian_data_path__(mp))
+            ds_euler = xr.open_dataset(__eulerian_data_path__(data_dir=self.data_dir, microphysic=mp))
             # use only the variables of interest
             ds_euler = ds_euler[self.variables_to_load]
             ds_euler = ds_euler.sel(time=self.time_slice)
@@ -139,7 +378,9 @@ class CleoDataset:
             ds_euler["max_gridbox"] = ds_euler["max_gridbox"].fillna(ds_euler["gridbox"].max())
 
             # from kg per dT to g per h per m^2
-            ds_conser = xr.open_dataset(self.__conservation_data_path__(mp))
+            ds_conser = xr.open_dataset(
+                __conservation_data_path__(data_dir=self.data_dir, microphysic=mp)
+            )
             ds_conser = ds_conser.sel(time=self.time_slice)
 
             # get the mean and the standard error of the mean for the dataset
@@ -201,111 +442,21 @@ class CleoDataset:
         """
 
         ### Timestepping validation
-        time_step = 2  # s
+        timestep = 2  # s
         # # extract the time step
-        # time_step = ds['time'].diff().mean().values
-        # time_step_sem = ds['time'].diff().std().values
+        # timestep = ds['time'].diff().mean().values
+        # timestep_sem = ds['time'].diff().std().values
         # # allowed relative tolerance for the time step
-        # time_step_rtol = 0.01
+        # timestep_rtol = 0.01
         # # make sure the maximum timestep difference to the mean is less than 1%
-        # if np.abs(ds['time'].diff() / time_step) > time_step_rtol :
-        #     raise ValueError(f"Time step is not constant to at least {time_step_rtol * 100:.1e}%. Mean: {time_step}, std: {time_step_sem}")
+        # if np.abs(ds['time'].diff() / timestep) > timestep_rtol :
+        #     raise ValueError(f"Time step is not constant to at least {timestep_rtol * 100:.1e}%. Mean: {timestep}, std: {timestep_sem}")
 
-        ds["max_gridbox"] = ds["max_gridbox"].fillna(ds["gridbox"].max())
+        ds = __post_process_eulerian_dataset__(ds=ds)
 
-        # convert the liquid water content to g/m^3
-        ds["liquid_water_content"] = 1e3 * ds["liquid_water_content"]
-        ds["liquid_water_content"].attrs["units"] = "g/m^3"
-        ds["liquid_water_content"].attrs["long_name"] = "Rain Water Content"
-
-        # select the cloud liquid water content
-        ds["cloud_liquid_water_content"] = ds["liquid_water_content"].sel(gridbox=ds["max_gridbox"])
-        ds["cloud_liquid_water_content"].attrs["long_name"] = "Cloud Rain Water Content"
-
-        # create variables for the mean radius of the distributions
-
-        # ds["cloud_xi_radius_mean"] = ds["xi_radius_mean"].sel(gridbox=ds["max_gridbox"])
-        # ds["cloud_xi_radius_mean"].attrs["long_name"] = "Cloud mean radius"
-        # ds["cloud_xi_radius_mean"].attrs["units"] = "µm"
-
-        # ds["small_cloud_xi_radius_mean"] = ds["small_xi_radius_mean"].sel(gridbox=ds["max_gridbox"])
-        # ds["small_cloud_xi_radius_mean"].attrs["long_name"] = "Cloud mean radius"
-        # ds["small_cloud_xi_radius_mean"].attrs["units"] = "µm"
-
-        ds["cloud_mass_radius_mean"] = ds["mass_radius_mean"].sel(gridbox=ds["max_gridbox"])
-        ds["cloud_mass_radius_mean"].attrs["long_name"] = "Cloud Mean Mass Radius"
-        ds["cloud_mass_radius_mean"].attrs["units"] = "µm"
-
-        # ds["small_cloud_mass_radius_mean"] = ds["small_mass_radius_mean"].sel(gridbox=ds["max_gridbox"])
-        # ds["small_cloud_mass_radius_mean"].attrs["long_name"] = "Cloud mean mass radius"
-        # ds["small_cloud_mass_radius_mean"].attrs["units"] = "µm"
-        # from kg/m^3/s
-        # # to mg/m^3/h
-        # ds['evaporation_rate']  = - ds['massdelta_condensation'] * 1e6 * 3600
-        # ds['evaporation_rate'].attrs['units'] = 'mg/m^3/h'
-        # ds['evaporation_rate'].attrs['long_name'] = 'Evaporation rate'
-
-        # from kg/m^3/s
-        # to mm/m/h
-        ds["evaporation_rate"] = -1e3 / WaterConstants.density * ds["massdelta_condensation"] * 3600
-        ds["evaporation_rate"].attrs["units"] = r"mm \, h^{-1} \, m^{-1}"
-        ds["evaporation_rate"].attrs["long_name"] = "Evaporation Rate"
-
-        # from kg / m^3 / s
-        # to W / m^3
-        ds["evaporation_rate_energy"] = (
-            ds["massdelta_condensation"] * WaterConstants.vapourization_heat
-        )  # J/s / m^3 = W / m^3
-        ds["evaporation_rate_energy"] = 1e3 * ds["evaporation_rate_energy"]  # mW / m^3
-        ds["evaporation_rate_energy"].attrs["units"] = r"mW \, m^{-3}"
-        ds["evaporation_rate_energy"].attrs["long_name"] = "Evaporation Rate"
-
-        ds["source"].attrs["long_name"] = "Column Integrated Evaporation"
-        ds["inflow"].attrs["long_name"] = "Cloud Base Precipitation Flux"
-        ds["outflow"].attrs["long_name"] = "Surface Precipitation Flux"
-
-        for var, new_var in zip(
-            ["source", "inflow", "outflow", "reservoir_change"],
-            [
-                "source_precipitation",
-                "inflow_precipitation",
-                "outflow_precipitation",
-                "reservoir_change_precipitation",
-            ],
-        ):
-            attrs = ds[var].attrs.copy()
-            # from  kg per dT per domain area
-            # dT = 2s
-
-            # # to    g per h per m^2
-            # ds[var] = ds[var] / 2 * 3600 / ds['surface_area'] * 1e6
-            # ds[var].attrs.update(attrs)
-            # ds[var].attrs['units'] = 'mg/m^2/h'
-
-            # to    mm / h
-            ds[new_var] = ds[var] / 2 * 3600 / ds["surface_area"]  # kg / m^2 / h
-            ds[new_var] = 1e3 * ds[new_var] / WaterConstants.density  # mm / h
-            ds[new_var].attrs.update(attrs)
-            ds[new_var].attrs["units"] = r"mm \, h^{-1}"
-
-        for var, new_var in zip(
-            ["source", "inflow", "outflow", "reservoir_change"],
-            ["source_energy", "inflow_energy", "outflow_energy", "reservoir_change_energy"],
-        ):
-            attrs = ds[var].attrs.copy()
-            # from  kg per dT per domain area
-            # dT = 2s
-
-            # # to    g per h per m^2
-            # ds[var] = ds[var] / 2 * 3600 / ds['surface_area'] * 1e6
-            # ds[var].attrs.update(attrs)
-            # ds[var].attrs['units'] = 'mg/m^2/h'
-
-            # to    mm / h
-            ds[new_var] = ds[var] / time_step / ds["surface_area"]  # kg / m^2 / s
-            ds[new_var] = ds[new_var] * WaterConstants.vapourization_heat  # J/s = W / m^2
-            ds[new_var].attrs.update(attrs)
-            ds[new_var].attrs["units"] = r"W \, m^{-2}"
+        ds = __post_process_conservation_dataset__(
+            ds=ds, da_surface_area=ds["surface_area"], timestep=timestep
+        )
 
         return ds
 
