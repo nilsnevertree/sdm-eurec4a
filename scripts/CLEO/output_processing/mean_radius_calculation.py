@@ -11,6 +11,7 @@ from typing import Tuple
 
 from sdm_eurec4a import slurm_cluster as scluster
 from sdm_eurec4a import RepositoryPath
+from sdm_eurec4a.constants import TimeSlices
 import datetime
 import secrets
 
@@ -150,7 +151,8 @@ mean_radius_data_path = lambda microphysics: data_dir / Path(
 chunks = dict(
     cloud_id=2,
 )
-time_slice = slice(1500, 3490)
+time_slice = TimeSlices.quasi_stationary_state
+
 
 radius_split = 200  # um
 

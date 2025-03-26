@@ -13,6 +13,7 @@ import xarray as xr
 # import dask.distributed
 
 from sdm_eurec4a import RepositoryPath
+from sdm_eurec4a.constants import TimeSlices
 
 import datetime
 
@@ -238,7 +239,7 @@ logging.info("WORK ON THE 4D ARRAYS")
 
 logging.info("Add mean radius and standard deviation")
 
-time_slice = slice(1500, 3490)
+time_slice = TimeSlices.quasi_stationary_state
 
 radius_split = 200  # um
 
@@ -256,20 +257,20 @@ except Exception as e:
     logging.error(f"Error in calculating the mean and standard deviation of the radius.")
     logging.error(e)
 
-# Weight by Multiplicity for small droplets
-logging.info("Radius - Multiplicities small")
-try:
-    m, s = add_mean_and_stddev_radius(
-        da=ds_4d["xi"].sel(time=time_slice).sel(radius_bins=slice(0, radius_split)).load(),
-        radius_name="radius_bins",
-    )
-    m.attrs["description"] += "For small droplets (radius < 200 um)"
-    s.attrs["description"] += "For small droplets (radius < 200 um)"
-    ds["small_xi_radius_mean"] = m
-    ds["small_xi_radius_std"] = s
-except Exception as e:
-    logging.error(f"Error in calculating the mean and standard deviation of the radius.")
-    logging.error(e)
+# # Weight by Multiplicity for small droplets
+# logging.info("Radius - Multiplicities small")
+# try:
+#     m, s = add_mean_and_stddev_radius(
+#         da=ds_4d["xi"].sel(time=time_slice).sel(radius_bins=slice(0, radius_split)).load(),
+#         radius_name="radius_bins",
+#     )
+#     m.attrs["description"] += "For small droplets (radius < 200 um)"
+#     s.attrs["description"] += "For small droplets (radius < 200 um)"
+#     ds["small_xi_radius_mean"] = m
+#     ds["small_xi_radius_std"] = s
+# except Exception as e:
+#     logging.error(f"Error in calculating the mean and standard deviation of the radius.")
+#     logging.error(e)
 
 # ====================
 # MASS
@@ -285,20 +286,20 @@ except Exception as e:
     logging.error(f"Error in calculating the mean and standard deviation of the radius.")
     logging.error(e)
 
-logging.info("Radius - Mass small")
-try:
-    # Weight by Mass for small droplets
-    m, s = add_mean_and_stddev_radius(
-        da=ds_4d["mass_represented"].sel(time=time_slice).sel(radius_bins=slice(0, radius_split)).load(),
-        radius_name="radius_bins",
-    )
-    m.attrs["description"] += "For small droplets (radius < 200 um)"
-    s.attrs["description"] += "For small droplets (radius < 200 um)"
-    ds["small_mass_radius_mean"] = m
-    ds["small_mass_radius_std"] = s
-except Exception as e:
-    logging.error(f"Error in calculating the mean and standard deviation of the radius.")
-    logging.error(e)
+# logging.info("Radius - Mass small")
+# try:
+#     # Weight by Mass for small droplets
+#     m, s = add_mean_and_stddev_radius(
+#         da=ds_4d["mass_represented"].sel(time=time_slice).sel(radius_bins=slice(0, radius_split)).load(),
+#         radius_name="radius_bins",
+#     )
+#     m.attrs["description"] += "For small droplets (radius < 200 um)"
+#     s.attrs["description"] += "For small droplets (radius < 200 um)"
+#     ds["small_mass_radius_mean"] = m
+#     ds["small_mass_radius_std"] = s
+# except Exception as e:
+#     logging.error(f"Error in calculating the mean and standard deviation of the radius.")
+#     logging.error(e)
 
 
 # Add mean xi and mass distributions

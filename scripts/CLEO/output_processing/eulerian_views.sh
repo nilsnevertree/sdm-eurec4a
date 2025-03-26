@@ -2,7 +2,6 @@
 #SBATCH --job-name=e1d_eulerian_master
 #SBATCH --partition=compute
 #SBATCH --nodes=1
-#SBATCH --mem=150G
 #SBATCH --time=00:20:00
 #SBATCH --mail-user=nils-ole.niebaumy@mpimet.mpg.de
 #SBATCH --mail-type=FAIL
@@ -20,7 +19,7 @@
 
 ### ------------------ Load Modules -------------------- ###
 
-number_of_processes=20
+number_of_processes=30
 
 source ${HOME}/.bashrc
 # env=/work/mh1126/m301096/conda/envs/sdm_pysd_env312
@@ -38,16 +37,16 @@ echo "============================================"
 
 # Set microphysics setup
 # microphysics="null_microphysics"
-# microphysics="condensation"
-microphysics="collision_condensation"
+microphysics="condensation"
+# microphysics="collision_condensation"
 # microphysics="coalbure_condensation_small"
 # microphysics="coalbure_condensation_large"
 
 path2CLEO=${HOME}/CLEO/
 path2sdm_eurec4a=${HOME}/repositories/sdm-eurec4a
-path2data=${path2CLEO}/data/output_v4.1/${microphysics}/
+path2data=${path2CLEO}/data/output_v4.2/${microphysics}/
 
-create_eulerian_view=false
+create_eulerian_view=true
 concatenate_eulerian_view=true
 
 echo "Microphysics: ${microphysics}"

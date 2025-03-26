@@ -11,7 +11,7 @@ import xarray as xr
 from sdm_eurec4a.constants import WaterConstants
 from sdm_eurec4a.reductions import interpolate_dataset, mean_and_stderror_of_mean_dataset
 from sdm_eurec4a.visulization import adjust_lightness_array, adjust_lightness
-
+from sdm_eurec4a.constants import TimeSlices
 
 from itertools import combinations
 
@@ -275,7 +275,7 @@ class CleoDataset:
         self,
         data_dir: Union[str, Path],
         microphysics: Tuple[str, ...] = __microphysics__,
-        time_slice: slice = slice(1500, 3490),
+        time_slice: slice = TimeSlices.quasi_stationary_state,
     ):
         self.variables_to_load = [
             "air_temperature",
@@ -295,10 +295,6 @@ class CleoDataset:
             "pressure",
             "radius_bins",
             "relative_humidity",
-            "small_mass_radius_mean",
-            "small_mass_radius_std",
-            "small_xi_radius_mean",
-            "small_xi_radius_std",
             "specific_mass_vapour",
             "surface_area",
             "xi_radius_mean",
