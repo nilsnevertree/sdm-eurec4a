@@ -129,7 +129,7 @@ logging.info(f"Sucessful clouds are: {list(cloud_id_list)}")
 
 logging.info("Attempt to open all sucessful clouds and combine them with xr.open_mfdataset")
 
-cloud_id_index = pd.Index(cloud_id_list, name="cloud_id")
+cloud_id_index = xr.DataArray(cloud_id_list, name="cloud_id", dims=["cloud_id"])
 ds = xr.open_mfdataset(file_path_list, combine="nested", concat_dim=[cloud_id_index], parallel=True)
 
 logging.info("Add cloud_id and max_gridbox to the dataset")
