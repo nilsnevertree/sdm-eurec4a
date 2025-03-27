@@ -352,6 +352,9 @@ for step, data_dir in enumerate(sublist_data_dirs):
             gridbox=slice(0, ds_zarr["gridbox"].max() - 1)
         ).sum("gridbox").shift(time=0)
 
+        # due to the issue of every half timestep, we apply a rolling mean over the source terms
+        ds["source"].rolling(time=2).mean(keep_attrs=True)
+
         ds["source"].attrs = dict(
             long_name="Source term",
             description="Source term of mass in the domain. Given in total mass per timestep. It is the condensation of water vapor.",
@@ -366,6 +369,9 @@ for step, data_dir in enumerate(sublist_data_dirs):
             else:
                 logging.info(f"Convert {var} to float32")
                 ds[var] = ds[var].astype(np.float32)
+
+        logging.info("Remove gridbox coordinate")
+        ds = ds.drop_vars(names=("gridbox",))
 
         logging.info(f"Attempt to store dataset to: {output_path}")
         ds.to_netcdf(output_path)
