@@ -23,7 +23,7 @@ from typing import Tuple
 from sdm_eurec4a.visulization import set_custom_rcParams
 
 
-from sdm_eurec4a import RepositoryPath
+from sdm_eurec4a import RepositoryPath, get_git_revision_hash
 import secrets
 
 set_custom_rcParams()
@@ -898,6 +898,12 @@ for step, data_dir in enumerate(sublist_data_dirs):
                 ds[var] = ds[var].astype(np.float32)
 
         logging.info(f"Attempt to store dataset to: {output_path}")
+        ds.attrs.update(
+            author="Nils Niebaum",
+            date=datetime.datetime.now(datetime.timezone.utc).strftime("%Y%m%d-%H%M%S"),
+            description="Eulerian dataset created from raw data",
+            git_hash=get_git_revision_hash(),
+        )
         ds.to_netcdf(output_path)
         logging.info("Successfully stored dataset")
 
