@@ -14,4 +14,4 @@ class WaterConstants:
 
 class TimeSlices:
     quasi_stationary_state = slice(1500, 3598)
-    crop_end_time_slice = slice(0, 3598)
+    full_state = slice(0, 3598)

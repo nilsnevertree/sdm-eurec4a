@@ -4,6 +4,7 @@ This module contains functions to load data from the CLEO output files.
 
 from pathlib import Path
 from typing import Literal, Tuple, Union
+import matplotlib.pyplot as plt
 
 import numpy as np
 import scipy.interpolate
@@ -284,7 +285,7 @@ class CleoDataset:
             "gridbox_coord3",
             "gridbox_top",
             "gridbox_volume",
-            "gridbx_coord3_norm",
+            "gridbox_coord3_norm",
             "liquid_water_content",
             "mass_radius_mean",
             "mass_radius_std",
@@ -530,8 +531,8 @@ class CleoDataset:
         """
 
         # we need to use the data from the original dataset, as the interpolated dataset is not used for the difference calculation
-        mapped_dim = self.ds["gridbx_coord3_norm"]
-        new_dim = np.linspace(-0.1, 1.1, 102)
+        mapped_dim = self.ds["gridbox_coord3_norm"]
+        new_dim = np.linspace(0, 1, 100)
         new_dim = xr.DataArray(
             new_dim,
             coords={"normalized_gridbox_coord3": new_dim},

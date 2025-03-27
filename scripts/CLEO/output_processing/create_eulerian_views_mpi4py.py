@@ -681,10 +681,11 @@ def add_gridbox_properties(ds: xr.Dataset, gridbox_dict: dict, gridbox_key: str 
         units="$m$",
     )
 
-    ds["gridbx_coord3_norm"] = ds["gridbox_coord3"] / ds["gridbox_coord3"].max()
-    ds["gridbx_coord3_norm"].attrs.update(
+    ds["gridbox_coord3_norm"] = ds["gridbox_coord3"] - ds["gridbox_coord3"].min("gridbox")
+    ds["gridbox_coord3_norm"] = ds["gridbox_coord3_norm"] / ds["gridbox_coord3_norm"].max("gridbox")
+    ds["gridbox_coord3_norm"].attrs.update(
         long_name="Normalized gridbox center coordinate 3",
-        description="Normalized gridbox center coordinate 3.",
+        description="Normalized gridbox center coordinate 3. Lowest gridbox center as 0 and highest gridbox center as 1.",
         units="",
     )
 
