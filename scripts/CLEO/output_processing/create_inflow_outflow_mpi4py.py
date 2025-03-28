@@ -352,8 +352,8 @@ for step, data_dir in enumerate(sublist_data_dirs):
             gridbox=slice(0, ds_zarr["gridbox"].max() - 1)
         ).sum("gridbox").shift(time=0)
 
-        # due to the issue of every half timestep, we apply a rolling mean over the source terms
-        ds["source"].rolling(time=2).mean(keep_attrs=True)
+        # TODO: due to the issue of every half timestep, we apply a rolling mean over the source terms
+        ds["source"] = ds["source"].rolling(time=2).mean()
 
         ds["source"].attrs = dict(
             long_name="Source term",
