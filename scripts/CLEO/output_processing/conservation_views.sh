@@ -17,6 +17,9 @@
 ### ---------------------------------------------------- ###
 
 ### ------------------ Load Modules -------------------- ###
+
+number_of_processes=30
+
 source ${HOME}/.bashrc
 env=/work/mh1126/m301096/conda/envs/sdm_pysd_env312
 env=/work/um1487/m301096/conda/envs/sdm_pysd_python312
@@ -32,10 +35,10 @@ echo "============================================"
 
 # Set microphysics setup
 # microphysics="null_microphysics"
-microphysics="condensation"
+# microphysics="condensation"
 # microphysics="collision_condensation"
 # microphysics="coalbure_condensation_small"
-# microphysics="coalbure_condensation_large"
+microphysics="coalbure_condensation_large"
 
 path2CLEO=${HOME}/CLEO/
 path2sdm_eurec4a=${HOME}/repositories/sdm-eurec4a
@@ -69,10 +72,17 @@ echo "============================================"
 if [ "$create_inflow_outflow" = true ]; then
     echo "Create Inflow Outflow"
     # python ${inflow_outflow_pyhtonscript} --data_dir ${path2data}
-    mpirun -np 30 python ${inflow_outflow_pyhtonscript} --data_dir ${path2data}
+    mpirun -np ${number_of_processes} python ${inflow_outflow_pyhtonscript} --data_dir ${path2data}
     wait
     echo "============================================"
+    if [ $? -ne 0 ]; then
+        echo "Error: One or more MPI processes failed!"
+        exit 1
+    fi
 fi
+
+# let the script wait for 10s so that all mpi processes are really finished and all locks on files are released
+sleep 3
 
 if [ "$concatenate_inflow_outflow" = true ]; then
     echo "Concatenate Inflow Outflow datasets"
