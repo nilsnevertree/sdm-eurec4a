@@ -357,7 +357,7 @@ for step, data_dir in enumerate(sublist_data_dirs):
 
         ds["source"].attrs = dict(
             long_name="Source term",
-            description="Source term of mass in the domain. Given in total mass per timestep. It is the condensation of water vapor.",
+            description="Source term of mass in the domain. Given in total mass per timestep. It is the condensation of water vapor. A rolling mean of 2 timesteps is applied.",
             units="kg dT^{-1}",
         )
 
