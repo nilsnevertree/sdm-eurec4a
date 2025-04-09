@@ -1,6 +1,7 @@
 import string
 import textwrap
 import warnings
+import itertools
 from typing import Union, Tuple, Literal, List, Callable, Dict, Sequence
 from pathlib import Path
 
@@ -922,7 +923,7 @@ def label_from_attrs(
 
 
 def add_subplotlabel(
-    axs: np.ndarray,
+    axs: List[mpl_axes.Axes],
     location: str = "upper left",
     labels=string.ascii_lowercase,
     prefix: str = "(",
@@ -935,7 +936,7 @@ def add_subplotlabel(
 
     Parameters
     ----------
-    axs : np.ndarray
+    axs : List[axes]
         The matplotlib Axes objects to add labels to.
     location : str, optional
         The location of the labels. Default is "upper left".
@@ -1004,7 +1005,7 @@ def add_subplotlabel(
         else:
             raise ValueError(f"Invalid location: {location}")
 
-    for i, ax in enumerate(axs.flatten()):
+    for i, ax in enumerate(axs):
         i += count_offset
         label = f"{prefix}{labels[i]}{suffix}"
 
