@@ -63,7 +63,7 @@ def __post_process_conservation_dataset__(
         ds["surface_area"] = da_surface_area
 
         # to    mm / h
-        ds[new_var] = ds[var] / 2 * 3600 / ds["surface_area"]  # kg / m^2 / h
+        ds[new_var] = ds[var] / timestep * 3600 / ds["surface_area"]  # kg / m^2 / h
         ds[new_var] = 1e3 * ds[new_var] / WaterConstants.density  # mm / h
         ds[new_var].attrs.update(attrs)
         ds[new_var].attrs["units"] = r"mm \, h^{-1}"
@@ -285,7 +285,7 @@ class CleoDataset:
             "gridbox_coord3",
             "gridbox_top",
             "gridbox_volume",
-            "gridbox_coord3_norm",
+            "gridbx_coord3_norm",
             "liquid_water_content",
             "mass_radius_mean",
             "mass_radius_std",
@@ -312,8 +312,8 @@ class CleoDataset:
         ds, ds_sem = self.__load_data__()
         # post process each dataset to have the correct units, and add additional variables
         # like the cloud liquid water content
-        ds = self.__post_process_dataset__(ds)
-        ds_sem = self.__post_process_dataset__(ds_sem)
+        # ds = self.__post_process_dataset__(ds)
+        # ds_sem = self.__post_process_dataset__(ds_sem)
 
         self.ds = ds
         self.ds_sem = ds_sem
@@ -367,6 +367,7 @@ class CleoDataset:
             # use only the variables of interest
             ds_euler = ds_euler[self.variables_to_load]
             ds_euler = ds_euler.sel(time=self.time_slice)
+            ds_euler = __post_process_eulerian_dataset__(ds=ds_euler)
 
             # reduce the surface area to a float from an array with dimension gridbox
             ds_euler["surface_area"] = ds_euler["surface_area"].mean("gridbox")
@@ -379,6 +380,9 @@ class CleoDataset:
                 __conservation_data_path__(data_dir=self.data_dir, microphysic=mp)
             )
             ds_conser = ds_conser.sel(time=self.time_slice)
+            ds_conser = __post_process_conservation_dataset__(
+                ds=ds_conser, da_surface_area=ds_euler["surface_area"], timestep=2
+            )
 
             # get the mean and the standard error of the mean for the dataset
             ds_euler_mean, ds_euler_sem = mean_and_stderror_of_mean_dataset(
@@ -422,40 +426,6 @@ class CleoDataset:
         ds_sem.chunk(chunks)
 
         return ds, ds_sem
-
-    def __post_process_dataset__(self, ds: xr.Dataset) -> xr.Dataset:
-        """
-        Post-process the dataset to add additional variables and convert units.
-
-        Parameters
-        ----------
-        ds : xr.Dataset
-            The dataset to post-process.
-
-        Returns
-        -------
-        xr.Dataset
-            The post-processed dataset.
-        """
-
-        ### Timestepping validation
-        timestep = 2  # s
-        # # extract the time step
-        # timestep = ds['time'].diff().mean().values
-        # timestep_sem = ds['time'].diff().std().values
-        # # allowed relative tolerance for the time step
-        # timestep_rtol = 0.01
-        # # make sure the maximum timestep difference to the mean is less than 1%
-        # if np.abs(ds['time'].diff() / timestep) > timestep_rtol :
-        #     raise ValueError(f"Time step is not constant to at least {timestep_rtol * 100:.1e}%. Mean: {timestep}, std: {timestep_sem}")
-
-        ds = __post_process_eulerian_dataset__(ds=ds)
-
-        ds = __post_process_conservation_dataset__(
-            ds=ds, da_surface_area=ds["surface_area"], timestep=timestep
-        )
-
-        return ds
 
     def calculate_evaporation_fraction(self):
         """
@@ -531,7 +501,10 @@ class CleoDataset:
         """
 
         # we need to use the data from the original dataset, as the interpolated dataset is not used for the difference calculation
-        mapped_dim = self.ds["gridbox_coord3_norm"]
+        mapped_dim = self.ds["gridbx_coord3_norm"]
+        mapped_dim = self.ds["gridbox_coord3"]
+        mapped_dim = mapped_dim - mapped_dim.min("gridbox")
+        mapped_dim = mapped_dim / mapped_dim.max("gridbox")
         new_dim = np.linspace(0, 1, 100)
         new_dim = xr.DataArray(
             new_dim,
