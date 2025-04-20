@@ -217,7 +217,7 @@ class MicrophysicsStyles:
 
     def __getitem__(self, key: str):
         self.__validate_key__(key)
-        return self.microphysics_styles[key]
+        return self.microphysics_styles[key].copy()
 
     def __iter__(self):
         for key in self.microphysics_styles.keys():
