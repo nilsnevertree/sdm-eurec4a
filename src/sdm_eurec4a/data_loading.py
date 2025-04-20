@@ -184,7 +184,7 @@ class MicrophysicsStyles:
             condensation="EvapOnly",
             collision_condensation="EvapCoal",
             coalbure_condensation_small="EvapCoalBuRe-few",
-            coalbure_condensation_large="EVapCoalBuRe-many",
+            coalbure_condensation_large="EvapCoalBuRe-many",
         )
 
         colors = dict(
@@ -264,7 +264,7 @@ class MicrophysicsStyles:
         elif colortype == "light":
             style["color"] = self[key]["light_color"]
 
-        return style
+        return style.copy()
 
 
 __microphysics__ = tuple(MicrophysicsStyles())
@@ -510,7 +510,7 @@ class CleoDataset:
             new_dim,
             coords={"normalized_gridbox_coord3": new_dim},
             attrs=dict(
-                long_name="Normalized gridbox coordinate",
+                long_name="Normalized height",
                 units="",
                 description="Normalized gridbox coordinate by the maximum gridbox coordinate",
             ),
