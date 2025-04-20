@@ -924,7 +924,7 @@ def label_from_attrs(
 
 def add_subplotlabel(
     axs: List[mpl_axes.Axes],
-    location: str = "upper left",
+    location: str = "title",
     labels=string.ascii_lowercase,
     prefix: str = "(",
     suffix: str = ")",
@@ -973,6 +973,8 @@ def add_subplotlabel(
         >>> fig, axs = plt.subplots(2, 2)
         >>> add_subplotlabel(axs, location="upper left")
     """
+
+    kwargs.setdefault("zorder", 100)
 
     xlocation = None
     xoffset = None
