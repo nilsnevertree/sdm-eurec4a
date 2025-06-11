@@ -21,7 +21,7 @@
 number_of_processes=30
 
 source ${HOME}/.bashrc
-env=/work/mh1126/m301096/conda/envs/sdm_pysd_env312
+# env=/work/mh1126/m301096/conda/envs/sdm_pysd_env312
 env=/work/um1487/m301096/conda/envs/sdm_pysd_python312
 conda activate ${env}
 
@@ -31,6 +31,7 @@ echo "START RUN"
 date
 echo "git hash: $(git rev-parse HEAD)"
 echo "git branch: $(git symbolic-ref --short HEAD)"
+echo "python : $(which python)"
 echo "============================================"
 
 # Set microphysics setup
@@ -49,7 +50,7 @@ concatenate_inflow_outflow=true
 inflow_outflow_pyhtonscript=${path2sdm_eurec4a}/scripts/CLEO/output_processing/create_inflow_outflow_mpi4py.py
 concatenate_io_pythonscript=${path2sdm_eurec4a}/scripts/CLEO/output_processing/concatenate_inflow_outflow.py
 
-path2data=${path2CLEO}/data/output_v4.2/${microphysics}/
+path2data=${path2CLEO}/data/output_v4.4-CLEO_v0.39.7-input_v4.2/${microphysics}/
 
 echo "============================================"
 echo "path2data: ${path2data}"

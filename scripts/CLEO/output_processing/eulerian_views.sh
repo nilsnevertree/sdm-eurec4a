@@ -37,16 +37,16 @@ echo "============================================"
 
 # Set microphysics setup
 # microphysics="null_microphysics"
-microphysics="condensation"
+# microphysics="condensation"
 # microphysics="collision_condensation"
-# microphysics="coalbure_condensation_small"
+microphysics="coalbure_condensation_small"
 # microphysics="coalbure_condensation_large"
 
 path2CLEO=${HOME}/CLEO/
 path2sdm_eurec4a=${HOME}/repositories/sdm-eurec4a
-path2data=${path2CLEO}/data/output_v4.2/${microphysics}/
+path2data=${path2CLEO}/data/output_v4.4-CLEO_v0.39.7-input_v4.2/${microphysics}/
 
-create_eulerian_view=true
+create_eulerian_view=false
 concatenate_eulerian_view=true
 
 echo "Microphysics: ${microphysics}"
