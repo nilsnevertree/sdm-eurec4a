@@ -96,7 +96,7 @@ def __post_process_eulerian_dataset__(ds: xr.Dataset) -> xr.Dataset:
 
     # convert the liquid water content to g/m^3
     ds["liquid_water_content"] = 1e3 * ds["liquid_water_content"]
-    ds["liquid_water_content"].attrs["units"] = "g/m^3"
+    ds["liquid_water_content"].attrs["units"] = "g m^{-3}"
     ds["liquid_water_content"].attrs["long_name"] = "Rain Water Content"
 
     # select the cloud liquid water content
