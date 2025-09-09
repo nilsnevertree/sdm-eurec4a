@@ -363,3 +363,32 @@ should be stored in ``data/output_v4.4-CLEO_v0.39.7-input_v4.2/null_microphysics
 
 
 # 4.3. Post processing of CLEOs Raw output.
+
+This is done is the ``sdm-eurec4a`` repo.
+
+We create the eulerian views with the bash script ``./scripts/CLEO/output_processing/eulerian_views.sh``.
+The underlying python script is: ``./scripts/CLEO/output_processing/create_eulerian_views_mpi4py.py``
+
+We create the conservation view (Inflow, Outflow, Reservoir change, Evaporation) with the ``./scripts/CLEO/output_processing/conservation_views.sh`` bash script.
+It invokes a MPI parallel run for all clouds.
+The underlying python script is: ``./scripts/CLEO/output_processing/create_inflow_outflow_mpi4py.py``
+
+For both, a combined netcdf file can be created by using
+
+```bash
+concatenate_eulerian_view=true
+```
+or
+````bash
+concatenate_inflow_outflow=true
+````
+in the bash scripts.
+
+The output of the eulerian view is then stored in the CLEO repo ``./data/output_v4.4-CLEO_v0.39.7-input_v4.2/null_microphysics/combined/conservation_dataset_combined.nc``.
+
+The output of the conservation view is then stored in the CLEO repo ``./data/output_v4.4-CLEO_v0.39.7-input_v4.2/null_microphysics/combined/eulerian_dataset_combined.nc``.
+
+
+# 5. Plot and use the conservation and eulerian views.
+
+to handle all the different data mess for all microphysics and clouds, we can use the following:
