@@ -1007,15 +1007,16 @@ def add_subplotlabel(
         else:
             raise ValueError(f"Invalid location: {location}")
 
+    annotations = []
     for i, ax in enumerate(axs):
         i += count_offset
         label = f"{prefix}{labels[i]}{suffix}"
 
         if at_title == True:
             label = f"  {label}"
-            ax.set_title(label, loc="left", **kwargs)
+            annotation = ax.set_title(label, loc="left", **kwargs)
         else:
-            ax.annotate(
+            annotation = ax.annotate(
                 label,
                 xy=(xlocation, ylocation),
                 xycoords="axes fraction",
@@ -1023,6 +1024,7 @@ def add_subplotlabel(
                 textcoords="offset fontsize",
                 **kwargs,
             )
+        annotations.append(annotation)
 
 
 def find_unit_key(attrs: dict) -> Union[str, None]:
