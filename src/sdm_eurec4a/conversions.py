@@ -879,7 +879,7 @@ class EvaporationUnits:
 
     def __init__(
         self,
-        data: xr.DataArray,
+        data: Union[np.ndarray, xr.DataArray],
         input_type: Literal["mass", "energy", "precipitation"],
         appendix_units: str = "",
     ) -> None:
@@ -913,53 +913,81 @@ class EvaporationUnits:
 
         self.type = input_type
         self.appendix_units = appendix_units
+        self.data = data
         self.__set_units__(appendix_units)
-        self.__set_units__(appendix_units)
-        self.__standardize_units__(data)
+        self.__standardize_units__()
 
     def __set_units__(self, appendix_units: str = "") -> None:
-        self.units = EvaporationUnits.supported_types[self.type]
+        self.units = EvaporationUnits.supported_types[self.type] + appendix_units
+
+        if isinstance(self.data, xr.DataArray):
+            self.data.attrs["units"] = self.units
 
     def __standardize_units__(
         self,
-        data: xr.DataArray,
     ) -> None:
         """
         The standard units are mass in kg/s.
         The function converts the input units to the standard units.
         """
 
+        if isinstance(self.data, xr.DataArray):
+            attrs = self.data.attrs.copy()
+
         if self.type == "mass":
-            self.data = data
+            self.data = self.data
         elif self.type == "energy":
-            self.data = data / WaterConstants.vapourization_heat
+            self.data = self.data / WaterConstants.vapourization_heat
             self.type = "mass"
         elif self.type == "precipitation":
             # mm/h = kg/m^2/s
-            self.data = data / 3600 * 1000 / WaterConstants.density
+            self.data = self.data / 3600 * 1000 / WaterConstants.density
             self.type = "mass"
         else:
             raise ValueError(
                 f"Invalid input type, needs to be one of {EvaporationUnits.supported_types.keys()}"
             )
 
+        if isinstance(self.data, xr.DataArray):
+            self.data.attrs.update(attrs)
+
         self.__set_units__()
 
     def convert_to(
         self, output_type: Literal["mass", "energy", "precipitation"]
-    ) -> Union[xr.DataArray, np.ndarray]:
+    ) -> Union[np.ndarray, xr.DataArray]:
+
+        # first standardize the units to mass
+        self.__standardize_units__()
+
+        da = self.__convert_data_to__(output_type=output_type)
+
+        # then convert to the output type
+        if isinstance(self.data, xr.DataArray) and isinstance(da, xr.DataArray):
+            attrs = self.data.attrs.copy()
+            da.attrs.update(attrs)
+            da.attrs["units"] = EvaporationUnits.supported_types[output_type] + self.appendix_units
+        elif isinstance(self.data, np.ndarray) and isinstance(da, np.ndarray):
+            da = da
+
+        self.type = output_type
+        self.data = da
+        self.__set_units__()
+
+        return self.data
+
+    def __convert_data_to__(
+        self, output_type: Literal["mass", "energy", "precipitation"]
+    ) -> Union[np.ndarray, xr.DataArray]:
 
         if output_type == "mass":
             da = self.data
-            da.attrs["units"] = EvaporationUnits.supported_types["mass"] + self.appendix_units
             return da
         elif output_type == "energy":
             da = self.data * WaterConstants.vapourization_heat
-            da.attrs["units"] = EvaporationUnits.supported_types["energy"] + self.appendix_units
             return da
         elif output_type == "precipitation":
             da = self.data * 3600 / 1000 * WaterConstants.density
-            da.attrs["units"] = EvaporationUnits.supported_types["precipitation"] + self.appendix_units
             return da
         else:
             raise ValueError("Invalid units for conversion")

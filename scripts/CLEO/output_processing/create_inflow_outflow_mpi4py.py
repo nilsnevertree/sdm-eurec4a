@@ -23,7 +23,7 @@ from typing import Tuple
 from sdm_eurec4a.visulization import set_custom_rcParams
 
 
-from sdm_eurec4a import RepositoryPath
+from sdm_eurec4a import RepositoryPath, get_git_revision_hash
 import secrets
 
 set_custom_rcParams()
@@ -352,9 +352,12 @@ for step, data_dir in enumerate(sublist_data_dirs):
             gridbox=slice(0, ds_zarr["gridbox"].max() - 1)
         ).sum("gridbox").shift(time=0)
 
+        # TODO: due to the issue of every half timestep, we apply a rolling mean over the source terms
+        ds["source"] = ds["source"].rolling(time=2).mean()
+
         ds["source"].attrs = dict(
             long_name="Source term",
-            description="Source term of mass in the domain. Given in total mass per timestep. It is the condensation of water vapor.",
+            description="Source term of mass in the domain. Given in total mass per timestep. It is the condensation of water vapor. A rolling mean of 2 timesteps is applied.",
             units="kg dT^{-1}",
         )
 
@@ -367,7 +370,17 @@ for step, data_dir in enumerate(sublist_data_dirs):
                 logging.info(f"Convert {var} to float32")
                 ds[var] = ds[var].astype(np.float32)
 
+        logging.info("Remove gridbox coordinate")
+        ds = ds.drop_vars(names=("gridbox",))
+
         logging.info(f"Attempt to store dataset to: {output_path}")
+        ds.attrs.update(
+            author="Nils Niebaum",
+            date=datetime.datetime.now(datetime.timezone.utc).strftime("%Y%m%d-%H%M%S"),
+            description="Eulerian dataset created from raw data",
+            git_hash=get_git_revision_hash(),
+        )
+
         ds.to_netcdf(output_path)
         logging.info("Successfully stored dataset")
         sucessful.append(cloud_id)

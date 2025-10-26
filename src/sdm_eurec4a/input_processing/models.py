@@ -1,11 +1,11 @@
 from typing import Tuple, Dict, Union, Callable, TypedDict
 import numpy as np
 import xarray as xr
-from scipy.optimize import least_squares, Bounds
+from scipy.optimize import least_squares, Bounds, OptimizeResult
 from inspect import signature
 
 
-def linear_func(x: np.ndarray, f_0: float = 2, slope: float = 1):
+def linear_func(x: Union[np.ndarray, xr.DataArray], f_0: float = 2, slope: float = 1):
     """
     Linear function.
 
@@ -824,7 +824,7 @@ class LeastSquareFit:
     def x0(self, x0: np.ndarray):
         # validate that x0 fits the model function
         # self.ParameterDict()
-        keys = list(self.ParameterDict.keys())
+        # keys = list(self.ParameterDict.keys())
         # if len(x0) != len(keys) - 1:
         #     raise ValueError(
         #         f"Initial guess x0 has {len(x0)} elements, but the model function has {len(keys)-1} parameters with parameter keys {keys[1:]}"
@@ -894,7 +894,7 @@ class LeastSquareFit:
     def bounds(self) -> Bounds:
         return self._bounds
 
-    def fit(self, repetitions: int = 1, add_noise: bool = True, seed=42):
+    def fit(self, repetitions: int = 1):
         """
         Perform the fitting process. Can repeat the fitting multiple times.
 
@@ -916,7 +916,7 @@ class LeastSquareFit:
             least_squares_kwargs = self.fit_kwargs.copy()
             least_squares_kwargs.update(kwargs=self.func_kwargs)
 
-            self.fit_result = least_squares(
+            self.fit_result: OptimizeResult = least_squares(
                 self.cost_func,
                 x0=self.x_guess,
                 bounds=self.bounds,

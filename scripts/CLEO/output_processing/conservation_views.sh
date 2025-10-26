@@ -1,7 +1,6 @@
 #!/bin/bash
 #SBATCH --job-name=e1d_conservation
 #SBATCH --partition=compute
-#SBATCH --mem=55G
 #SBATCH --time=00:10:00
 #SBATCH --mail-user=nils-ole.niebaumy@mpimet.mpg.de
 #SBATCH --mail-type=FAIL
@@ -18,8 +17,11 @@
 ### ---------------------------------------------------- ###
 
 ### ------------------ Load Modules -------------------- ###
+
+number_of_processes=30
+
 source ${HOME}/.bashrc
-env=/work/mh1126/m301096/conda/envs/sdm_pysd_env312
+# env=/work/mh1126/m301096/conda/envs/sdm_pysd_env312
 env=/work/um1487/m301096/conda/envs/sdm_pysd_python312
 conda activate ${env}
 
@@ -29,14 +31,15 @@ echo "START RUN"
 date
 echo "git hash: $(git rev-parse HEAD)"
 echo "git branch: $(git symbolic-ref --short HEAD)"
+echo "python : $(which python)"
 echo "============================================"
 
 # Set microphysics setup
 # microphysics="null_microphysics"
-microphysics="condensation"
+# microphysics="condensation"
 # microphysics="collision_condensation"
 # microphysics="coalbure_condensation_small"
-# microphysics="coalbure_condensation_large"
+microphysics="coalbure_condensation_large"
 
 path2CLEO=${HOME}/CLEO/
 path2sdm_eurec4a=${HOME}/repositories/sdm-eurec4a
@@ -47,7 +50,7 @@ concatenate_inflow_outflow=true
 inflow_outflow_pyhtonscript=${path2sdm_eurec4a}/scripts/CLEO/output_processing/create_inflow_outflow_mpi4py.py
 concatenate_io_pythonscript=${path2sdm_eurec4a}/scripts/CLEO/output_processing/concatenate_inflow_outflow.py
 
-path2data=${path2CLEO}/data/output_v4.1/${microphysics}/
+path2data=${path2CLEO}/data/output_v4.4-CLEO_v0.39.7-input_v4.2/${microphysics}/
 
 echo "============================================"
 echo "path2data: ${path2data}"
@@ -70,10 +73,17 @@ echo "============================================"
 if [ "$create_inflow_outflow" = true ]; then
     echo "Create Inflow Outflow"
     # python ${inflow_outflow_pyhtonscript} --data_dir ${path2data}
-    mpirun -np 20 python ${inflow_outflow_pyhtonscript} --data_dir ${path2data}
+    mpirun -np ${number_of_processes} python ${inflow_outflow_pyhtonscript} --data_dir ${path2data}
     wait
     echo "============================================"
+    if [ $? -ne 0 ]; then
+        echo "Error: One or more MPI processes failed!"
+        exit 1
+    fi
 fi
+
+# let the script wait for 10s so that all mpi processes are really finished and all locks on files are released
+sleep 3
 
 if [ "$concatenate_inflow_outflow" = true ]; then
     echo "Concatenate Inflow Outflow datasets"

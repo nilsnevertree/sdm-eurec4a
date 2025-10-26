@@ -1,6 +1,7 @@
 import string
 import textwrap
 import warnings
+import itertools
 from typing import Union, Tuple, Literal, List, Callable, Dict, Sequence
 from pathlib import Path
 
@@ -66,6 +67,70 @@ def set_custom_rcParams() -> list:
 
     # Set default figure size
     plt.rcParams["figure.figsize"] = (16 / 2, 9 / 2)
+
+    # Set font sizes
+    SMALL_SIZE = 10
+    MEDIUM_SIZE = 12
+    BIGGER_SIZE = 15
+    HUGHER_SIZE = 18
+    plt.rc("font", size=MEDIUM_SIZE)  # Default text sizes
+    plt.rc("figure", titlesize=MEDIUM_SIZE)  # Figure title size
+    plt.rc("figure", labelsize=MEDIUM_SIZE)  # X and Y labels size
+
+    plt.rc("axes", titlesize=MEDIUM_SIZE)  # Axes title size
+    plt.rc("axes", labelsize=MEDIUM_SIZE)  # X and Y labels size
+    plt.rc("xtick", labelsize=SMALL_SIZE)  # X tick labels size
+    plt.rc("ytick", labelsize=SMALL_SIZE)  # Y tick labels size
+    plt.rc("legend", fontsize=MEDIUM_SIZE)  # Legend fontsize
+
+    # Set axis spines visibility
+    plt.rc(
+        "axes.spines",
+        **{
+            "left": False,
+            "right": False,
+            "bottom": False,
+            "top": False,
+        },
+    )
+
+    # Set legend location
+    plt.rc(
+        "legend",
+        **dict(
+            loc="upper right",
+            frameon=True,
+            framealpha=0.5,
+            fancybox=False,
+            edgecolor="none",
+        ),
+    )
+
+    plt.rcParams["axes.prop_cycle"] = cycler(color=_default_colors)
+    return _default_colors
+
+
+def set_paper_rcParams() -> list:
+    """
+    Set the default configuration parameters for matplotlib. The colorblind-
+    save colors were chosen with the help of
+    https://davidmathlogic.com/colorblind.
+
+    Returns:
+    --------
+    colors (np.ndarray) Array containing the default colors in HEX format
+
+    Note:
+    -----
+    This function modifies the global matplotlib configuration.
+
+    Examples:
+    ---------
+        >>> set_custom_rcParams()
+    """
+
+    # Set default figure size
+    plt.rcParams["figure.figsize"] = (16 / 3, 9 / 3)
 
     # Set font sizes
     SMALL_SIZE = 10
@@ -858,8 +923,8 @@ def label_from_attrs(
 
 
 def add_subplotlabel(
-    axs: np.ndarray,
-    location: str = "upper left",
+    axs: List[mpl_axes.Axes],
+    location: str = "title",
     labels=string.ascii_lowercase,
     prefix: str = "(",
     suffix: str = ")",
@@ -871,7 +936,7 @@ def add_subplotlabel(
 
     Parameters
     ----------
-    axs : np.ndarray
+    axs : List[axes]
         The matplotlib Axes objects to add labels to.
     location : str, optional
         The location of the labels. Default is "upper left".
@@ -909,6 +974,8 @@ def add_subplotlabel(
         >>> add_subplotlabel(axs, location="upper left")
     """
 
+    kwargs.setdefault("zorder", 100)
+
     xlocation = None
     xoffset = None
     ylocation = None
@@ -940,15 +1007,16 @@ def add_subplotlabel(
         else:
             raise ValueError(f"Invalid location: {location}")
 
-    for i, ax in enumerate(axs.flatten()):
+    annotations = []
+    for i, ax in enumerate(axs):
         i += count_offset
         label = f"{prefix}{labels[i]}{suffix}"
 
         if at_title == True:
             label = f"  {label}"
-            ax.set_title(label, loc="left", **kwargs)
+            annotation = ax.set_title(label, loc="left", **kwargs)
         else:
-            ax.annotate(
+            annotation = ax.annotate(
                 label,
                 xy=(xlocation, ylocation),
                 xycoords="axes fraction",
@@ -956,6 +1024,7 @@ def add_subplotlabel(
                 textcoords="offset fontsize",
                 **kwargs,
             )
+        annotations.append(annotation)
 
 
 def find_unit_key(attrs: dict) -> Union[str, None]:

@@ -58,7 +58,7 @@ from dask.diagnostics import ProgressBar
 from sdm_eurec4a import get_git_revision_hash
 from sdm_eurec4a.calculations import horizontal_extent_func, vertical_extent_func
 from sdm_eurec4a.identifications import consecutive_events_xr
-
+from sdm_eurec4a.conversions import msd_from_psd_dataarray
 
 # %%
 # %%
@@ -302,6 +302,37 @@ def main(mask_name=mask_name):
         "time",
         [
             cloud_composite["liquid_water_content"].sel(time=slice(start, end)).sum()
+            for start, end in zip(clouds.start.data, clouds.end.data)
+        ],
+    )
+    clouds["liquid_water_content"].attrs = {
+        "long_name": "total LWC of cloud event",
+        "units": "g/m3",
+        "comment": "This is the sum of the LWC of all pixels in the cloud event.\nMass of all droplets per cubic meter of air, assuming water spheres with density = 1g/cm3",
+    }
+
+    logging.info("Calculate total RWC of cloud events")
+    from sdm_eurec4a.constants import WaterConstants
+
+    rwc = (
+        msd_from_psd_dataarray(cloud_composite["particle_size_distribution_non_normalized"])
+        .sel(radius=slice(50e-6, None))
+        .sum("radius")
+        * WaterConstants.density
+    )  # convert to g/m3
+
+    rwc.attrs.update(
+        {
+            "long_name": "total RWC of cloud event",
+            "units": "g m^{-3}",
+            "comment": "This is the sum of the RWC of all pixels in the cloud event.\nMass of all droplets with a radius larger than 50 micrometers per cubic meter of air, assuming water spheres with density = 1g/cm3",
+        }
+    )
+
+    clouds["liquid_water_content"] = (
+        "time",
+        [
+            cloud_composite["liquid_water_content"].sel(time=slice(start, end)).sel(radius).sum()
             for start, end in zip(clouds.start.data, clouds.end.data)
         ],
     )
