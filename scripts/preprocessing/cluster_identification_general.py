@@ -1,3 +1,5 @@
+# %%
+
 """
 This script identifies cloud clusters in the cloud composite dataset. It uses one of the
 masks from the original dataset to identify clouds. This mask can be selected by setting
@@ -54,16 +56,22 @@ import numpy as np
 import xarray as xr
 import yaml
 
-from dask.diagnostics import ProgressBar
 from sdm_eurec4a import get_git_revision_hash
 from sdm_eurec4a.calculations import horizontal_extent_func, vertical_extent_func
 from sdm_eurec4a.identifications import consecutive_events_xr
 from sdm_eurec4a.conversions import msd_from_psd_dataarray
+from sdm_eurec4a import RepositoryPath
+from sdm_eurec4a.constants import RadiusSlices, WaterConstants
+
+RadiusSlices.rain_and_drizzle
 
 # %%
 # %%
+REPO_PATH = RepositoryPath("levante").repo_dir
+print(f"Repository root is\n\t{REPO_PATH}")
 # Example dataset
-script_path = Path(os.path.abspath(__file__))
+script_path = REPO_PATH / "scripts/preprocessing/cluster_identification_general.py"
+# script_path = Path(os.path.abspath(__file__))
 print(f"Script path is\n\t{script_path}")
 SCRIPT_DIR = script_path.parent
 
@@ -76,8 +84,6 @@ with open(SETTINGS_PATH, "r") as stream:
     except yaml.YAMLError as exc:
         raise exc
 
-REPO_PATH = Path(script_path).parent.parent.parent
-print(f"Repository root is\n\t{REPO_PATH}")
 
 OUTPUT_DIR = REPO_PATH / Path(SETTINGS["paths"]["output_directory"])
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
@@ -101,6 +107,7 @@ temp_file_name = f"{secrets.token_hex(nbytes=4)}_temporary.nc"
 TEMPORARY_FILEPATH = OUTPUT_DIR / temp_file_name
 SETTINGS["paths"]["temporary_filepath"] = TEMPORARY_FILEPATH.relative_to(REPO_PATH).as_posix()
 
+# %%
 # prepare logger
 
 logger = logging.getLogger()
@@ -155,74 +162,73 @@ with open(OUTPUT_DIR / settings_output_name, "w") as file:
 
 
 def main(mask_name=mask_name):
-    cloud_composite = xr.open_dataset(INPUT_FILEPATH, chunks={"time": 100000})
+    cloud_composite = xr.open_dataset(INPUT_FILEPATH)
 
-    with ProgressBar():
-        logging.info("Create cluster mask")
-        # The cluster mask is created by inverting the mask
-        # using the consecutive_events_xr function, one can remove small cloud holes.
+    logging.info("Create cluster mask")
+    # The cluster mask is created by inverting the mask
+    # using the consecutive_events_xr function, one can remove small cloud holes.
 
-        inverted_mask = np.logical_not(cloud_composite[mask_name].fillna(0)).chunk({"time": -1})
-        cloud_hole_mask = consecutive_events_xr(
-            inverted_mask,
-            min_duration=min_duration_cloud_holes,
-            axis="time",
-        )
-        cloud_composite[f"cluster_{mask_name}"] = np.logical_not(cloud_hole_mask)
-        cloud_composite[f"cluster_{mask_name}"].attrs = {
-            "long_name": f"cluster mask of {mask_name}",
-            "description": f"Cluster mask of {mask_name}.\nCloud holes with a duration of less than {min_duration_cloud_holes} time steps are removed.",
-        }
-        logging.info(f"Switch mask_name to {mask_name}")
-        mask_name = f"cluster_{mask_name}"
+    inverted_mask = np.logical_not(cloud_composite[mask_name].fillna(0)).chunk({"time": -1})
+    cloud_hole_mask = consecutive_events_xr(
+        inverted_mask,
+        min_duration=min_duration_cloud_holes,
+        axis="time",
+    )
+    cloud_composite[f"cluster_{mask_name}"] = np.logical_not(cloud_hole_mask)
+    cloud_composite[f"cluster_{mask_name}"].attrs = {
+        "long_name": f"cluster mask of {mask_name}",
+        "description": f"Cluster mask of {mask_name}.\nCloud holes with a duration of less than {min_duration_cloud_holes} time steps are removed.",
+    }
+    logging.info(f"Switch mask_name to {mask_name}")
+    mask_name = f"cluster_{mask_name}"
 
-        logging.info("Identify clouds using xr.diff")
-        cloud_diff = cloud_composite[mask_name].fillna(0).astype(int).diff(dim="time")
-        cloud_diff = cloud_diff.compute()
-        cloud_start = cloud_diff["time"].where(cloud_diff == 1, drop=True)
-        cloud_end = cloud_diff["time"].where(cloud_diff == -1, drop=True)
+    logging.info("Identify clouds using xr.diff")
+    cloud_diff = cloud_composite[mask_name].fillna(0).astype(int).diff(dim="time")
+    cloud_diff = cloud_diff.compute()
+    cloud_start = cloud_diff["time"].where(cloud_diff == 1, drop=True)
+    cloud_end = cloud_diff["time"].where(cloud_diff == -1, drop=True)
 
-        # if the last start is larger than the end, the cloud is still active
-        # in the end of the dataset, so we need to append the last time step to cloud_end
-        if cloud_start.max() > cloud_end.max():
-            cloud_end = xr.concat([cloud_end, cloud_diff.time[-1]], dim="time")
+    # if the last start is larger than the end, the cloud is still active
+    # in the end of the dataset, so we need to append the last time step to cloud_end
+    if cloud_start.max() > cloud_end.max():
+        cloud_end = xr.concat([cloud_end, cloud_diff.time[-1]], dim="time")
 
-        logging.info(f"{cloud_start.shape} number of clouds were identified")
+    logging.info(f"{cloud_start.shape} number of clouds were identified")
 
-        logging.info("Create cloud identification dataset")
-        clouds = xr.Dataset(
-            coords={"cloud_id": np.arange(0, cloud_start.size)},
-        )
-        details = (
-            f"Cloud identification is done by using the {mask_name} from the original dataset.\n"
-            f"All np.nan values in the {mask_name} are set to 0/False.\n"
-            f"The original {mask_name} is then used to identify individual clouds.\n"
-        )
+    logging.info("Create cloud identification dataset")
+    clouds = xr.Dataset(
+        coords={"cloud_id": np.arange(0, cloud_start.size)},
+    )
+    details = (
+        f"Cloud identification is done by using the {mask_name} from the original dataset.\n"
+        f"All np.nan values in the {mask_name} are set to 0/False.\n"
+        f"The original {mask_name} is then used to identify individual clouds.\n"
+    )
 
-        clouds.attrs = {
-            "description": "cloud identification dataset",
-            "creation_time": datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),
-            "details": details,
-            "author": "Nils Niebaum",
-            "email": "nils-ole.niebaum@mpimet.mpg.de",
-            "institution": "Max Planck Institute for Meteorology",
-        }
+    clouds.attrs = {
+        "description": "cloud identification dataset",
+        "creation_time": datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),
+        "details": details,
+        "author": "Nils Niebaum",
+        "email": "nils-ole.niebaum@mpimet.mpg.de",
+        "institution": "Max Planck Institute for Meteorology",
+    }
 
-        clouds["start"] = ("cloud_id", cloud_start.data)
-        clouds["start"].attrs = {"long_name": "start time of cloud event"}
-        clouds["end"] = ("cloud_id", cloud_end.data)
-        clouds["end"].attrs = {"long_name": "end time of cloud event"}
-        clouds["duration"] = clouds.end - clouds.start
-        clouds["duration"].attrs = {"long_name": "duration of cloud event"}
-        clouds["mid_time"] = clouds.start + clouds.duration / 2
-        clouds["mid_time"].attrs = {"long_name": "mid time of cloud event"}
+    clouds["start"] = ("cloud_id", cloud_start.data)
+    clouds["start"].attrs = {"long_name": "start time of cloud event"}
+    clouds["end"] = ("cloud_id", cloud_end.data)
+    clouds["end"].attrs = {"long_name": "end time of cloud event"}
+    clouds["duration"] = clouds.end - clouds.start
+    clouds["duration"].attrs = {"long_name": "duration of cloud event"}
+    clouds["mid_time"] = clouds.start + clouds.duration / 2
+    clouds["mid_time"].attrs = {"long_name": "mid time of cloud event"}
 
-        # Define
-        clouds = clouds.assign_coords({"time": clouds.mid_time})
-        clouds = clouds.swap_dims({"cloud_id": "time"})
-        logging.info("Store cloud identification dataset")
+    # Define
+    clouds = clouds.assign_coords({"time": clouds.mid_time})
+    clouds = clouds.swap_dims({"cloud_id": "time"})
+    logging.info("Store cloud identification dataset")
 
-        clouds.to_netcdf(TEMPORARY_FILEPATH)
+    clouds.to_netcdf(TEMPORARY_FILEPATH)
 
     clouds = xr.open_dataset(TEMPORARY_FILEPATH)
 
@@ -311,39 +317,57 @@ def main(mask_name=mask_name):
         "comment": "This is the sum of the LWC of all pixels in the cloud event.\nMass of all droplets per cubic meter of air, assuming water spheres with density = 1g/cm3",
     }
 
-    logging.info("Calculate total RWC of cloud events")
-    from sdm_eurec4a.constants import WaterConstants
-
-    rwc = (
-        msd_from_psd_dataarray(cloud_composite["particle_size_distribution_non_normalized"])
-        .sel(radius=slice(50e-6, None))
-        .sum("radius")
-        * WaterConstants.density
-    )  # convert to g/m3
-
-    rwc.attrs.update(
+    rwc_radius = (
+        msd_from_psd_dataarray(
+            da=cloud_composite["particle_size_distribution_non_normalized"],
+            radius_name="radius",
+            radius_scale_factor=1.0,  # no scale factor applied as radius is in meters
+            rho_water=WaterConstants.density,
+        )
+        .sel(radius=RadiusSlices.rain_and_drizzle)
+        .sum(dim="radius")
+    )
+    rwc_radius = rwc_radius * 1e3  # convert from kg/m^3 to g/m^3
+    rwc_radius.attrs.update(
         {
-            "long_name": "total RWC of cloud event",
             "units": "g m^{-3}",
-            "comment": "This is the sum of the RWC of all pixels in the cloud event.\nMass of all droplets with a radius larger than 50 micrometers per cubic meter of air, assuming water spheres with density = 1g/cm3",
+            "comment": "Mass of all droplets per cubic meter of air, assuming water spheres with density = 1g/cm3, calculated from the particle size distribution.",
         }
     )
 
-    clouds["liquid_water_content"] = (
+    logging.info("Calculate mean LWC of cloud events")
+    clouds["mean_liquid_water_content"] = (
         "time",
         [
-            cloud_composite["liquid_water_content"].sel(time=slice(start, end)).sel(radius).sum()
+            cloud_composite["liquid_water_content"].sel(time=slice(start, end)).mean()
             for start, end in zip(clouds.start.data, clouds.end.data)
         ],
     )
-    clouds["liquid_water_content"].attrs = {
-        "long_name": "total LWC of cloud event",
-        "units": "g/m3",
-        "comment": "This is the sum of the LWC of all pixels in the cloud event.\nMass of all droplets per cubic meter of air, assuming water spheres with density = 1g/cm3",
-    }
+    attrs = cloud_composite["liquid_water_content"].attrs.copy()
+    clouds["mean_liquid_water_content"].attrs.update(
+        units=attrs["unit"],
+        long_name="mean liquid water content",
+        comment="Mean LWC for all cloud events, calculated from the liquid_water_content from the cloud composite dataset.",
+    )
 
-    with ProgressBar():
-        clouds.to_netcdf(OUTPUT_DIR / OUTPUT_FILE_NAME)
+    logging.info("Calculate mean RWC of cloud events")
+    clouds["mean_rain_water_content"] = (
+        "time",
+        [
+            rwc_radius.sel(time=slice(start, end)).mean(skipna=True)
+            for start, end in zip(clouds.start.data, clouds.end.data)
+        ],
+    )
+    attrs = rwc_radius.attrs.copy()
+    clouds["mean_rain_water_content"].attrs.update(
+        units=attrs["units"],
+        long_name="mean rain water content",
+    )
+    comment = "Mean RWC for all cloud events, radius from 50 micrometer to infinity."
+    comment += "\nCalculated from the particle size distribution assuming spehrical drops of 1000kg/m3."
+    clouds["mean_rain_water_content"].attrs["comment"] = comment
+
+    clouds.to_netcdf(OUTPUT_DIR / OUTPUT_FILE_NAME)
     logging.info(f"File written to {OUTPUT_DIR / OUTPUT_FILE_NAME}")
     logging.info("Remove temporary file")
     time.sleep(10)
@@ -353,4 +377,3 @@ def main(mask_name=mask_name):
 
 if __name__ == "__main__":
     main(mask_name=mask_name)
-# %%
