@@ -103,10 +103,6 @@ else:
 
 SETTINGS["paths"]["output_file_name"] = OUTPUT_FILE_NAME
 
-temp_file_name = f"{secrets.token_hex(nbytes=4)}_temporary.nc"
-TEMPORARY_FILEPATH = OUTPUT_DIR / temp_file_name
-SETTINGS["paths"]["temporary_filepath"] = TEMPORARY_FILEPATH.relative_to(REPO_PATH).as_posix()
-
 # %%
 # prepare logger
 
@@ -152,7 +148,6 @@ logging.info("Git hash: %s", get_git_revision_hash())
 logging.info("Input file: %s", INPUT_FILEPATH.relative_to(REPO_PATH))
 logging.info("Destination directory: %s", OUTPUT_DIR.relative_to(REPO_PATH))
 logging.info("Destination filename: %s", OUTPUT_FILE_NAME)
-logging.info("Temporary file path: %s", TEMPORARY_FILEPATH)
 logging.info("Mask name: %s", mask_name)
 logging.info("Minimum duration of cloud holes: %s", min_duration_cloud_holes)
 
@@ -227,10 +222,6 @@ def main(mask_name=mask_name):
     clouds = clouds.assign_coords({"time": clouds.mid_time})
     clouds = clouds.swap_dims({"cloud_id": "time"})
     logging.info("Store cloud identification dataset")
-
-    clouds.to_netcdf(TEMPORARY_FILEPATH)
-
-    clouds = xr.open_dataset(TEMPORARY_FILEPATH)
 
     logging.info("Calculate mean altitude of cloud events")
     clouds["altitude"] = (
@@ -369,9 +360,6 @@ def main(mask_name=mask_name):
 
     clouds.to_netcdf(OUTPUT_DIR / OUTPUT_FILE_NAME)
     logging.info(f"File written to {OUTPUT_DIR / OUTPUT_FILE_NAME}")
-    logging.info("Remove temporary file")
-    time.sleep(10)
-    Path(TEMPORARY_FILEPATH).unlink()
     logging.info("Successfully finished cloud identification pre-processing")
 
 
