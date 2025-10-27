@@ -62,6 +62,7 @@ from sdm_eurec4a.identifications import consecutive_events_xr
 from sdm_eurec4a.conversions import msd_from_psd_dataarray
 from sdm_eurec4a import RepositoryPath
 from sdm_eurec4a.constants import RadiusSlices, WaterConstants
+from sdm_eurec4a.reductions import mean_and_stderror_of_mean
 
 RadiusSlices.rain_and_drizzle
 
@@ -308,6 +309,39 @@ def main(mask_name=mask_name):
         "comment": "This is the sum of the LWC of all pixels in the cloud event.\nMass of all droplets per cubic meter of air, assuming water spheres with density = 1g/cm3",
     }
 
+    logging.info("Calculate mean and stddev LWC of cloud events")
+    attrs = cloud_composite["liquid_water_content"].attrs.copy()
+    clouds["mean_liquid_water_content"] = (
+        "time",
+        [
+            cloud_composite["liquid_water_content"].sel(time=slice(start, end)).mean("time")
+            for start, end in zip(clouds.start.data, clouds.end.data)
+        ],
+    )
+    clouds["mean_liquid_water_content"].attrs.update(
+        units=attrs["unit"],
+        long_name="Mean Liquid Water Content",
+        comment="Mean LWC for each cloud events, calculated from the liquid_water_content from the cloud composite dataset.",
+    )
+
+    clouds["stddev_liquid_water_content"] = (
+        "time",
+        [
+            cloud_composite["liquid_water_content"].sel(time=slice(start, end)).std("time")
+            for start, end in zip(clouds.start.data, clouds.end.data)
+        ],
+    )
+    clouds["stddev_liquid_water_content"].attrs.update(
+        units=attrs["unit"],
+        long_name="Stddev Liquid Water Content",
+        comment="Standard deviation of LWC for each cloud events, calculated from the liquid_water_content from the cloud composite dataset.",
+    )
+
+    logging.info("Calculate mean RWC of cloud events")
+
+    # compute rain water content from the particle size distribution
+    # 1. compute mass size distribution from particle size distribution
+    # 2. sum over radius bins larger than 50 micrometer
     rwc_radius = (
         msd_from_psd_dataarray(
             da=cloud_composite["particle_size_distribution_non_normalized"],
@@ -326,37 +360,45 @@ def main(mask_name=mask_name):
         }
     )
 
-    logging.info("Calculate mean LWC of cloud events")
-    clouds["mean_liquid_water_content"] = (
-        "time",
-        [
-            cloud_composite["liquid_water_content"].sel(time=slice(start, end)).mean()
-            for start, end in zip(clouds.start.data, clouds.end.data)
-        ],
-    )
-    attrs = cloud_composite["liquid_water_content"].attrs.copy()
-    clouds["mean_liquid_water_content"].attrs.update(
-        units=attrs["unit"],
-        long_name="mean liquid water content",
-        comment="Mean LWC for all cloud events, calculated from the liquid_water_content from the cloud composite dataset.",
-    )
-
-    logging.info("Calculate mean RWC of cloud events")
-    clouds["mean_rain_water_content"] = (
-        "time",
-        [
-            rwc_radius.sel(time=slice(start, end)).mean(skipna=True)
-            for start, end in zip(clouds.start.data, clouds.end.data)
-        ],
-    )
+    # now compute the Mean Rain Water Content for each cloud event
     attrs = rwc_radius.attrs.copy()
+
+    list_m = []
+    list_sem = []
+    for start, end in zip(clouds.start.data, clouds.end.data):
+        m, sem = mean_and_stderror_of_mean(
+            rwc_radius.sel(time=slice(start, end)),
+            dims="time",
+            keep_attrs=True,
+        )
+        list_m.append(m)
+        list_sem.append(sem)
+
+    clouds["mean_rain_water_content"] = ("time", list_m)
+    clouds["sem_rain_water_content"] = ("time", list_sem)
+
+    # adjust the attributes
     clouds["mean_rain_water_content"].attrs.update(
         units=attrs["units"],
-        long_name="mean rain water content",
+        long_name="Mean Rain Water Content",
     )
-    comment = "Mean RWC for all cloud events, radius from 50 micrometer to infinity."
+    comment = "Mean RWC for each cloud events, radius from 50 micrometer to infinity."
     comment += "\nCalculated from the particle size distribution assuming spehrical drops of 1000kg/m3."
     clouds["mean_rain_water_content"].attrs["comment"] = comment
+
+    clouds["sem_rain_water_content"].attrs.update(
+        units=attrs["units"],
+        long_name="SEM Rain Water Content",
+    )
+    comment = (
+        "Standard error of the mean of RWC for each cloud events, radius from 50 micrometer to infinity."
+    )
+    comment += "\nCalculated from the particle size distribution assuming spehrical drops of 1000kg/m3."
+    clouds["sem_rain_water_content"].attrs["comment"] = comment
+
+    logging.info("Number of identified clouds: %f", clouds["time"].size)
+
+    logging.info("Attempt to write cloud identification dataset to netcdf")
 
     clouds.to_netcdf(OUTPUT_DIR / OUTPUT_FILE_NAME)
     logging.info(f"File written to {OUTPUT_DIR / OUTPUT_FILE_NAME}")
