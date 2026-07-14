@@ -37,7 +37,7 @@ distance_relation_path=${path2sdmeurec4a}/data/observation/combined/distance_rel
 cloud_composite_path=${path2sdmeurec4a}/data/observation/cloud_composite/processed/cloud_composite_si_units.nc
 drop_sonde_path=${path2sdmeurec4a}/data/observation/dropsonde/processed/drop_sondes.nc
 identification_type=clusters
-environment=nils_levante
+environment=default_levante
 
 pythonscript=${path2sdmeurec4a}/scripts/CLEO/initalize/create_input.py
 
