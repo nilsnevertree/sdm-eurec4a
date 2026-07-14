@@ -9,8 +9,8 @@
 #SBATCH --mail-user=nils-ole.niebaumy@mpimet.mpg.de
 #SBATCH --mail-type=FAIL
 #SBATCH --account=um1487
-#SBATCH --output=/home/m/m301096/repositories/sdm-eurec4a/logs/concatenate_master/%j_out.out
-#SBATCH --error=/home/m/m301096/repositories/sdm-eurec4a/logs/concatenate_master/%j_err.out
+#SBATCH --output=/home/m/m300950/rain-evap-nils/sdm-eurec4a/logs/concatenate_master/%j_out.out
+#SBATCH --error=/home/m/m300950/rain-evap-nils/sdm-eurec4a/logs/concatenate_master/%j_err.out
 
 
 

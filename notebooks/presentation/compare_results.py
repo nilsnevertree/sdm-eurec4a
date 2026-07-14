@@ -152,7 +152,7 @@ data_dict = dict(
 )
 
 # THE PATH TO THE SCRIPT DIRECTORY
-script_dir = Path("/home/m/m301096/repositories/sdm-eurec4a/notebooks/presentation/results/")
+script_dir = Path("/home/m/m300950/rain-evap-nils/sdm-eurec4a/notebooks/presentation/results/")
 print(script_dir)
 
 
