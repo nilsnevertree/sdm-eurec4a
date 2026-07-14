@@ -59,7 +59,7 @@ def handle_exception(exc_type, exc_value, exc_traceback):
 
 logging.info(f"====================")
 
-# path2CLEO = Path("/home/m/m301096/CLEO")
+# path2CLEO = Path("/home/m/m300950/rain-evap-nils/sdm-eurec4a-CLEO")
 # path2CLEO.is_dir()
 
 # microphysics = "condensation"

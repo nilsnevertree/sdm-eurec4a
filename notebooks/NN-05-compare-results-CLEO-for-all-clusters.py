@@ -57,7 +57,7 @@ identification_type = config_yaml["cloud"]["identification_type"]
 cloud_id = config_yaml["cloud"]["cloud_id"]
 
 # %%
-path2CLEO = Path("/home/m/m301096/CLEO")
+path2CLEO = Path("/home/m/m300950/rain-evap-nils/sdm-eurec4a-CLEO")
 cleo_data_dir = path2CLEO / "data/output"
 
 # cleo_dataset_dir = cleo_data_dir / "processed/long_run/" f"{identification_type}_{cloud_id}"

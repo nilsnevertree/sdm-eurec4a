@@ -17,7 +17,7 @@ class RepositoryPath:
             data_dir=Path("/home/m/m301096/repositories/sdm-eurec4a/data/"),
             fig_dir=Path("/home/m/m301096/repositories/sdm-eurec4a/results/"),
             CLEO_dir=Path("/home/m/m301096/CLEO/"),
-            CLEO_data_dir=Path("/home/m/m301096/CLEO/data/"),
+            CLEO_data_dir=Path("/home/m/m300950/rain-evap-nils/sdm-eurec4a-CLEO/data/"),
         ),
     )
 
