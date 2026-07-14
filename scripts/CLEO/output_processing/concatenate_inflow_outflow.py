@@ -12,7 +12,7 @@ import xarray as xr
 from sdm_eurec4a import RepositoryPath, get_git_revision_hash
 import datetime
 
-RP = RepositoryPath("levante")
+RP = RepositoryPath("levante_m300950")
 repo_dir = RP.repo_dir
 
 # === logging ===

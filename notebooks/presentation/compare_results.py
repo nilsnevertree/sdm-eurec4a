@@ -69,7 +69,7 @@ plt.rcParams.update(
 
 dark_colors = adjust_lightness_array(default_colors, amount=0.5)
 
-repo_path = RepositoryPath("levante")()
+repo_path = RepositoryPath("levante_m300950")()
 print(repo_path)
 
 # data_dict = "output_v3.2/stationary_no_physics"
