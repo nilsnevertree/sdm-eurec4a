@@ -47,7 +47,7 @@ You can add your own development regime or change the existing ``levante`` regim
 
 ````python
 _known_development_regimes = dict(
-        levante=dict(
+        levante_m301096=dict(
             repo_dir=Path("/home/m/m301096/repositories/sdm-eurec4a/"),
             data_dir=Path("/home/m/m301096/repositories/sdm-eurec4a/data/"),
             fig_dir=Path("/home/m/m301096/repositories/sdm-eurec4a/results/"),
