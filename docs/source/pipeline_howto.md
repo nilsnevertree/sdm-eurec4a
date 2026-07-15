@@ -18,7 +18,7 @@ Firstly, the whole project is split into 2 main repositories.
 - ID: Input directory
 - OD: Output directory
 
-- [sdm-eurec4a](https://github.com/nilsnevertree/sdm-eurec4a)
+- [sdm-eurec4a](https://github.com/yoctoyotta1024/sdm-eurec4a)
     - Data preprocessing
         - Observational data preprocessing
             - S: ``./scripts/preprocessing``
@@ -30,7 +30,7 @@ Firstly, the whole project is split into 2 main repositories.
     - Fitting of DSDs and thermodynamics as INPUTS
         - S: ``.ipynb`` notebooks under issues ``107`` and ``114``
     - Visulization of Simulations by CLEO
-- [CLEO-sdm-eurec4a](https://github.com/nilsnevertree/sdm-eurec4a)
+- [sdm-eurec4a-CLEO](https://github.com/yoctoyotta1024/sdm-eurec4a-CLEO)
     - Usage of INPUTS to run 1D-rainshaft instances
     - Run CLEO:
         - For each one of the 4 microphysical setups:
@@ -250,7 +250,7 @@ ds = match_clouds_and_dropsondes(
 
 ## 3. Fit the DSDs and thermodynamics
 
-The scripts to run CLEO for all clouds in the ``CLEO-sdm-eurec4a`` repo need input files for the DSDs and thermodynamic fits.
+The scripts to run CLEO for all clouds in the ``sdm-eurec4a-CLEO`` repo need input files for the DSDs and thermodynamic fits.
 
 The files are netcdf files with the ``cloud_id`` as leading dimension.
 Four input files are needed:
@@ -304,7 +304,7 @@ Attributes:
     author:             Nils Niebaum
     email:              nils-ole.niebaum@mpimet.mpg.de
     institution:        Max Planck Institute for Meteorology
-    github_repository:  https://github.com/nilsnevertree/sdm-eurec4a
+    github_repository:  https://github.com/yoctoyotta1024/sdm-eurec4a
     git_commit:         ecf2fec509d23640392c7c40b7e7522d4639ce67
     parameter_space:    geometric
     independent_space:  linear
