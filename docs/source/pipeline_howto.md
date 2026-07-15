@@ -5,7 +5,7 @@
 Firstly, the whole project is split into 2 main repositories.
 
 - S: Script path
-- A : File with Arguments for hte script
+- A : File with Arguments for the script
 - ID: Input directory
 - OD: Output directory
 
