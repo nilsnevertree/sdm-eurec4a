@@ -353,7 +353,7 @@ Post-processing CLEO's output data is explained in 4.3.
 
 Before you begin it is reccomended to create a folder called ``data`` within your ``sdm-eurec4a-CLEO`` directory.
 
-As above for the ``sdm-eurec4a`` repository, before you can begin, first replace all mentions of ``m301096`` and ``m300950``, and ``um1487``, ``mh1126`` and ``bm1183``, with your DKRZ account and project IDs.
+As above for the ``sdm-eurec4a`` repository, before you can begin, first replace all mentions of ``m301096`` and ``m300950``, and ``um1487``, ``mh1126`` and ``bm1183``, with your DKRZ account and project IDs. You will probably also want to edit the email address in SLURM jobs, ``#SBATCH --mail-user=[...]```
 
 To select a microphysical setup, comment/uncomment within ``./examples/eurec4a1d/create_model_input_files.sh`` these lines:
 
