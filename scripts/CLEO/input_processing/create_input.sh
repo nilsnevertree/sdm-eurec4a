@@ -5,7 +5,7 @@
 #SBATCH --ntasks-per-node=32
 #SBATCH --exclusive
 #SBATCH --time=01:00:00
-#SBATCH --mail-user=nils-ole.niebaumy@mpimet.mpg.de
+#SBATCH --mail-user=clara.bayley@mpimet.mpg.de
 #SBATCH --mail-type=FAIL
 #SBATCH --account=mh1126
 #SBATCH --output=./logfiles/sdm_eurec4a1d_create_input.%j_out.out
