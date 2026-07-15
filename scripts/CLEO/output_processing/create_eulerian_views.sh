@@ -7,7 +7,7 @@
 #SBATCH --time=00:10:00
 #SBATCH --mail-user=nils-ole.niebaumy@mpimet.mpg.de
 #SBATCH --mail-type=FAIL
-#SBATCH --account=um1487
+#SBATCH --account=mh1126
 #SBATCH --output=./logfiles/eulerian_view/create/%A/%A_%a_out.out
 #SBATCH --error=./logfiles/eulerian_view/create/%A/%A_%a_err.out
 #SBATCH --array=0-110
