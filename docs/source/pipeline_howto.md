@@ -349,7 +349,13 @@ For each microphysical setup, steps 4.1 and 4.2 need to be performed.
 
 You can perform step 4.1 for all setups and then perform 4.2 afterwards.
 
-To select a microphysical setup, comment or uncomment within this lines:
+Post-processing CLEO's output data is explained in 4.3.
+
+Before you begin it is reccomended to create a folder called ``data`` within your ``sdm-eurec4a-CLEO`` directory.
+
+As above for the ``sdm-eurec4a`` repository, before you can begin, first replace all mentions of ``m301096`` and ``m300950``, and ``um1487`` and ``mh1126``, with your DKRZ account and project IDs.
+
+To select a microphysical setup, comment/uncomment within ``./examples/eurec4a1d/create_model_input_files.sh`` these lines:
 
 ````bash
 ### ------------------ Input Parameters ---------------- ###
