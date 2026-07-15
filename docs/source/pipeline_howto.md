@@ -343,7 +343,7 @@ Data variables:
 
 To run CLEO, we need the input files which we created in (3).
 
-We use the example dirextory in ``./examples/eurec4a1d``.
+We use the example directory in ``./examples/eurec4a1d``.
 
 For each microphysical setup, steps 4.1 and 4.2 need to be performed.
 
