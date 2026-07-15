@@ -23,7 +23,7 @@ number_of_processes=30
 
 source ${HOME}/.bashrc
 # env=/work/mh1126/m301096/conda/envs/sdm_pysd_env312
-env=/work/um1487/m301096/conda/envs/sdm_pysd_python312
+env=/home/m/m300950/mamba/envs/sdm_eurec4a_env312
 conda activate ${env}
 
 # ------------------ Set Variables --------------------- #

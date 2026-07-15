@@ -19,7 +19,7 @@
 
 ### ------------------ Load Modules -------------------- ###
 source ${HOME}/.bashrc
-env=/work/um1487/m301096/conda/envs/sdm_pysd_python312
+env=/home/m/m300950/mamba/envs/sdm_eurec4a_env312
 conda activate ${env}
 
 # ------------------ Set Variables --------------------- #
