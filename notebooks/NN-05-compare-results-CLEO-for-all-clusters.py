@@ -73,7 +73,7 @@ fig_path.mkdir(parents=True, exist_ok=True)
 clusters = xr.open_dataset(
     REPOSITORY_ROOT
     / Path(
-        "data/observation/cloud_composite/processed/identified_clouds/identified_clusters_rain_mask_5.nc"
+        "data/observation/cloud_composite/processed/identified_clusters/identified_clusters_rain_mask_5.nc"
     )
 )
 cluster = select_individual_cloud_by_id(clusters, cloud_id)

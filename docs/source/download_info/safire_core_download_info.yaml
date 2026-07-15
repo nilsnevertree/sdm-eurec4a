@@ -1,0 +1,8 @@
+title : 'SAFIRE ATR42: Core Data 1Hz - V2'
+describtion : 'SAFIRE ATR42 Thermodynamics and Dynamics Parameters processed and synchronised at 1Hz. SAFIRE ATR42 Core instruments include: Inertial/GPS System, Barometers, Temperature and Humidity sensors, Radome and Pitot/Static System.'
+dataset_url : 'https://eurec4a.aeris-data.fr/landing-page/?uuid=9c106dec-7227-4a0f-a4d6-f18d30a2be6d'
+download_url : 'https://observations.ipsl.fr/aeris/eurec4a-data/AIRCRAFT/ATR/SAFIRE-CORE/PROCESSED/EUREC4A_SAFIRE_ATR_Core_1HZ_L2_V2/'
+accesed_date : '2024-11-05'
+doi : 'https://doi.org/10.25326/298'
+citation : "CNRM/TRAMM, SAFIRE, Laboratoire d'Aérologie.  (2021).  SAFIRE ATR42: Core Data 1Hz - V2.  [dataset].  Aeris.  https://doi.org/10.25326/298"
+download_command : wget -r --no-parent -nH --cut-dirs=1 --reject "index.html*" --accept "*.nc" -P SPECIFYTHIS https://observations.ipsl.fr/aeris/eurec4a-data/AIRCRAFT/ATR/SAFIRE-CORE/PROCESSED/EUREC4A_SAFIRE_ATR_Core_1HZ_L2_V2/

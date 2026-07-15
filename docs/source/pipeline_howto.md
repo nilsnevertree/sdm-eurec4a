@@ -5,7 +5,7 @@
 Firstly, the whole project is split into 2 main repositories.
 
 - S: Script path
-- A : File with Arguments for hte script
+- A : File with Arguments for the script
 - ID: Input directory
 - OD: Output directory
 
@@ -57,6 +57,12 @@ _known_development_regimes = dict(
     )
 ````
 
+**Before you begin with sdm_eurec4a**
+1) create a mamba/conda environment from the environment.yml file (e.g. ``mamba create -f environment.yml``).
+2) After activating your new environment (e.g. ``mamba activate sdm_eurec4a_env312``), install the ``sdm_eurec4a`` package locally with ``python -m pip install .``
+3) replace all mentions of ``m301096`` and ``m300950``, and ``um1487`` and ``mh1126``, with your DKRZ account and project IDs.
+
+
 # Observational data and fittings
 
 ## 1. Observational data preprocessing
@@ -70,15 +76,21 @@ The whole idea is to:
 
 **Cloud composite**
 There is a yaml-file describing the download procedure, and time of download.
-``./data/observation/cloud_composite/download_info.yaml``
+``./docs/source/download_info/cloud_composite_download_info.yaml``
 
 **Drop sondes**
 There is a yaml-file describing the download procedure, and time of download.
-``./data/observation/dropsonde/download_info.yaml``
+``./docs/source/download_info/dropsonde_download_info.yaml``
+
+*NOTE:* you will need to replace ``SPECIFYTHIS`` with the name you want for the directory of the data you download. Good ideas are to save them under ``raw`` in seperate folders of a directory called ``data/observation/``, i.e. in ``./data/observation/cloud_composite/raw`` and ``./data/observation/dropsonde/raw`` respectively. For the dropsonde data you also need to replace ``SPECIFYLEVEL`` with the level you want, it's best to download ``Level_3``, ``Level_4`` and ``QC`` within seperate directories of ``./data/observation/dropsonde/raw``, e.g. ``./data/observation/dropsonde/raw/LEVEL_3``. (Although probably you will only use ``Level_3``.)
+
+*NOTE:* For the scripts to run automatically, you will then need to move the ``*.nc`` files in ``./data/observation/dropsonde/raw/[Level_3 or Level_4 or QC]/`` out of their nested directories and into ``[...]/raw/[Level_3 or Level_4 or QC]/``, e.g. ``mv ./data/observation/dropsonde/raw/Level_3/eurec4a-data/PRODUCTS/MERGED-MEASUREMENTS/JOANNE/v2.0.0/Level_3/EUREC4A_JOANNE_Dropsonde-RD41_Level_3_v2.0.0.nc ./data/observation/dropsonde/raw/Level_3/`` (and to clean-up: ``rm -rf ./data/observation/dropsonde/raw/Level_3/eurec4a-data``). Likewise you have to move the ``*.nc`` in ``./data/observation/safire_core/raw/eurec4a-data/`` into ``./data/observation/safire_core/raw/`` (and ``rm -rf eurec4a-data``).
+
+*NOTE:* while you're at it, it's advisable to make to two further directories in ``data``, ``./data/model`` and ``./data/sharing``.
 
 ### 1.1 Prepare the observational dataset to have consistent units
 
-#### Prepare the cloud composite dataset
+#### A) Prepare the cloud composite dataset
 
 S : ``./scripts/preprocessing/cloud_composite_si_units.py``
 ID: ``./data/observation/cloud_composite/raw`` (location of the downloaded cloud composite files)
@@ -96,13 +108,21 @@ DESTINATION_FILEPATH = DESTINATION_DIRECTORY / DESTINATION_FILENAME
 
 log_file_path = DESTINATION_DIRECTORY / "cloud_composite_preprocessing.log"
 ````
-### Prepare Drop sonde dataset
+
+#### B) Prepare Drop sonde dataset
 
 S: ``./scripts/preprocessing/drop_sondes.py``
 ID: ``./data/observation/dropsonde/raw/Level_3/EUREC4A_JOANNE_Dropsonde-RD41_Level_3_v2.0.0.nc``
 OD: ``./data/observation/dropsonde/processed/drop_sondes.nc``
 
 The script mainly provides more meaningful variable names and uses  "time" (the launch time of the dropsonde) as the leading dimension instead of the dropsonde ID.
+
+#### C) Prepare the Safire Core dataset
+
+S: ``./scripts/preprocessing/safire_core.py``
+ID: ``./data/observation/safire_core/raw/*.nc``
+OD: ``./data/observation/safire_core/processed/safire_core.nc``
+
 
 ### 1.2 Identify individual rain clouds
 
@@ -151,7 +171,7 @@ Within the settings file, you can specify the input and output files
 paths:
   # The paths need to be relative to the root directory of the project.
   # The path to the input file
-  input_filepath_clouds: data/observation/cloud_composite/processed/identified_clouds/identified_clusters_rain_mask_5.nc
+  input_filepath_clouds: data/observation/cloud_composite/processed/identified_clusters/identified_clusters_rain_mask_5.nc
   input_filepath_dropsondes: data/observation/dropsonde/processed/drop_sondes.nc
   # The path to the directory where the output data will be stored
   output_directory: data/observation/combined/distance/
