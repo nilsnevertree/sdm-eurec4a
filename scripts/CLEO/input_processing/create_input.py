@@ -63,7 +63,7 @@ With this script the input yaml files are created to execute CLEO in a EUREC4A1D
 
 The input paths to the datasets can be relative!
 Then the script uses the repository path to find the datasets.
-This is done by using ``sdm_eurec4a.RepositoryPath(envciroment)`` where enviroment is by default "nils_levante".
+This is done by using ``sdm_eurec4a.RepositoryPath(envciroment)`` where enviroment is by default "default_levante".
 
 OUTPUT:
 -------
@@ -128,7 +128,7 @@ parser.add_argument(
     "-e",
     type=str,
     help="environment e.g. 'levante'",
-    default="nils_levante",
+    default="default_levante",
 )
 
 
@@ -147,7 +147,7 @@ from sdm_eurec4a.input_processing import transfer
 from sdm_eurec4a.reductions import shape_dim_as_dataarray
 
 
-repo_path = RepositoryPath("nils_levante").get_repo_dir()
+repo_path = RepositoryPath("default_levante").get_repo_dir()
 print(repo_path)
 
 

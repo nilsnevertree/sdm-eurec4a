@@ -36,7 +36,7 @@ from sdm_eurec4a import RepositoryPath
 USER_CONSENT_NEEDED = False
 
 
-REPO_PATH = RepositoryPath("levante").repo_dir
+REPO_PATH = RepositoryPath("levante_m300950").repo_dir
 
 ORIGIN_DIRECTORY = REPO_PATH / Path("data/observation/cloud_composite/raw")
 DESTINATION_DIRECTORY = REPO_PATH / Path("data/observation/cloud_composite/processed")

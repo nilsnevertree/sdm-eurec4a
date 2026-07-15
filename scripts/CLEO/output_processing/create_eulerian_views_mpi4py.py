@@ -28,7 +28,7 @@ import secrets
 
 set_custom_rcParams()
 
-RP = RepositoryPath("levante")
+RP = RepositoryPath("levante_m300950")
 
 repo_dir = RP.repo_dir
 sdm_data_dir = RP.data_dir

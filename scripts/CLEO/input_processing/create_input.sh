@@ -7,7 +7,7 @@
 #SBATCH --time=01:00:00
 #SBATCH --mail-user=nils-ole.niebaumy@mpimet.mpg.de
 #SBATCH --mail-type=FAIL
-#SBATCH --account=um1487
+#SBATCH --account=mh1126
 #SBATCH --output=./logfiles/sdm_eurec4a1d_create_input.%j_out.out
 #SBATCH --error=./logfiles/sdm_eurec4a1d_create_input.%j_err.out
 
@@ -37,12 +37,12 @@ distance_relation_path=${path2sdmeurec4a}/data/observation/combined/distance_rel
 cloud_composite_path=${path2sdmeurec4a}/data/observation/cloud_composite/processed/cloud_composite_si_units.nc
 drop_sonde_path=${path2sdmeurec4a}/data/observation/dropsonde/processed/drop_sondes.nc
 identification_type=clusters
-environment=nils_levante
+environment=default_levante
 
 pythonscript=${path2sdmeurec4a}/scripts/CLEO/initalize/create_input.py
 
 ### ------------------ Load Modules -------------------- ###
-env=/work/um1487/m301096/conda/envs/sdm_pysd_python312
+env=/home/m/m300950/mamba/envs/sdm_eurec4a_env312
 python=${env}/bin/python
 source activate ${env}
 

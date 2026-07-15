@@ -29,7 +29,7 @@ import xarray as xr
 from sdm_eurec4a import get_git_revision_hash
 from sdm_eurec4a import RepositoryPath
 
-REPO_PATH = RepositoryPath("levante").repo_dir
+REPO_PATH = RepositoryPath("levante_m300950").repo_dir
 
 ORIGIN_DIRECTORY = REPO_PATH / Path("data/observation/dropsonde/raw/Level_3")
 ORIGIN_FILENAME = "EUREC4A_JOANNE_Dropsonde-RD41_Level_3_v2.0.0.nc"

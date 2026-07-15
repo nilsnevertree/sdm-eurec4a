@@ -40,14 +40,14 @@ from sdm_eurec4a import RepositoryPath
 To get the location of the ``sdm-eurec4a`` repo, specify in which development regime you are. E.g. ``levante``. Then run:
 
 ````python
-REPO_PATH = RepositoryPath("levante").repo_dir
+REPO_PATH = RepositoryPath("levante_m300950").repo_dir
 ````
 
 You can add your own development regime or change the existing ``levante`` regime to your individual locations in the ``RepositoryPath`` class in ``.src/sdm_eurec4a/__init__.py``
 
 ````python
 _known_development_regimes = dict(
-        levante=dict(
+        levante_m301096=dict(
             repo_dir=Path("/home/m/m301096/repositories/sdm-eurec4a/"),
             data_dir=Path("/home/m/m301096/repositories/sdm-eurec4a/data/"),
             fig_dir=Path("/home/m/m301096/repositories/sdm-eurec4a/results/"),
@@ -166,7 +166,7 @@ paths:
 
 from sdm_eurec4a.identifications import match_clouds_and_dropsondes, match_clouds_and_cloudcomposite
 import xarray as xr
-RP = RepositoryPath("levante")
+RP = RepositoryPath("levante_m300950")
 repo_dir = RP.repo_dir
 data_dir = RP.data_dir
 
