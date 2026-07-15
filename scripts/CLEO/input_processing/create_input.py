@@ -93,7 +93,7 @@ parser.add_argument(
     "-i",
     type=Path,
     help="path or relative path to identified clouds",
-    default="data/observation/cloud_composite/processed/identified_clouds/identified_clusters_rain_mask_5.nc",
+    default="data/observation/cloud_composite/processed/identified_clusters/identified_clusters_rain_mask_5.nc",
 )
 parser.add_argument(
     "--distance_relation_path",

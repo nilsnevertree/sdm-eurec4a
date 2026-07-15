@@ -41,7 +41,7 @@ mask_name = "rain_mask"
 identified_clouds = xr.open_dataset(
     REPOSITORY_ROOT
     / Path(
-        f"data/observation/cloud_composite/processed/identified_clouds/identified_clouds_{mask_name}.nc"
+        f"data/observation/cloud_composite/processed/identified_clusters/identified_clouds_{mask_name}.nc"
     )
 )
 # select only clouds which are between 800 and 1100 m
