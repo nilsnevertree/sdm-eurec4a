@@ -84,13 +84,13 @@ There is a yaml-file describing the download procedure, and time of download.
 
 *NOTE:* you will need to replace ``SPECIFYTHIS`` with the name you want for the directory of the data you download. Good ideas are to save them under ``raw`` in seperate folders of a directory called ``data/observation/``, i.e. in ``./data/observation/cloud_composite/raw`` and ``./data/observation/dropsonde/raw`` respectively. For the dropsonde data you also need to replace ``SPECIFYLEVEL`` with the level you want, it's best to download ``Level_3``, ``Level_4`` and ``QC`` within seperate directories of ``./data/observation/dropsonde/raw``, e.g. ``./data/observation/dropsonde/raw/LEVEL_3``. (Although probably you will only use ``Level_3``.)
 
-*NOTE:* For the scripts to run automatically, you will then need to move the ``*.nc`` files in ``./data/observation/dropsonde/raw/[Level_3 or Level_4 or QC]/`` out of their nested directories, e.g. ``mv ./data/observation/dropsonde/raw/Level_3/eurec4a-data/PRODUCTS/MERGED-MEASUREMENTS/JOANNE/v2.0.0/Level_3/EUREC4A_JOANNE_Dropsonde-RD41_Level_3_v2.0.0.nc ./data/observation/dropsonde/raw/Level_3/`` (and to clean-up: ``rm -rf ./data/observation/dropsonde/raw/Level_3/eurec4a-data``).
+*NOTE:* For the scripts to run automatically, you will then need to move the ``*.nc`` files in ``./data/observation/dropsonde/raw/[Level_3 or Level_4 or QC]/`` out of their nested directories and into ``[...]/raw/[Level_3 or Level_4 or QC]/``, e.g. ``mv ./data/observation/dropsonde/raw/Level_3/eurec4a-data/PRODUCTS/MERGED-MEASUREMENTS/JOANNE/v2.0.0/Level_3/EUREC4A_JOANNE_Dropsonde-RD41_Level_3_v2.0.0.nc ./data/observation/dropsonde/raw/Level_3/`` (and to clean-up: ``rm -rf ./data/observation/dropsonde/raw/Level_3/eurec4a-data``). Likewise you have to move the ``*.nc`` in ``./data/observation/safire_core/raw/eurec4a-data/`` into ``./data/observation/safire_core/raw/`` (and ``rm -rf eurec4a-data``).
 
 *NOTE:* while you're at it, it's advisable to make to two further directories in ``data``, ``./data/model`` and ``./data/sharing``.
 
 ### 1.1 Prepare the observational dataset to have consistent units
 
-#### Prepare the cloud composite dataset
+#### A) Prepare the cloud composite dataset
 
 S : ``./scripts/preprocessing/cloud_composite_si_units.py``
 ID: ``./data/observation/cloud_composite/raw`` (location of the downloaded cloud composite files)
@@ -108,13 +108,21 @@ DESTINATION_FILEPATH = DESTINATION_DIRECTORY / DESTINATION_FILENAME
 
 log_file_path = DESTINATION_DIRECTORY / "cloud_composite_preprocessing.log"
 ````
-### Prepare Drop sonde dataset
+
+#### B) Prepare Drop sonde dataset
 
 S: ``./scripts/preprocessing/drop_sondes.py``
 ID: ``./data/observation/dropsonde/raw/Level_3/EUREC4A_JOANNE_Dropsonde-RD41_Level_3_v2.0.0.nc``
 OD: ``./data/observation/dropsonde/processed/drop_sondes.nc``
 
 The script mainly provides more meaningful variable names and uses  "time" (the launch time of the dropsonde) as the leading dimension instead of the dropsonde ID.
+
+#### C) Prepare the Safire Core dataset
+
+S: ``./scripts/preprocessing/safire_core.py``
+ID: ``./data/observation/safire_core/raw/*.nc``
+OD: ``./data/observation/safire_core/processed/safire_core.nc``
+
 
 ### 1.2 Identify individual rain clouds
 
