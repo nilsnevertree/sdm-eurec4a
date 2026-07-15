@@ -1,5 +1,14 @@
 # How to run the pipeline
 
+## Overview
+This document explains the steps required to run the EURCE4A-SDM pipeline with CLEO, the sections are as follows:
+- [Structure of the repos and data directories](#structure-of-the-repos-and-data-directories)
+- [Observational data and fittings](#observational-data-and-fittings)
+- [Running CLEO based on Observational Fits](#running-cleo-based-on-observational-fits)
+- [Plot and use the conservation and eulerian views](#plot-and-use-the-conservation-and-eulerian-views) (currently work-in-progress)
+
+---
+
 # Structure of the repos and data directories
 
 Firstly, the whole project is split into 2 main repositories.
@@ -19,7 +28,7 @@ Firstly, the whole project is split into 2 main repositories.
             - ID: ``./data/observation/cloud_composite/processed``
             - OD: ``./data/observation/cloud_composite/processed``
     - Fitting of DSDs and thermodynamics as INPUTS
-        - S:
+        - S: ``.ipynb`` notebooks under issues ``107`` and ``114``
     - Visulization of Simulations by CLEO
 - [CLEO-sdm-eurec4a](https://github.com/nilsnevertree/sdm-eurec4a)
     - Usage of INPUTS to run 1D-rainshaft instances
@@ -62,6 +71,7 @@ _known_development_regimes = dict(
 2) After activating your new environment (e.g. ``mamba activate sdm_eurec4a_env312``), install the ``sdm_eurec4a`` package locally with ``python -m pip install .``
 3) replace all mentions of ``m301096`` and ``m300950``, and ``um1487`` and ``mh1126``, with your DKRZ account and project IDs.
 
+---
 
 # Observational data and fittings
 
@@ -159,6 +169,7 @@ setup:
   # this defines how far each cloud in a cluster can be apart from each other
   min_duration_cloud_holes : 5 # in timesteps
 ````
+
 ### 1.3 Create cloud and drop sonde distance dataset
 
 S: ``./scripts/preprocessing/distance_relation_IC_DS.py``
@@ -326,6 +337,7 @@ Data variables:
     slope_2   (cloud_id) float64 2kB ...
 ````
 
+---
 
 # Running CLEO based on Observational Fits
 
@@ -350,7 +362,7 @@ microphysics="coalbure_condensation_large"
 
 Output directory naming convention is ``.data/output_YOUR-CHOICE-CLEO_VERIONS-OF-CLEO-input_NETCDF_INPUT-VERSION``
 
-# 4.1 Prepare the input files for CLEO
+## 4.1 Prepare the input files for CLEO
 
 S: ``./examples/eurec4a1d/create_model_input_files.sh``
 ID : defined as ``path2input``
@@ -364,7 +376,7 @@ A log file for each mpi task is created within ``./examples/eurec4a1d/logfiles/c
 
 For more details, we the python script.
 
-# 4.2 Simulate all clouds for 1 microphysical setup.
+## 4.2 Simulate all clouds for 1 microphysical setup.
 
 The main script is: ``./examples/eurec4a1d/build_compile_run_eurec4a1d.sh``
 
@@ -383,7 +395,7 @@ The output for
 should be stored in ``data/output_v4.4-CLEO_v0.39.7-input_v4.2/null_microphysics``
 
 
-# 4.3. Post processing of CLEOs Raw output.
+## 4.3. Post processing of CLEOs Raw output.
 
 This is done is the ``sdm-eurec4a`` repo.
 
@@ -409,7 +421,8 @@ The output of the eulerian view is then stored in the CLEO repo ``./data/output_
 
 The output of the conservation view is then stored in the CLEO repo ``./data/output_v4.4-CLEO_v0.39.7-input_v4.2/null_microphysics/combined/eulerian_dataset_combined.nc``.
 
+---
 
-# 5. Plot and use the conservation and eulerian views.
+# Plot and use the conservation and eulerian views.
 
 to handle all the different data mess for all microphysics and clouds, we can use the following:
