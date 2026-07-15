@@ -327,7 +327,8 @@ Data variables:
 ````
 
 
-# How to run CLEO??
+# Running CLEO based on Observational Fits
+
 To run CLEO, we need the input files which we created in (3).
 
 We use the example dirextory in ``./examples/eurec4a1d``.
