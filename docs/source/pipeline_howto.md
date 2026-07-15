@@ -57,6 +57,12 @@ _known_development_regimes = dict(
     )
 ````
 
+**Before you begin with sdm_eurec4a**
+1) create a mamba/conda environment from the environment.yml file (e.g. ``mamba create -f environment.yml``).
+2) After activating your new environment (e.g. ``mamba activate sdm_eurec4a_env312``), install the ``sdm_eurec4a`` package locally with ``python -m pip install .``
+3) replace all mentions of ``m301096`` and ``m300950``, and ``um1487`` and ``mh1126``, with your DKRZ account and project IDs.
+
+
 # Observational data and fittings
 
 ## 1. Observational data preprocessing
@@ -76,7 +82,11 @@ There is a yaml-file describing the download procedure, and time of download.
 There is a yaml-file describing the download procedure, and time of download.
 ``./docs/source/download_info/dropsonde_download_info.yaml``
 
-*NOTE:* you will need to replace ``SPECIFYTHIS`` with the name you want for the directory of the data you download. Good ideas are to save them under ``raw`` in seperate folders of the ``data`` directory, i.e. in ``./data/cloud_composite/raw`` and ``./data/dropsonde/raw`` respectively. For the dropsonde data you also need to replace ``SPECIFYLEVEL`` with the level you want, it's best to download ``Level_3``, ``Level_4`` and ``QC`` within seperate directories of ``./data/dropsonde/raw``, e.g. ``./data/dropsonde/raw/LEVEL_3``
+*NOTE:* you will need to replace ``SPECIFYTHIS`` with the name you want for the directory of the data you download. Good ideas are to save them under ``raw`` in seperate folders of a directory called ``data/observation/``, i.e. in ``./data/observation/cloud_composite/raw`` and ``./data/observation/dropsonde/raw`` respectively. For the dropsonde data you also need to replace ``SPECIFYLEVEL`` with the level you want, it's best to download ``Level_3``, ``Level_4`` and ``QC`` within seperate directories of ``./data/observation/dropsonde/raw``, e.g. ``./data/observation/dropsonde/raw/LEVEL_3``. (Although probably you will only use ``Level_3``.)
+
+*NOTE:* For the scripts to run automatically, you will then need to move the ``*.nc`` files in ``./data/observation/dropsonde/raw/[Level_3 or Level_4 or QC]/`` out of their nested directories, e.g. ``mv ./data/observation/dropsonde/raw/Level_3/eurec4a-data/PRODUCTS/MERGED-MEASUREMENTS/JOANNE/v2.0.0/Level_3/EUREC4A_JOANNE_Dropsonde-RD41_Level_3_v2.0.0.nc ./data/observation/dropsonde/raw/Level_3/`` (and to clean-up: ``rm -rf ./data/observation/dropsonde/raw/Level_3/eurec4a-data``).
+
+*NOTE:* while you're at it, it's advisable to make to two further directories in ``data``, ``./data/model`` and ``./data/sharing``.
 
 ### 1.1 Prepare the observational dataset to have consistent units
 
