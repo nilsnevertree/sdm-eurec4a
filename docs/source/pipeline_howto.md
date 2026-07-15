@@ -70,11 +70,13 @@ The whole idea is to:
 
 **Cloud composite**
 There is a yaml-file describing the download procedure, and time of download.
-``./data/observation/cloud_composite/download_info.yaml``
+``./docs/source/download_info/cloud_composite_download_info.yaml``
 
 **Drop sondes**
 There is a yaml-file describing the download procedure, and time of download.
-``./data/observation/dropsonde/download_info.yaml``
+``./docs/source/download_info/dropsonde_download_info.yaml``
+
+*NOTE:* you will need to replace ``SPECIFYTHIS`` with the name you want for the directory of the data you download. Good ideas are to save them under ``raw`` in seperate folders of the ``data`` directory, i.e. in ``./data/cloud_composite/raw`` and ``./data/dropsonde/raw`` respectively. For the dropsonde data you also need to replace ``SPECIFYLEVEL`` with the level you want, it's best to download ``Level_3``, ``Level_4`` and ``QC`` within seperate directories of ``./data/dropsonde/raw``, e.g. ``./data/dropsonde/raw/LEVEL_3``
 
 ### 1.1 Prepare the observational dataset to have consistent units
 
