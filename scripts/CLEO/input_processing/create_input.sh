@@ -28,7 +28,7 @@ echo "git branch: $(git symbolic-ref --short HEAD)"
 echo "============================================"
 
 
-path2sdmeurec4a=${HOME}/repositories/sdm-eurec4a/
+path2sdmeurec4a=/home/m/m300950/rain-evap-nils/sdm-eurec4a/
 
 output_dir=${path2sdmeurec4a}/data/model/input/output_test_new
 

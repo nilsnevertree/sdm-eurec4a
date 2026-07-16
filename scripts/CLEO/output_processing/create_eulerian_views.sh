@@ -36,7 +36,7 @@ echo "============================================"
 # microphysics="coalbure_condensation_small"
 # microphysics="coalbure_condensation_large"
 
-# path2data=${HOME}/CLEO/data/output_v3.5/${microphysics}/
+# path2data=/work/mh1126/m300950/rain-evap-nils/sdm-eurec4a-CLEO/data/output_v3.5/${microphysics}/
 echo "Init path2data: ${path2data}"
 echo "Init python script: ${create_pythonscript}"
 echo "============================================"

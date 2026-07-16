@@ -36,8 +36,8 @@ env=/home/m/m300950/mamba/envs/sdm_eurec4a_env312
 conda activate ${env}
 python=${env}/bin/python
 
-# path2data=${HOME}/CLEO/data/output_v4.1/coalbure_condensation_large/
-# concatenate_pythonscript=${HOME}/repositories/sdm-eurec4a/scripts/CLEO/output_processing/concatenate_eulerian_views.py
+# path2data=/work/mh1126/m300950/rain-evap-nils/sdm-eurec4a-CLEO/data/output_v4.2/coalbure_condensation_large/
+# concatenate_pythonscript=/home/m/m300950/rain-evap-nils/sdm-eurec4a/scripts/CLEO/output_processing/concatenate_eulerian_views.py
 
 echo "Init path2data: ${path2data}"
 echo "Init python script: ${concatenate_pythonscript}"

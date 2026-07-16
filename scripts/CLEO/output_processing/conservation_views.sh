@@ -41,8 +41,9 @@ echo "============================================"
 # microphysics="coalbure_condensation_small"
 microphysics="coalbure_condensation_large"
 
-path2CLEO=${HOME}/CLEO/
-path2sdm_eurec4a=${HOME}/repositories/sdm-eurec4a
+path2sdm_eurec4a=/home/m/m300950/rain-evap-nils/sdm-eurec4a
+path2data=/work/mh1126/m300950/rain-evap-nils/sdm-eurec4a-CLEO/data/output_v4.2/${microphysics}/
+# path2data=/work/mh1126/m300950/rain-evap-nils/sdm-eurec4a-CLEO/data/output_v4.4-CLEO_v0.39.7-input_v4.2/${microphysics}/
 
 create_inflow_outflow=true
 concatenate_inflow_outflow=true
@@ -50,7 +51,6 @@ concatenate_inflow_outflow=true
 inflow_outflow_pyhtonscript=${path2sdm_eurec4a}/scripts/CLEO/output_processing/create_inflow_outflow_mpi4py.py
 concatenate_io_pythonscript=${path2sdm_eurec4a}/scripts/CLEO/output_processing/concatenate_inflow_outflow.py
 
-path2data=${path2CLEO}/data/output_v4.4-CLEO_v0.39.7-input_v4.2/${microphysics}/
 
 echo "============================================"
 echo "path2data: ${path2data}"
