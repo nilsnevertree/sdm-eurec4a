@@ -374,7 +374,7 @@ This bash script invokes an MPI task with a number of workers to parallel create
 
 It uses the script ``examples/eurec4a1d/scripts/create_model_input_mpi4py.py``.
 The python script uses the input files created in (3).
-A log file for each mpi task is created within ``./examples/eurec4a1d/logfiles/create_init_files/mpi4py/yyyymmdd-hhMMss``.
+A log file for each mpi task is created within ``/your/path2logfiles/logfiles/create_init_files/mpi4py/yyyymmdd-hhMMss``, given ``path2logfiles`` defined in ``create_model_input_mpi4py.py``.
 
 To select a microphysical setup, comment/uncomment within ``./examples/eurec4a1d/create_model_input_files.sh`` these lines:
 
@@ -387,7 +387,7 @@ microphysics="condensation"
 # microphysics="coalbure_condensation_large"
 ````
 
-Output directory naming convention is ``.data/output_YOUR-CHOICE-CLEO_VERIONS-OF-CLEO-input_NETCDF_INPUT-VERSION``
+Output directory naming convention is ``/your/path2output/output_YOUR-CHOICE-CLEO_VERIONS-OF-CLEO-input_NETCDF_INPUT-VERSION`` as defined in ``create_model_input_files.sh``, e.g. ``/work/[...]/sdm-eurec4a-CLEO/data/[...]``.
 
 For more details, see the python script.
 
