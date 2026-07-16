@@ -33,9 +33,9 @@ echo "============================================"
 # Set microphysics setup
 # microphysics="null_microphysics"
 # microphysics="condensation"
-# microphysics="collision_condensation"
+microphysics="collision_condensation"
 # microphysics="coalbure_condensation_small"
-microphysics="coalbure_condensation_large"
+# microphysics="coalbure_condensation_large"
 
 path2sdm_eurec4a=/home/m/m300950/rain-evap-nils/sdm-eurec4a
 path2data=/work/mh1126/m300950/rain-evap-nils/sdm-eurec4a-CLEO/data/output_v4.2/${microphysics}/
