@@ -374,7 +374,8 @@ This bash script invokes an MPI task with a number of workers to parallel create
 
 It uses the script ``examples/eurec4a1d/scripts/create_model_input_mpi4py.py``.
 The python script uses the input files created in (3).
-A log file for each mpi task is created within ``/your/path2logfiles/logfiles/create_init_files/mpi4py/yyyymmdd-hhMMss``, given ``path2logfiles`` defined in ``create_model_input_mpi4py.py``.
+
+A log file for each mpi task is created within ``/your/path2logfiles/logfiles/create_init_files/mpi4py/yyyymmdd-hhMMss``, given ``path2logfiles`` defined in ``create_model_input_mpi4py.py``. (This is as well as the logfile from the SLURM job defined in ``create_model_input_files.sh``.)
 
 To select a microphysical setup, comment/uncomment within ``./examples/eurec4a1d/create_model_input_files.sh`` these lines:
 
@@ -387,13 +388,19 @@ microphysics="condensation"
 # microphysics="coalbure_condensation_large"
 ````
 
-Output directory naming convention is ``/your/path2output/output_YOUR-CHOICE-CLEO_VERIONS-OF-CLEO-input_NETCDF_INPUT-VERSION`` as defined in ``create_model_input_files.sh``, e.g. ``/work/[...]/sdm-eurec4a-CLEO/data/[...]``.
+Output directory naming convention is ``/your/path2data/output_[version_output]/[choice_microphysics]/[cluster_XXX]/``, and
+within each of these output directories, i.e. for each cluster, you will find the ``config``, ``figures``, and ``share`` directories which contain and plot the initial condition, grid-information, and configuration files for CLEO.
 
 For more details, see the python script.
 
 ## 4.2 Simulate all clouds for 1 microphysical setup.
 
 The main script is: ``./examples/eurec4a1d/build_compile_run_eurec4a1d.sh``
+
+Here you define:
+- your source directory, e.g. ``path2sdmeurec4aCLEO=/home/[...]/sdm-eurec4a-CLEO``
+- your build directory, e.g. ``path2build=/work/[...]/sdm-eurec4a-CLEO/build/``
+- your data directory (for output of runs), e.g. ``path2data=/work/[...]/sdm-eurec4a-CLEO/data/[...]``
 
 It can be used to build CLEO, compile CLEO, run CLEO simply toggle the lines:
 
@@ -418,12 +425,17 @@ microphysics="condensation"
 By running CLEO using this script, a SLURM Array will be spawned, which will run CLEO for all clouds
 for which input files were created in 4.1
 
-The output for
-- your output version: v4.4
-- microphysics: null_microphysics
-- NETCDF input version from (3):  v4.2
-- CLEO verion: v0.39.7
-should be stored in ``data/output_v4.4-CLEO_v0.39.7-input_v4.2/null_microphysics``
+As above, the output directory naming convention is ``/your/path2data/output_[version_output]/[choice_microphysics]/[cluster_XXX]/``. Successfully running CLEO will add ``eurec4a1d_sol.zarr`` and ``./config/eurec4a1d_setup.txt`` to each cluster's directory.
+
+Logfiles are created from the SLURM scripts ``build_compile_run_eurec4a1d.sh`` and ``run_job_array_eurec4a1d.sh``.
+
+###### Extra Info. / Side-Note / Maybe Wrong:
+###### For individual runs, the output directory naming convention may be ``/your/path2data/output_YOUR-CHOICE-CLEO_VERIONS-OF-CLEO-input_NETCDF_INPUT-VERSION`` as defined in``create_model_input_files.sh``, e.g. ``/work/[...]/sdm-eurec4a-CLEO/data/[...]``. The output is stored in ``/your/path2data/output_v[version_output]-CLEO_v[version_cleo]-input_v[version_netcdf_input]/[choice_microphysics]``, e.g. for:
+###### - your output version: v4.4
+###### - microphysics: null_microphysics
+###### - NETCDF input version from (3):  v4.2
+###### - CLEO verion: v0.39.7
+###### the output would be stored in: ``/your/path2data/output_v4.4-CLEO_v0.39.7-input_v4.2/null_microphysics``.
 
 
 ## 4.3. Post processing of CLEOs Raw output.
