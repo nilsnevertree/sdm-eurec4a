@@ -341,6 +341,10 @@ Data variables:
 
 # Running CLEO based on Observational Fits
 
+*NOTE:* If you have created all the input data in your ``${HOME}`` (in ``/home/[...]/sdm-eurec4a/data``), it is
+likely you will eventually exceed your Levante disk quota. It's therefore advisable to now more that
+data directory elsewhere, e.g. to ``work`` (``/work/[...]/sdm-eurec4a/data``).
+
 To run CLEO, we need the input files which we created in (3).
 
 We use the example directory in ``./examples/eurec4a1d``.
@@ -351,7 +355,11 @@ You can perform step 4.1 for all setups and then perform 4.2 afterwards.
 
 Post-processing CLEO's output data is explained in 4.3.
 
-Before you begin it is reccomended to create a folder called ``data`` within your ``sdm-eurec4a-CLEO`` directory.
+Before you begin it is reccomended to create a folder called ``data`` somewhere where you have a large
+disk-space allocation e.g. ``/work/[...]/sdm-eurec4a-CLEO/data`` directory. (Do not overwrite ``/work/[...]/sdm-eurec4a/data``!)
+
+Additionally it is advisable to make the logfiles folder, e.g. with
+``cd /work/[...]/sdm-eurec4a/data && mkdir logfiles && cd logfiles && mkdir create_init_files  full_workflow  run_CLEO  run_CLEO_single  run_CLEO_singledebug  update_config``.
 
 As above for the ``sdm-eurec4a`` repository, before you can begin, first replace all mentions of ``m301096`` and ``m300950``, and ``um1487``, ``mh1126`` and ``bm1183``, with your DKRZ account and project IDs. You will probably also want to edit the email address in SLURM jobs, ``#SBATCH --mail-user=[...]```
 
