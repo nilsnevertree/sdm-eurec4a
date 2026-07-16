@@ -12,12 +12,19 @@ class RepositoryPath:
     """Path to the repository root."""
 
     _known_development_regimes = dict(
-        levante=dict(
+        levante_m301096=dict(
             repo_dir=Path("/home/m/m301096/repositories/sdm-eurec4a/"),
             data_dir=Path("/home/m/m301096/repositories/sdm-eurec4a/data/"),
             fig_dir=Path("/home/m/m301096/repositories/sdm-eurec4a/results/"),
             CLEO_dir=Path("/home/m/m301096/CLEO/"),
             CLEO_data_dir=Path("/home/m/m301096/CLEO/data/"),
+        ),
+        levante_m300950=dict(
+            repo_dir=Path("/home/m/m300950/rain-evap-nils/sdm-eurec4a/"),
+            data_dir=Path("/home/m/m300950/rain-evap-nils/sdm-eurec4a/data/"),
+            fig_dir=Path("/home/m/m300950/rain-evap-nils/sdm-eurec4a/results/"),
+            CLEO_dir=Path("/home/m/m300950/rain-evap-nils/sdm-eurec4a-CLEO/"),
+            CLEO_data_dir=Path("/home/m/m300950/rain-evap-nils/sdm-eurec4a-CLEO/data/"),
         ),
     )
 

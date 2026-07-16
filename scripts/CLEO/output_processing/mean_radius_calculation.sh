@@ -3,11 +3,11 @@
 #SBATCH --partition=compute
 #SBATCH --mem=1G
 #SBATCH --time=00:10:00
-#SBATCH --mail-user=nils-ole.niebaumy@mpimet.mpg.de
+#SBATCH --mail-user=clara.bayley@mpimet.mpg.de
 #SBATCH --mail-type=FAIL
-#SBATCH --account=um1487
-#SBATCH --output=/home/m/m301096/repositories/sdm-eurec4a/logs/conservation_master/%j_out.log
-#SBATCH --error=/home/m/m301096/repositories/sdm-eurec4a/logs/conservation_master/%j_err.log
+#SBATCH --account=mh1126
+#SBATCH --output=/home/m/m300950/rain-evap-nils/sdm-eurec4a/logs/conservation_master/%j_out.log
+#SBATCH --error=/home/m/m300950/rain-evap-nils/sdm-eurec4a/logs/conservation_master/%j_err.log
 
 ### ---------------------------------------------------- ###
 ### ------------------ Input Parameters ---------------- ###
@@ -19,7 +19,7 @@
 
 ### ------------------ Load Modules -------------------- ###
 source ${HOME}/.bashrc
-env=/work/um1487/m301096/conda/envs/sdm_pysd_python312
+env=/home/m/m300950/mamba/envs/sdm_eurec4a_env312
 conda activate ${env}
 
 # ------------------ Set Variables --------------------- #

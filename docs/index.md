@@ -24,5 +24,5 @@ reference
 contributing
 Code of Conduct <codeofconduct>
 License <license>
-Changelog <https://github.com/nilsnevertree/sdm-eurec4a/releases>
+Changelog <https://github.com/yoctoyotta1024/sdm-eurec4a/releases>
 ```

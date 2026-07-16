@@ -42,7 +42,7 @@ plt.style.use("default")
 default_colors = set_custom_rcParams()
 darker_colors = adjust_lightness_array(default_colors, 0.75)
 
-REPOSITORY_ROOT = RepositoryPath("levante").get_repo_dir()
+REPOSITORY_ROOT = RepositoryPath("levante_m300950").get_repo_dir()
 
 output_dir = REPOSITORY_ROOT / Path("data/model/no_aerosols/")
 # output_dir.mkdir(parents=True, exist_ok=True)
@@ -57,7 +57,7 @@ identification_type = config_yaml["cloud"]["identification_type"]
 cloud_id = config_yaml["cloud"]["cloud_id"]
 
 # %%
-path2CLEO = Path("/home/m/m301096/CLEO")
+path2CLEO = Path("/home/m/m300950/rain-evap-nils/sdm-eurec4a-CLEO")
 cleo_data_dir = path2CLEO / "data/output"
 
 # cleo_dataset_dir = cleo_data_dir / "processed/long_run/" f"{identification_type}_{cloud_id}"
@@ -73,7 +73,7 @@ fig_path.mkdir(parents=True, exist_ok=True)
 clusters = xr.open_dataset(
     REPOSITORY_ROOT
     / Path(
-        "data/observation/cloud_composite/processed/identified_clouds/identified_clusters_rain_mask_5.nc"
+        "data/observation/cloud_composite/processed/identified_clusters/identified_clusters_rain_mask_5.nc"
     )
 )
 cluster = select_individual_cloud_by_id(clusters, cloud_id)

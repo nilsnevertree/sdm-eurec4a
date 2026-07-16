@@ -11,13 +11,13 @@ Using Super Droplet Model and EUREC4A data to simulate rain evaporation.
 [![Status](https://img.shields.io/pypi/status/sdm-euerc4a.svg)][pypi status]
 [![Python Version](https://img.shields.io/pypi/pyversions/sdm-euerc4a)][pypi status] -->
 <!-- [![Read the documentation at https://sdm-euerc4a.readthedocs.io/](https://img.shields.io/readthedocs/sdm-euerc4a/latest.svg?label=Read%20the%20Docs)][read the docs]
-[![Tests](https://github.com/nilsnevertree/sdm-euerc4a/workflows/Tests/badge.svg)][tests]
+[![Tests](https://github.com/yoctoyotta1024/sdm-euerc4a/workflows/Tests/badge.svg)][tests]
 [![Codecov](https://codecov.io/gh/nilsnevertree/sdm-euerc4a/branch/main/graph/badge.svg)][codecov] -->
 
 
 [pypi status]: https://pypi.org/project/sdm-euerc4a/
 [read the docs]: https://sdm-euerc4a.readthedocs.io/
-[tests]: https://github.com/nilsnevertree/sdm-euerc4a/actions?workflow=Tests
+[tests]: https://github.com/yoctoyotta1024/sdm-euerc4a/actions?workflow=Tests
 [codecov]: https://app.codecov.io/gh/nilsnevertree/sdm-euerc4a
 [pre-commit]: https://github.com/pre-commit/pre-commit
 [black]: https://github.com/psf/black
@@ -25,6 +25,7 @@ Using Super Droplet Model and EUREC4A data to simulate rain evaporation.
 In this project, the rain evaporation below cloud base shall be simulated using the Super Droplet Model [CLEO].
 
 To understand how to use this project, please refer to [docs/source/pipeline_howto.md](https://github.com/yoctoyotta1024/sdm-eurec4a/blob/main/docs/source/pipeline_howto.md).
+Additionally, you must source the ``data'' folder (contact authors) and create two new (empty) folders for ``logs'' and ``results''.
 
 ## Commiting.
 The pre-commit hook is already installed in the ``.git`` folder. To diable this, if you wish to run it manually, please make sure to diable the file ``pre-commit``. Do not remove the ``pre-commit.sample`` file, as it is just a sample file.
@@ -74,11 +75,11 @@ This project was generated from [@cjolowicz]'s [Hypermodern Python Cookiecutter]
 [@cjolowicz]: https://github.com/cjolowicz
 [pypi]: https://pypi.org/
 [hypermodern python cookiecutter]: https://github.com/cjolowicz/cookiecutter-hypermodern-python
-[file an issue]: https://github.com/nilsnevertree/sdm-eurec4a/issues
+[file an issue]: https://github.com/yoctoyotta1024/sdm-eurec4a/issues
 [pip]: https://pip.pypa.io/
 
 <!-- github-only -->
 
-[license]: https://github.com/nilsnevertree/sdm-euerc4a/blob/main/LICENSE
-[contributor guide]: https://github.com/nilsnevertree/sdm-euerc4a/blob/main/CONTRIBUTING.md
+[license]: https://github.com/yoctoyotta1024/sdm-euerc4a/blob/main/LICENSE
+[contributor guide]: https://github.com/yoctoyotta1024/sdm-euerc4a/blob/main/CONTRIBUTING.md
 [command-line reference]: https://sdm-euerc4a.readthedocs.io/en/latest/usage.html

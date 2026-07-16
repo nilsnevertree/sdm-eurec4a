@@ -329,19 +329,6 @@ def main(mask_name=mask_name):
         }
     )
 
-    clouds["liquid_water_content"] = (
-        "time",
-        [
-            cloud_composite["liquid_water_content"].sel(time=slice(start, end)).sel(radius).sum()
-            for start, end in zip(clouds.start.data, clouds.end.data)
-        ],
-    )
-    clouds["liquid_water_content"].attrs = {
-        "long_name": "total LWC of cloud event",
-        "units": "g/m3",
-        "comment": "This is the sum of the LWC of all pixels in the cloud event.\nMass of all droplets per cubic meter of air, assuming water spheres with density = 1g/cm3",
-    }
-
     with ProgressBar():
         clouds.to_netcdf(OUTPUT_DIR / OUTPUT_FILE_NAME)
     logging.info(f"File written to {OUTPUT_DIR / OUTPUT_FILE_NAME}")
