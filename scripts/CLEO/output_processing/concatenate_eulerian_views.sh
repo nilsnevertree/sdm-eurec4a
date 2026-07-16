@@ -6,11 +6,11 @@
 #SBATCH --cpus-per-task=15
 #SBATCH --mem=30GB
 #SBATCH --time=00:15:00
-#SBATCH --mail-user=clara.bayley@mpimet.mpg.de
+#SBATCH --mail-user=nils-ole.niebaumy@mpimet.mpg.de
 #SBATCH --mail-type=FAIL
-#SBATCH --account=mh1126
-#SBATCH --output=/home/m/m300950/rain-evap-nils/sdm-eurec4a/logs/concatenate_master/%j_out.out
-#SBATCH --error=/home/m/m300950/rain-evap-nils/sdm-eurec4a/logs/concatenate_master/%j_err.out
+#SBATCH --account=um1487
+#SBATCH --output=/home/m/m301096/repositories/sdm-eurec4a/logs/concatenate_master/%j_out.out
+#SBATCH --error=/home/m/m301096/repositories/sdm-eurec4a/logs/concatenate_master/%j_err.out
 
 
 
@@ -31,8 +31,8 @@ echo "============================================"
 
 ### ------------------ Load Modules -------------------- ###
 source ${HOME}/.bashrc
-# env=/work/mh1126/m301096/conda/envs/sdm_pysd_env312
-env=/home/m/m300950/mamba/envs/sdm_eurec4a_env312
+env=/work/um1487/m301096/conda/envs/sdm_pysd_python312
+env=/work/mh1126/m301096/conda/envs/sdm_pysd_env312
 conda activate ${env}
 python=${env}/bin/python
 

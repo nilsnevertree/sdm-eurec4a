@@ -298,7 +298,7 @@ datas = datas.assign_attrs(
         "modified_by": "Nils Niebaum",
         "date_combined": datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),
         "git commit": get_git_revision_hash(),
-        "GitHub Repository": "https://github.com/yoctoyotta1024/sdm-eurec4a",
+        "GitHub Repository": "https://github.com/nilsnevertree/sdm-eurec4a",
     }
 )
 

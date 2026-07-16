@@ -6,7 +6,7 @@ build-backend = "hatchling.build"
 name = "sdm_eurec4a"
 version = "0.2.0"
 author = "Nils Niebaum"
-authors = [{name = "Nils Niebaum", email = "nils.niebaum@gmx.de"},{name = "Clara Bayley", email = "yoctoyotta1024@yahoo.com"}]
+authors = [{name = "Nils Niebaum", email = "nils.niebaum@gmx.de"},]
 description = "Use Super-Droplet Model and EUREC4A data to simulate rain evaporation"
 readme = "README.md"
 requires-python = ">=3.8"
@@ -19,14 +19,14 @@ classifiers = ["Private :: Do Not Upload",
     "Topic :: Scientific/Engineering :: Atmospheric Science",
     "Development Status :: 2 - Pre-Alpha",]
 # dynamic = ["version", "description"]
-homepage = "https://github.com/yoctoyotta1024/sdm-eurec4a"
-issues = "https://github.com/yoctoyotta1024/sdm-eurec4a/issues"
+homepage = "https://github.com/nilsnevertree/sdm_eurec4a"
+issues = "https://github.com/nilsnevertree/sdm_eurec4a/issues"
 
 dependencies = ["numpy>=1.21.2",]
 
 [project.urls]
-homepage = "https://github.com/yoctoyotta1024/sdm-eurec4a"
-issues = "https://github.com/yoctoyotta1024/sdm-eurec4a/issues"
+homepage = "https://github.com/nilsnevertree/sdm_eurec4a"
+issues = "https://github.com/nilsnevertree/sdm_eurec4a/issues"
 
 
 [project.optional-dependencies]

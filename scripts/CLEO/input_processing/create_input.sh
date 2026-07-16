@@ -5,9 +5,9 @@
 #SBATCH --ntasks-per-node=32
 #SBATCH --exclusive
 #SBATCH --time=01:00:00
-#SBATCH --mail-user=clara.bayley@mpimet.mpg.de
+#SBATCH --mail-user=nils-ole.niebaumy@mpimet.mpg.de
 #SBATCH --mail-type=FAIL
-#SBATCH --account=mh1126
+#SBATCH --account=um1487
 #SBATCH --output=./logfiles/sdm_eurec4a1d_create_input.%j_out.out
 #SBATCH --error=./logfiles/sdm_eurec4a1d_create_input.%j_err.out
 
@@ -32,17 +32,17 @@ path2sdmeurec4a=${HOME}/repositories/sdm-eurec4a/
 
 output_dir=${path2sdmeurec4a}/data/model/input/output_test_new
 
-identified_cloud_path=${path2sdmeurec4a}/data/observation/cloud_composite/processed/identified_clusters/identified_clusters_rain_mask_5.nc
+identified_cloud_path=${path2sdmeurec4a}/data/observation/cloud_composite/processed/identified_clouds/identified_clusters_rain_mask_5.nc
 distance_relation_path=${path2sdmeurec4a}/data/observation/combined/distance_relations/distance_dropsondes_identified_clusters_rain_mask_5.nc
 cloud_composite_path=${path2sdmeurec4a}/data/observation/cloud_composite/processed/cloud_composite_si_units.nc
 drop_sonde_path=${path2sdmeurec4a}/data/observation/dropsonde/processed/drop_sondes.nc
 identification_type=clusters
-environment=default_levante
+environment=nils_levante
 
 pythonscript=${path2sdmeurec4a}/scripts/CLEO/initalize/create_input.py
 
 ### ------------------ Load Modules -------------------- ###
-env=/home/m/m300950/mamba/envs/sdm_eurec4a_env312
+env=/work/um1487/m301096/conda/envs/sdm_pysd_python312
 python=${env}/bin/python
 source activate ${env}
 

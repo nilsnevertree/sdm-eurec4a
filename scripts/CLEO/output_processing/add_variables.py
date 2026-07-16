@@ -112,7 +112,7 @@ def add_vertical_profiles(ds: xr.Dataset, time_slice=slice(1500, None)):
 
 
 subdata_dir = "output_v3.5"
-data_path = Path("/home/m/m300950/rain-evap-nils/sdm-eurec4a-CLEO/data/") / subdata_dir
+data_path = Path("/home/m/m301096/CLEO/data/") / subdata_dir
 
 microphysics = (
     "null_microphysics",
