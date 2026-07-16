@@ -444,8 +444,12 @@ Logfiles are created from the SLURM scripts ``build_compile_run_eurec4a1d.sh`` a
 
 This is done is the ``sdm-eurec4a`` repo.
 
+### Eulerian Views
+
 We create the eulerian views with the bash script ``./scripts/CLEO/output_processing/eulerian_views.sh``.
 The underlying python script is: ``./scripts/CLEO/output_processing/create_eulerian_views_mpi4py.py``
+
+### Conservation View
 
 We create the conservation view (Inflow, Outflow, Reservoir change, Evaporation) with the ``./scripts/CLEO/output_processing/conservation_views.sh`` bash script.
 It invokes a MPI parallel run for all clouds.
