@@ -19,9 +19,8 @@
 
 ### ------------------ Load Modules -------------------- ###
 source ${HOME}/.bashrc
-# env=/work/mh1126/m301096/conda/envs/sdm_pysd_env312
 env=/home/m/m300950/mamba/envs/sdm_eurec4a_env312
-conda activate ${env}
+micromamba activate ${env}
 
 # ------------------ Set Variables --------------------- #
 echo "--------------------------------------------"

@@ -31,9 +31,8 @@ echo "============================================"
 
 ### ------------------ Load Modules -------------------- ###
 source ${HOME}/.bashrc
-# env=/work/mh1126/m301096/conda/envs/sdm_pysd_env312
 env=/home/m/m300950/mamba/envs/sdm_eurec4a_env312
-conda activate ${env}
+micromamba activate ${env}
 python=${env}/bin/python
 
 # path2data=/work/mh1126/m300950/rain-evap-nils/sdm-eurec4a-CLEO/data/output_v4.2/coalbure_condensation_large/
