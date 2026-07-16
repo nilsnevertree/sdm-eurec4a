@@ -355,18 +355,6 @@ Before you begin it is reccomended to create a folder called ``data`` within you
 
 As above for the ``sdm-eurec4a`` repository, before you can begin, first replace all mentions of ``m301096`` and ``m300950``, and ``um1487``, ``mh1126`` and ``bm1183``, with your DKRZ account and project IDs. You will probably also want to edit the email address in SLURM jobs, ``#SBATCH --mail-user=[...]```
 
-To select a microphysical setup, comment/uncomment within ``./examples/eurec4a1d/create_model_input_files.sh`` these lines:
-
-````bash
-### ------------------ Input Parameters ---------------- ###
-# microphysics="null_microphysics"
-# microphysics="condensation"
-# microphysics="collision_condensation"
-# microphysics="coalbure_condensation_small"
-microphysics="coalbure_condensation_large"
-````
-
-Output directory naming convention is ``.data/output_YOUR-CHOICE-CLEO_VERIONS-OF-CLEO-input_NETCDF_INPUT-VERSION``
 
 ## 4.1 Prepare the input files for CLEO
 
@@ -380,18 +368,47 @@ It uses the script ``examples/eurec4a1d/scripts/create_model_input_mpi4py.py``.
 The python script uses the input files created in (3).
 A log file for each mpi task is created within ``./examples/eurec4a1d/logfiles/create_init_files/mpi4py/yyyymmdd-hhMMss``.
 
-For more details, we the python script.
+To select a microphysical setup, comment/uncomment within ``./examples/eurec4a1d/create_model_input_files.sh`` these lines:
+
+````bash
+### ------------------ Input Parameters ---------------- ###
+# microphysics="null_microphysics"
+microphysics="condensation"
+# microphysics="collision_condensation"
+# microphysics="coalbure_condensation_small"
+# microphysics="coalbure_condensation_large"
+````
+
+Output directory naming convention is ``.data/output_YOUR-CHOICE-CLEO_VERIONS-OF-CLEO-input_NETCDF_INPUT-VERSION``
+
+For more details, see the python script.
 
 ## 4.2 Simulate all clouds for 1 microphysical setup.
 
 The main script is: ``./examples/eurec4a1d/build_compile_run_eurec4a1d.sh``
 
-It can be used to build CLEO, compile CLEO, run CLEO.
+It can be used to build CLEO, compile CLEO, run CLEO simply toggle the lines:
 
-After build and compile, you can run CLEO for 1 microphysic setup.
-Select it by commenting and uncommenting in the bash script.
+``` bash
+build=true
+compile=true
+run=false
+```
 
-A SLURM Array will be spawned, which will run CLEO for all clouds for which input files were created in 4.1
+After build and compile (via SLURM or on your command line), you can run CLEO for one
+microphysics setup (via SLURM). Select which microphysics by commenting/uncommenting the lines:
+
+``` bash
+# microphysics="null_microphysics"
+microphysics="condensation"
+# microphysics="collision_condensation"
+# microphysics="coalbure_condensation_small"
+# microphysics="coalbure_condensation_large"
+# microphysics="coalbure_condensation_cke"
+```
+
+By running CLEO using this script, a SLURM Array will be spawned, which will run CLEO for all clouds
+for which input files were created in 4.1
 
 The output for
 - your output version: v4.4
