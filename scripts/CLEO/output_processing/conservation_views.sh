@@ -17,9 +17,6 @@
 ### ---------------------------------------------------- ###
 
 ### ------------------ Load Modules -------------------- ###
-
-number_of_processes=30
-
 source ${HOME}/.bashrc
 # env=/work/mh1126/m301096/conda/envs/sdm_pysd_env312
 env=/home/m/m300950/mamba/envs/sdm_eurec4a_env312
@@ -73,7 +70,7 @@ echo "============================================"
 if [ "$create_inflow_outflow" = true ]; then
     echo "Create Inflow Outflow"
     # python ${inflow_outflow_pyhtonscript} --data_dir ${path2data}
-    mpirun -np ${number_of_processes} python ${inflow_outflow_pyhtonscript} --data_dir ${path2data}
+    srun python ${inflow_outflow_pyhtonscript} --data_dir ${path2data}
     wait
     echo "============================================"
     if [ $? -ne 0 ]; then

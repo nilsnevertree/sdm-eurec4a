@@ -18,9 +18,6 @@
 ### ---------------------------------------------------- ###
 
 ### ------------------ Load Modules -------------------- ###
-
-number_of_processes=30
-
 source ${HOME}/.bashrc
 # env=/work/mh1126/m301096/conda/envs/sdm_pysd_env312
 env=/home/m/m300950/mamba/envs/sdm_eurec4a_env312
@@ -85,7 +82,7 @@ echo "============================================"
 
 if [ "$create_eulerian_view" = true ]; then
     echo "Create eulerian views"
-    mpirun -np ${number_of_processes} python ${create_script} --data_dir ${path2data}
+    srun python ${create_script} --data_dir ${path2data}
     wait
     echo "============================================"
 fi
