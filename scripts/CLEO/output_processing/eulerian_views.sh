@@ -56,8 +56,7 @@ echo "Concatenate Eulerian views: ${concatenate_eulerian_view}"
 
 create_script=${path2sdm_eurec4a}/scripts/CLEO/output_processing/create_eulerian_views_mpi4py.py
 concatenate_script=${path2sdm_eurec4a}/scripts/CLEO/output_processing/concatenate_eulerian_views.py
-concatenate_bash_script=${path2sdm_eurec4a}/scripts/CLEO/output_processing/concatenate_eulerian_views.sh
-# inflow_outflow_pyhtonscript=${path2sdm_eurec4a}/scripts/CLEO/output_processing/create_inflow_outflow_mpi4py.py
+# inflow_outflow_pythonscript=${path2sdm_eurec4a}/scripts/CLEO/output_processing/create_inflow_outflow_mpi4py.py
 # concatenate_io_pythonscript=${path2sdm_eurec4a}/scripts/CLEO/output_processing/concatenate_inflow_outflow.py
 
 
@@ -94,8 +93,8 @@ fi
 
 # if [ "$inflow_outflow" = true ]; then
 #     echo "Create Inflow Outflow"
-#     # python ${inflow_outflow_pyhtonscript} --data_dir ${path2data}
-#     mpirun -np 20 python ${inflow_outflow_pyhtonscript} --data_dir ${path2data}
+#     # python ${inflow_outflow_pythonscript} --data_dir ${path2data}
+#     mpirun -np 20 python ${inflow_outflow_pythonscript} --data_dir ${path2data}
 #     wait
 #     echo "============================================"
 # fi

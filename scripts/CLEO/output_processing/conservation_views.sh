@@ -44,7 +44,7 @@ path2data=/work/mh1126/m300950/rain-evap-nils/sdm-eurec4a-CLEO/data/output_v4.2/
 create_inflow_outflow=true
 concatenate_inflow_outflow=true
 
-inflow_outflow_pyhtonscript=${path2sdm_eurec4a}/scripts/CLEO/output_processing/create_inflow_outflow_mpi4py.py
+inflow_outflow_pythonscript=${path2sdm_eurec4a}/scripts/CLEO/output_processing/create_inflow_outflow_mpi4py.py
 concatenate_io_pythonscript=${path2sdm_eurec4a}/scripts/CLEO/output_processing/concatenate_inflow_outflow.py
 
 
@@ -55,7 +55,7 @@ echo "microphysics: ${microphysics}"
 if [ ! -d "$path2data" ]; then
     echo "Invalid path to data"
     exit 1
-elif [ ! -f "$inflow_outflow_pyhtonscript" ]; then
+elif [ ! -f "$inflow_outflow_pythonscript" ]; then
     echo "Python script not found: ${eulerian_view_pythonscript}"
     exit 1
 elif [ ! -f "$concatenate_io_pythonscript" ]; then
@@ -68,8 +68,8 @@ echo "============================================"
 
 if [ "$create_inflow_outflow" = true ]; then
     echo "Create Inflow Outflow"
-    # python ${inflow_outflow_pyhtonscript} --data_dir ${path2data}
-    srun python ${inflow_outflow_pyhtonscript} --data_dir ${path2data}
+    # python ${inflow_outflow_pythonscript} --data_dir ${path2data}
+    srun python ${inflow_outflow_pythonscript} --data_dir ${path2data}
     wait
     echo "============================================"
     if [ $? -ne 0 ]; then
