@@ -455,7 +455,8 @@ create_eulerian_view=true # calls ``./scripts/CLEO/output_processing/create_eule
 concatenate_eulerian_view=true # calls ``./scripts/CLEO/output_processing/concatenate_eulerian_views.py``
 ```
 
-The output of the eulerian view is then stored in the CLEO repo ``./data/output_v4.4-CLEO_v0.39.7-input_v4.2/null_microphysics/combined/conservation_dataset_combined.nc``.
+Each cluster has it's own dataset ``eulerian_dataset.nc`` written in ``/your/path2data/output_[version_output]/[choice_microphysics]/[cluster_XXX]/``,
+and the combined dataset is stored in ``/your/path2data/output_[version_output]/[choice_microphysics]/combined/eulerian_dataset_combined.nc``.
 
 ### Conservation View
 
@@ -467,7 +468,8 @@ create_inflow_outflow=true # calls ``./scripts/CLEO/output_processing/create_inf
 concatenate_inflow_outflow=true # calls ``./scripts/CLEO/output_processing/concatenate_inflow_outflow.py``
 ```
 
-The output of the conservation view is then stored in the CLEO repo ``./data/output_v4.4-CLEO_v0.39.7-input_v4.2/null_microphysics/combined/eulerian_dataset_combined.nc``.
+Each cluster has it's own dataset ``conservation_dataset.nc`` written in ``/your/path2data/output_[version_output]/[choice_microphysics]/[cluster_XXX]/``,
+and the combined dataset is stored in ``/your/path2data/output_[version_output]/[choice_microphysics]/combined/conservation_dataset_combined.nc``.
 
 ---
 
