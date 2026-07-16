@@ -25,7 +25,7 @@ Using Super Droplet Model and EUREC4A data to simulate rain evaporation.
 In this project, the rain evaporation below cloud base shall be simulated using the Super Droplet Model [CLEO].
 
 To understand how to use this project, please refer to [docs/source/pipeline_howto.md](https://github.com/yoctoyotta1024/sdm-eurec4a/blob/main/docs/source/pipeline_howto.md).
-Additionally, you must source the ``data'' folder (contact authors) and create two new (empty) folders for ``logs'' and ``results''.
+Additionally, you must source the ``data`` folder (contact authors) and create two new (empty) folders for ``logs`` and ``results``.
 
 ## Commiting.
 The pre-commit hook is already installed in the ``.git`` folder. To diable this, if you wish to run it manually, please make sure to diable the file ``pre-commit``. Do not remove the ``pre-commit.sample`` file, as it is just a sample file.
