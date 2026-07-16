@@ -8,10 +8,10 @@ def init_dask_slurm_cluster(
     processes: int = 16,
     walltime: str = "00:30:00",
     memory: str = "64GiB",
-    name: str = "m300950-dask-cluster",
-    account: str = "mh1126",
-    data_dir: str = "/scratch/m/m300950/dask_temp",
-    log_dir: str = "/scratch/m/m300950/dask_logs",
+    name: str = "m301096-dask-cluster",
+    account: str = "um1487",
+    data_dir: str = "/scratch/m/m301096/dask_temp",
+    log_dir: str = "/scratch/m/m301096/dask_logs",
     scheduler_options: dict = {"dashboard_address": ":8989"},
 ):
     """
@@ -34,18 +34,18 @@ def init_dask_slurm_cluster(
         Default is "64GiB".
     name : str
         Name of the job.
-        Default is "m300950-dask-cluster".
+        Default is "m301096-dask-cluster".
     account : str
         Account to be used for the job.
-        Default is "mh1126".
+        Default is "um1487".
     data_dir : str
         Directory to store the temporary data.
         This directory should be accessible from all nodes.
         The best option is to use the scratch directory.
-        Default is "/scratch/m/m300950/dask_temp".
+        Default is "/scratch/m/m301096/dask_temp".
     log_dir : str
         Directory to store the logs.
-        Default is "/scratch/m/m300950/dask_logs".
+        Default is "/scratch/m/m301096/dask_logs".
     scheduler_options : dict
         Dictionary of scheduler options.
         For instance to set the dashboard port address.

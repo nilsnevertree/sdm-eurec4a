@@ -69,7 +69,7 @@ plt.rcParams.update(
 
 dark_colors = adjust_lightness_array(default_colors, amount=0.5)
 
-repo_path = RepositoryPath("levante_m300950")()
+repo_path = RepositoryPath("levante")()
 print(repo_path)
 
 # data_dict = "output_v3.2/stationary_no_physics"
@@ -78,7 +78,7 @@ subdata_dir = "output_v3.2-v3.4_v2"
 
 data_dict = dict(
     no_physics_512=dict(
-        path=Path("/home/m/m300950/rain-evap-nils/sdm-eurec4a-CLEO/data/")
+        path=Path("/home/m/m301096/CLEO/data/")
         / "output_v3.2"
         / "stationary_no_physics"
         / "combined/eulerian_dataset_combined.nc",
@@ -87,7 +87,7 @@ data_dict = dict(
         color="black",
     ),
     no_physics_1024=dict(
-        path=Path("/home/m/m300950/rain-evap-nils/sdm-eurec4a-CLEO/data/")
+        path=Path("/home/m/m301096/CLEO/data/")
         / "output_v3.3"
         / "stationary_no_physics"
         / "combined/eulerian_dataset_combined.nc",
@@ -96,7 +96,7 @@ data_dict = dict(
         color="black",
     ),
     condensation_512=dict(
-        path=Path("/home/m/m300950/rain-evap-nils/sdm-eurec4a-CLEO/data/")
+        path=Path("/home/m/m301096/CLEO/data/")
         / "output_v3.2"
         / "stationary_condensation"
         / "combined/eulerian_dataset_combined.nc",
@@ -105,7 +105,7 @@ data_dict = dict(
         color="black",
     ),
     condensation_1024=dict(
-        path=Path("/home/m/m300950/rain-evap-nils/sdm-eurec4a-CLEO/data/")
+        path=Path("/home/m/m301096/CLEO/data/")
         / "output_v3.3"
         / "stationary_condensation"
         / "combined/eulerian_dataset_combined.nc",
@@ -114,7 +114,7 @@ data_dict = dict(
         color="black",
     ),
     condensation_2048=dict(
-        path=Path("/home/m/m300950/rain-evap-nils/sdm-eurec4a-CLEO/data/")
+        path=Path("/home/m/m301096/CLEO/data/")
         / "output_v3.4"
         / "stationary_condensation"
         / "combined/eulerian_dataset_combined.nc",
@@ -123,7 +123,7 @@ data_dict = dict(
         color="black",
     ),
     collision_condensation_512=dict(
-        path=Path("/home/m/m300950/rain-evap-nils/sdm-eurec4a-CLEO/data/")
+        path=Path("/home/m/m301096/CLEO/data/")
         / "output_v3.2"
         / "stationary_collision_condensation"
         / "combined/eulerian_dataset_combined.nc",
@@ -132,7 +132,7 @@ data_dict = dict(
         color="black",
     ),
     collision_condensation_1024=dict(
-        path=Path("/home/m/m300950/rain-evap-nils/sdm-eurec4a-CLEO/data/")
+        path=Path("/home/m/m301096/CLEO/data/")
         / "output_v3.3"
         / "stationary_collision_condensation"
         / "combined/eulerian_dataset_combined.nc",
@@ -141,7 +141,7 @@ data_dict = dict(
         color="black",
     ),
     collision_condensation_2048=dict(
-        path=Path("/home/m/m300950/rain-evap-nils/sdm-eurec4a-CLEO/data/")
+        path=Path("/home/m/m301096/CLEO/data/")
         / "output_v3.4"
         / "stationary_collision_condensation"
         / "combined/eulerian_dataset_combined.nc",
@@ -152,7 +152,7 @@ data_dict = dict(
 )
 
 # THE PATH TO THE SCRIPT DIRECTORY
-script_dir = Path("/home/m/m300950/rain-evap-nils/sdm-eurec4a/notebooks/presentation/results/")
+script_dir = Path("/home/m/m301096/repositories/sdm-eurec4a/notebooks/presentation/results/")
 print(script_dir)
 
 

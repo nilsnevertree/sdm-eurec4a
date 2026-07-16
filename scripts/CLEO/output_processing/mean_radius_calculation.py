@@ -15,7 +15,7 @@ from sdm_eurec4a.constants import TimeSlices
 import datetime
 import secrets
 
-RP = RepositoryPath("levante_m300950")
+RP = RepositoryPath("levante")
 
 repo_dir = RP.repo_dir
 sdm_data_dir = RP.data_dir

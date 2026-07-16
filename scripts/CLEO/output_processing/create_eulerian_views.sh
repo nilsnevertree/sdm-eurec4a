@@ -5,9 +5,9 @@
 #SBATCH --ntasks-per-node=1
 #SBATCH --mem=50G
 #SBATCH --time=00:10:00
-#SBATCH --mail-user=clara.bayley@mpimet.mpg.de
+#SBATCH --mail-user=nils-ole.niebaumy@mpimet.mpg.de
 #SBATCH --mail-type=FAIL
-#SBATCH --account=mh1126
+#SBATCH --account=um1487
 #SBATCH --output=./logfiles/eulerian_view/create/%A/%A_%a_out.out
 #SBATCH --error=./logfiles/eulerian_view/create/%A/%A_%a_err.out
 #SBATCH --array=0-110
@@ -53,7 +53,7 @@ fi
 echo "============================================"
 
 ### ------------------ Load Modules -------------------- ###
-env=/home/m/m300950/mamba/envs/sdm_eurec4a_env312
+env=/work/um1487/m301096/conda/envs/sdm_pysd_python312
 python=${env}/bin/python
 source activate ${env}
 

@@ -20,7 +20,7 @@ import datetime
 import secrets
 
 
-RP = RepositoryPath("levante_m300950")
+RP = RepositoryPath("levante")
 repo_dir = RP.repo_dir
 
 # %%

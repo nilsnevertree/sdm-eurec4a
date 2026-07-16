@@ -36,7 +36,7 @@ from sdm_eurec4a import RepositoryPath
 USER_CONSENT_NEEDED = False
 
 
-REPO_PATH = RepositoryPath("levante_m300950").repo_dir
+REPO_PATH = RepositoryPath("levante").repo_dir
 
 ORIGIN_DIRECTORY = REPO_PATH / Path("data/observation/cloud_composite/raw")
 DESTINATION_DIRECTORY = REPO_PATH / Path("data/observation/cloud_composite/processed")
@@ -261,7 +261,7 @@ datas.assign_attrs(
         "modification_date_UTC": datetime.datetime.now(datetime.timezone.utc).strftime(
             "%Y-%m-%d %H:%M:%S"
         ),
-        "GitHub Repository": "https://github.com/yoctoyotta1024/sdm-eurec4a",
+        "GitHub Repository": "https://github.com/nilsnevertree/sdm-eurec4a",
         "GitHub Commit": get_git_revision_hash(),
     }
 )

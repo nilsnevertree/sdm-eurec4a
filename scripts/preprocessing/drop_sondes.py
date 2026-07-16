@@ -29,7 +29,7 @@ import xarray as xr
 from sdm_eurec4a import get_git_revision_hash
 from sdm_eurec4a import RepositoryPath
 
-REPO_PATH = RepositoryPath("levante_m300950").repo_dir
+REPO_PATH = RepositoryPath("levante").repo_dir
 
 ORIGIN_DIRECTORY = REPO_PATH / Path("data/observation/dropsonde/raw/Level_3")
 ORIGIN_FILENAME = "EUREC4A_JOANNE_Dropsonde-RD41_Level_3_v2.0.0.nc"
@@ -136,7 +136,7 @@ try:
             "modification_date_UTC": datetime.datetime.now(datetime.timezone.utc).strftime(
                 "%Y-%m-%d %H:%M:%S"
             ),
-            "GitHub Repository": "https://github.com/yoctoyotta1024/sdm-eurec4a",
+            "GitHub Repository": "https://github.com/nilsnevertree/sdm-eurec4a",
             "GitHub Commit": get_git_revision_hash(),
         }
     )
