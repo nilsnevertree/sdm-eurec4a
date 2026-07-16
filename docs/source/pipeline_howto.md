@@ -5,7 +5,8 @@ This document explains the steps required to run the EURCE4A-SDM pipeline with C
 - [Structure of the repos and data directories](#structure-of-the-repos-and-data-directories)
 - [Observational data and fittings](#observational-data-and-fittings)
 - [Running CLEO based on Observational Fits](#running-cleo-based-on-observational-fits)
-- [Plot and use the conservation and eulerian views](#plot-and-use-the-conservation-and-eulerian-views) (currently work-in-progress)
+- [Post Processing of CLEOs Raw Output](#post-processing-of-cleos-raw-output)
+- [Plot and Use the Conservation and Eulerian Views](#plot-and-use-the-conservation-and-eulerian-views) (currently work-in-progress)
 
 ---
 
@@ -437,8 +438,9 @@ Logfiles are created from the SLURM scripts ``build_compile_run_eurec4a1d.sh`` a
 ###### - CLEO verion: v0.39.7
 ###### the output would be stored in: ``/your/path2data/output_v4.4-CLEO_v0.39.7-input_v4.2/null_microphysics``.
 
+---
 
-## 4.3. Post processing of CLEOs Raw output.
+## Post Processing of CLEOs Raw Output
 
 This is done is the ``sdm-eurec4a`` repo.
 
@@ -466,6 +468,6 @@ The output of the conservation view is then stored in the CLEO repo ``./data/out
 
 ---
 
-# Plot and use the conservation and eulerian views.
+# Plot and Use the Conservation and Eulerian Views.
 
 to handle all the different data mess for all microphysics and clouds, we can use the following:
