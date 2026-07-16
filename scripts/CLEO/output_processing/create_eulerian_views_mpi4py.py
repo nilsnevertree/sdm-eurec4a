@@ -15,6 +15,11 @@ import datetime
 
 from sdm_eurec4a import RepositoryPath
 
+RP = RepositoryPath("levante_m300950")
+repo_dir = RP.repo_dir
+sdm_data_dir = RP.data_dir
+
+sys.path.append(str(RP.CLEO_dir))
 from pySD.sdmout_src import pygbxsdat, pysetuptxt, supersdata
 from sdm_eurec4a.conversions import relative_humidity_from_tps
 
@@ -28,10 +33,7 @@ import secrets
 
 set_custom_rcParams()
 
-RP = RepositoryPath("levante_m300950")
 
-repo_dir = RP.repo_dir
-sdm_data_dir = RP.data_dir
 
 
 # === mpi4py ===
