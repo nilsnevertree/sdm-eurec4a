@@ -5,7 +5,7 @@
 #SBATCH --ntasks-per-node=1
 #SBATCH --mem=50G
 #SBATCH --time=00:10:00
-#SBATCH --mail-user=nils-ole.niebaumy@mpimet.mpg.de
+#SBATCH --mail-user=clara.bayley@mpimet.mpg.de
 #SBATCH --mail-type=FAIL
 #SBATCH --account=mh1126
 #SBATCH --output=./logfiles/eulerian_view/create/%A/%A_%a_out.out

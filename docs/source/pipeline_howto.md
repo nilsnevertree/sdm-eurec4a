@@ -1,5 +1,15 @@
 # How to run the pipeline
 
+## Overview
+This document explains the steps required to run the EURCE4A-SDM pipeline with CLEO, the sections are as follows:
+- [Structure of the repos and data directories](#structure-of-the-repos-and-data-directories)
+- [Observational data and fittings](#observational-data-and-fittings)
+- [Running CLEO based on Observational Fits](#running-cleo-based-on-observational-fits)
+- [Post Processing of CLEOs Raw Output](#post-processing-of-cleos-raw-output)
+- [Plot and Use the Conservation and Eulerian Views](#plot-and-use-the-conservation-and-eulerian-views) (currently work-in-progress)
+
+---
+
 # Structure of the repos and data directories
 
 Firstly, the whole project is split into 2 main repositories.
@@ -9,7 +19,7 @@ Firstly, the whole project is split into 2 main repositories.
 - ID: Input directory
 - OD: Output directory
 
-- [sdm-eurec4a](https://github.com/nilsnevertree/sdm-eurec4a)
+- [sdm-eurec4a](https://github.com/yoctoyotta1024/sdm-eurec4a)
     - Data preprocessing
         - Observational data preprocessing
             - S: ``./scripts/preprocessing``
@@ -19,9 +29,9 @@ Firstly, the whole project is split into 2 main repositories.
             - ID: ``./data/observation/cloud_composite/processed``
             - OD: ``./data/observation/cloud_composite/processed``
     - Fitting of DSDs and thermodynamics as INPUTS
-        - S:
+        - S: ``.ipynb`` notebooks under issues ``107`` and ``114``
     - Visulization of Simulations by CLEO
-- [CLEO-sdm-eurec4a](https://github.com/nilsnevertree/sdm-eurec4a)
+- [sdm-eurec4a-CLEO](https://github.com/yoctoyotta1024/sdm-eurec4a-CLEO)
     - Usage of INPUTS to run 1D-rainshaft instances
     - Run CLEO:
         - For each one of the 4 microphysical setups:
@@ -62,6 +72,7 @@ _known_development_regimes = dict(
 2) After activating your new environment (e.g. ``mamba activate sdm_eurec4a_env312``), install the ``sdm_eurec4a`` package locally with ``python -m pip install .``
 3) replace all mentions of ``m301096`` and ``m300950``, and ``um1487`` and ``mh1126``, with your DKRZ account and project IDs.
 
+---
 
 # Observational data and fittings
 
@@ -159,6 +170,7 @@ setup:
   # this defines how far each cloud in a cluster can be apart from each other
   min_duration_cloud_holes : 5 # in timesteps
 ````
+
 ### 1.3 Create cloud and drop sonde distance dataset
 
 S: ``./scripts/preprocessing/distance_relation_IC_DS.py``
@@ -239,7 +251,7 @@ ds = match_clouds_and_dropsondes(
 
 ## 3. Fit the DSDs and thermodynamics
 
-The scripts to run CLEO for all clouds in the ``CLEO-sdm-eurec4a`` repo need input files for the DSDs and thermodynamic fits.
+The scripts to run CLEO for all clouds in the ``sdm-eurec4a-CLEO`` repo need input files for the DSDs and thermodynamic fits.
 
 The files are netcdf files with the ``cloud_id`` as leading dimension.
 Four input files are needed:
@@ -293,7 +305,7 @@ Attributes:
     author:             Nils Niebaum
     email:              nils-ole.niebaum@mpimet.mpg.de
     institution:        Max Planck Institute for Meteorology
-    github_repository:  https://github.com/nilsnevertree/sdm-eurec4a
+    github_repository:  https://github.com/yoctoyotta1024/sdm-eurec4a
     git_commit:         ecf2fec509d23640392c7c40b7e7522d4639ce67
     parameter_space:    geometric
     independent_space:  linear
@@ -326,30 +338,34 @@ Data variables:
     slope_2   (cloud_id) float64 2kB ...
 ````
 
+---
 
-# How to run CLEO??
+# Running CLEO based on Observational Fits
+
+*NOTE:* If you have created all the input data in your ``${HOME}`` (in ``/home/[...]/sdm-eurec4a/data``), it is
+likely you will eventually exceed your Levante disk quota. It's therefore advisable to now more that
+data directory elsewhere, e.g. to ``work`` (``/work/[...]/sdm-eurec4a/data``).
+
 To run CLEO, we need the input files which we created in (3).
 
-We use the example dirextory in ``./examples/eurec4a1d``.
+We use the example directory in ``./examples/eurec4a1d``.
 
 For each microphysical setup, steps 4.1 and 4.2 need to be performed.
 
 You can perform step 4.1 for all setups and then perform 4.2 afterwards.
 
-To select a microphysical setup, comment or uncomment within this lines:
+Post-processing CLEO's output data is explained in 4.3.
 
-````bash
-### ------------------ Input Parameters ---------------- ###
-# microphysics="null_microphysics"
-# microphysics="condensation"
-# microphysics="collision_condensation"
-# microphysics="coalbure_condensation_small"
-microphysics="coalbure_condensation_large"
-````
+Before you begin it is reccomended to create a folder called ``data`` somewhere where you have a large
+disk-space allocation e.g. ``/work/[...]/sdm-eurec4a-CLEO/data`` directory. (Do not overwrite ``/work/[...]/sdm-eurec4a/data``!)
 
-Output directory naming convention is ``.data/output_YOUR-CHOICE-CLEO_VERIONS-OF-CLEO-input_NETCDF_INPUT-VERSION``
+Additionally it is advisable to make the logfiles folder, e.g. with
+``cd /work/[...]/sdm-eurec4a/data && mkdir logfiles && cd logfiles && mkdir create_init_files  full_workflow  run_CLEO  run_CLEO_single  run_CLEO_singledebug  update_config``.
 
-# 4.1 Prepare the input files for CLEO
+As above for the ``sdm-eurec4a`` repository, before you can begin, first replace all mentions of ``m301096`` and ``m300950``, and ``um1487``, ``mh1126`` and ``bm1183``, with your DKRZ account and project IDs. You will probably also want to edit the email address in SLURM jobs, ``#SBATCH --mail-user=[...]```
+
+
+## 4.1 Prepare the input files for CLEO
 
 S: ``./examples/eurec4a1d/create_model_input_files.sh``
 ID : defined as ``path2input``
@@ -359,30 +375,72 @@ This bash script invokes an MPI task with a number of workers to parallel create
 
 It uses the script ``examples/eurec4a1d/scripts/create_model_input_mpi4py.py``.
 The python script uses the input files created in (3).
-A log file for each mpi task is created within ``./examples/eurec4a1d/logfiles/create_init_files/mpi4py/yyyymmdd-hhMMss``.
 
-For more details, we the python script.
+A log file for each mpi task is created within ``/your/path2logfiles/logfiles/create_init_files/mpi4py/yyyymmdd-hhMMss``, given ``path2logfiles`` defined in ``create_model_input_mpi4py.py``. (This is as well as the logfile from the SLURM job defined in ``create_model_input_files.sh``.)
 
-# 4.2 Simulate all clouds for 1 microphysical setup.
+To select a microphysical setup, comment/uncomment within ``./examples/eurec4a1d/create_model_input_files.sh`` these lines:
+
+````bash
+### ------------------ Input Parameters ---------------- ###
+# microphysics="null_microphysics"
+microphysics="condensation"
+# microphysics="collision_condensation"
+# microphysics="coalbure_condensation_small"
+# microphysics="coalbure_condensation_large"
+````
+
+Output directory naming convention is ``/your/path2data/output_[version_output]/[choice_microphysics]/[cluster_XXX]/``, and
+within each of these output directories, i.e. for each cluster, you will find the ``config``, ``figures``, and ``share`` directories which contain and plot the initial condition, grid-information, and configuration files for CLEO.
+
+For more details, see the python script.
+
+## 4.2 Simulate all clouds for 1 microphysical setup.
 
 The main script is: ``./examples/eurec4a1d/build_compile_run_eurec4a1d.sh``
 
-It can be used to build CLEO, compile CLEO, run CLEO.
+Here you define:
+- your source directory, e.g. ``path2sdmeurec4aCLEO=/home/[...]/sdm-eurec4a-CLEO``
+- your build directory, e.g. ``path2build=/work/[...]/sdm-eurec4a-CLEO/build/``
+- your data directory (for output of runs), e.g. ``path2data=/work/[...]/sdm-eurec4a-CLEO/data/[...]``
 
-After build and compile, you can run CLEO for 1 microphysic setup.
-Select it by commenting and uncommenting in the bash script.
+It can be used to build CLEO, compile CLEO, run CLEO simply toggle the lines:
 
-A SLURM Array will be spawned, which will run CLEO for all clouds for which input files were created in 4.1
+``` bash
+build=true
+compile=true
+run=false
+```
 
-The output for
-- your output version: v4.4
-- microphysics: null_microphysics
-- NETCDF input version from (3):  v4.2
-- CLEO verion: v0.39.7
-should be stored in ``data/output_v4.4-CLEO_v0.39.7-input_v4.2/null_microphysics``
+After build and compile (via SLURM or on your command line), you can run CLEO for one
+microphysics setup (via SLURM). Select which microphysics by commenting/uncommenting the lines:
 
+``` bash
+# microphysics="null_microphysics"
+microphysics="condensation"
+# microphysics="collision_condensation"
+# microphysics="coalbure_condensation_small"
+# microphysics="coalbure_condensation_large"
+# microphysics="coalbure_condensation_cke"
+```
 
-# 4.3. Post processing of CLEOs Raw output.
+By running CLEO using this script, a SLURM Array will be spawned, which will run CLEO for all clouds
+for which input files were created in 4.1
+
+As above, the output directory naming convention is ``/your/path2data/output_[version_output]/[choice_microphysics]/[cluster_XXX]/``. Successfully running CLEO will add ``eurec4a1d_sol.zarr`` and ``./config/eurec4a1d_setup.txt`` to each cluster's directory.
+
+Logfiles are created from the SLURM scripts ``build_compile_run_eurec4a1d.sh`` and ``run_job_array_eurec4a1d.sh``.
+
+###### Extra Info. / Side-Note / Maybe Wrong:
+###### For individual runs, the output directory naming convention may be ``/your/path2data/output_YOUR-CHOICE-CLEO_VERIONS-OF-CLEO-input_NETCDF_INPUT-VERSION`` as defined in``create_model_input_files.sh``, e.g. ``/work/[...]/sdm-eurec4a-CLEO/data/[...]``. The output is stored in ``/your/path2data/output_v[version_output]-CLEO_v[version_cleo]-input_v[version_netcdf_input]/[choice_microphysics]``, e.g. for:
+###### - your output version: v4.4
+###### - microphysics: null_microphysics
+###### - NETCDF input version from (3):  v4.2
+###### - CLEO verion: v0.39.7
+###### the output would be stored in: ``/your/path2data/output_v4.4-CLEO_v0.39.7-input_v4.2/null_microphysics``.
+
+---
+
+## Post Processing of CLEOs Raw Output
 
 This is done is the ``sdm-eurec4a`` repo.
 
@@ -408,7 +466,8 @@ The output of the eulerian view is then stored in the CLEO repo ``./data/output_
 
 The output of the conservation view is then stored in the CLEO repo ``./data/output_v4.4-CLEO_v0.39.7-input_v4.2/null_microphysics/combined/eulerian_dataset_combined.nc``.
 
+---
 
-# 5. Plot and use the conservation and eulerian views.
+# Plot and Use the Conservation and Eulerian Views.
 
 to handle all the different data mess for all microphysics and clouds, we can use the following:

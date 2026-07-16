@@ -3,7 +3,7 @@
 #SBATCH --partition=compute
 #SBATCH --mem=1G
 #SBATCH --time=00:10:00
-#SBATCH --mail-user=nils-ole.niebaumy@mpimet.mpg.de
+#SBATCH --mail-user=clara.bayley@mpimet.mpg.de
 #SBATCH --mail-type=FAIL
 #SBATCH --account=mh1126
 #SBATCH --output=/home/m/m300950/rain-evap-nils/sdm-eurec4a/logs/conservation_master/%j_out.log

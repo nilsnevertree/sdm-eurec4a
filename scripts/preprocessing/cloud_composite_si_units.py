@@ -261,7 +261,7 @@ datas.assign_attrs(
         "modification_date_UTC": datetime.datetime.now(datetime.timezone.utc).strftime(
             "%Y-%m-%d %H:%M:%S"
         ),
-        "GitHub Repository": "https://github.com/nilsnevertree/sdm-eurec4a",
+        "GitHub Repository": "https://github.com/yoctoyotta1024/sdm-eurec4a",
         "GitHub Commit": get_git_revision_hash(),
     }
 )

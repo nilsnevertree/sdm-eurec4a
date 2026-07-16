@@ -6,7 +6,7 @@
 #SBATCH --cpus-per-task=15
 #SBATCH --mem=30GB
 #SBATCH --time=00:15:00
-#SBATCH --mail-user=nils-ole.niebaumy@mpimet.mpg.de
+#SBATCH --mail-user=clara.bayley@mpimet.mpg.de
 #SBATCH --mail-type=FAIL
 #SBATCH --account=mh1126
 #SBATCH --output=/home/m/m300950/rain-evap-nils/sdm-eurec4a/logs/concatenate_master/%j_out.out
