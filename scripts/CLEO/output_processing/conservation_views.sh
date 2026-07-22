@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --job-name=e1d_conservation
 #SBATCH --partition=compute
-#SBATCH --time=00:10:00
+#SBATCH --time=01:00:00
 #SBATCH --mail-user=clara.bayley@mpimet.mpg.de
 #SBATCH --mail-type=FAIL
 #SBATCH --account=mh1126
