@@ -2,7 +2,7 @@
 #SBATCH --job-name=e1d_eulerian_master
 #SBATCH --partition=compute
 #SBATCH --nodes=1
-#SBATCH --time=00:20:00
+#SBATCH --time=01:00:00
 #SBATCH --mail-user=clara.bayley@mpimet.mpg.de
 #SBATCH --mail-type=FAIL
 #SBATCH --account=mh1126
@@ -18,13 +18,9 @@
 ### ---------------------------------------------------- ###
 
 ### ------------------ Load Modules -------------------- ###
-
-number_of_processes=30
-
 source ${HOME}/.bashrc
-# env=/work/mh1126/m301096/conda/envs/sdm_pysd_env312
 env=/home/m/m300950/mamba/envs/sdm_eurec4a_env312
-conda activate ${env}
+micromamba activate ${env}
 
 # ------------------ Set Variables --------------------- #
 echo "--------------------------------------------"
@@ -38,19 +34,17 @@ echo "============================================"
 # Set microphysics setup
 # microphysics="null_microphysics"
 # microphysics="condensation"
-# microphysics="collision_condensation"
-microphysics="coalbure_condensation_small"
+microphysics="collision_condensation"
+# microphysics="coalbure_condensation_small"
 # microphysics="coalbure_condensation_large"
 
-path2CLEO=${HOME}/CLEO/
-path2sdm_eurec4a=${HOME}/repositories/sdm-eurec4a
-path2data=${path2CLEO}/data/output_v4.4-CLEO_v0.39.7-input_v4.2/${microphysics}/
+path2sdm_eurec4a=/home/m/m300950/rain-evap-nils/sdm-eurec4a
+path2data=/work/mh1126/m300950/rain-evap-nils/sdm-eurec4a-CLEO/data/output_v4.2/${microphysics}/
 
-create_eulerian_view=false
+create_eulerian_view=true
 concatenate_eulerian_view=true
 
 echo "Microphysics: ${microphysics}"
-echo "path2CLEO: ${path2CLEO}"
 echo "path2data: ${path2data}"
 
 echo "Create Eulerian views: ${create_eulerian_view}"
@@ -62,8 +56,7 @@ echo "Concatenate Eulerian views: ${concatenate_eulerian_view}"
 
 create_script=${path2sdm_eurec4a}/scripts/CLEO/output_processing/create_eulerian_views_mpi4py.py
 concatenate_script=${path2sdm_eurec4a}/scripts/CLEO/output_processing/concatenate_eulerian_views.py
-concatenate_bash_script=${path2sdm_eurec4a}/scripts/CLEO/output_processing/concatenate_eulerian_views.sh
-# inflow_outflow_pyhtonscript=${path2sdm_eurec4a}/scripts/CLEO/output_processing/create_inflow_outflow_mpi4py.py
+# inflow_outflow_pythonscript=${path2sdm_eurec4a}/scripts/CLEO/output_processing/create_inflow_outflow_mpi4py.py
 # concatenate_io_pythonscript=${path2sdm_eurec4a}/scripts/CLEO/output_processing/concatenate_inflow_outflow.py
 
 
@@ -87,7 +80,7 @@ echo "============================================"
 
 if [ "$create_eulerian_view" = true ]; then
     echo "Create eulerian views"
-    mpirun -np ${number_of_processes} python ${create_script} --data_dir ${path2data}
+    srun python ${create_script} --data_dir ${path2data}
     wait
     echo "============================================"
 fi
@@ -100,8 +93,8 @@ fi
 
 # if [ "$inflow_outflow" = true ]; then
 #     echo "Create Inflow Outflow"
-#     # python ${inflow_outflow_pyhtonscript} --data_dir ${path2data}
-#     mpirun -np 20 python ${inflow_outflow_pyhtonscript} --data_dir ${path2data}
+#     # python ${inflow_outflow_pythonscript} --data_dir ${path2data}
+#     mpirun -np 20 python ${inflow_outflow_pythonscript} --data_dir ${path2data}
 #     wait
 #     echo "============================================"
 # fi

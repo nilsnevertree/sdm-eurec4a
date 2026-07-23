@@ -444,27 +444,32 @@ Logfiles are created from the SLURM scripts ``build_compile_run_eurec4a1d.sh`` a
 
 This is done is the ``sdm-eurec4a`` repo.
 
+### Eulerian Views
+
 We create the eulerian views with the bash script ``./scripts/CLEO/output_processing/eulerian_views.sh``.
 The underlying python script is: ``./scripts/CLEO/output_processing/create_eulerian_views_mpi4py.py``
 
-We create the conservation view (Inflow, Outflow, Reservoir change, Evaporation) with the ``./scripts/CLEO/output_processing/conservation_views.sh`` bash script.
-It invokes a MPI parallel run for all clouds.
-The underlying python script is: ``./scripts/CLEO/output_processing/create_inflow_outflow_mpi4py.py``
-
-For both, a combined netcdf file can be created by using
-
-```bash
-concatenate_eulerian_view=true
+To create a single, combined netcdf file, you can toggle two options in  ``eulerian_views.sh``:
+``` bash
+create_eulerian_view=true # calls ``./scripts/CLEO/output_processing/create_eulerian_views_mpi4py.py``
+concatenate_eulerian_view=true # calls ``./scripts/CLEO/output_processing/concatenate_eulerian_views.py``
 ```
-or
-````bash
-concatenate_inflow_outflow=true
-````
-in the bash scripts.
 
-The output of the eulerian view is then stored in the CLEO repo ``./data/output_v4.4-CLEO_v0.39.7-input_v4.2/null_microphysics/combined/conservation_dataset_combined.nc``.
+Each cluster has it's own dataset ``eulerian_dataset.nc`` written in ``/your/path2data/output_[version_output]/[choice_microphysics]/[cluster_XXX]/``,
+and the combined dataset is stored in ``/your/path2data/output_[version_output]/[choice_microphysics]/combined/eulerian_dataset_combined.nc``.
 
-The output of the conservation view is then stored in the CLEO repo ``./data/output_v4.4-CLEO_v0.39.7-input_v4.2/null_microphysics/combined/eulerian_dataset_combined.nc``.
+### Conservation View
+
+We create the conservation view (Inflow, Outflow, Reservoir change, Evaporation) with the ``./scripts/CLEO/output_processing/conservation_views.sh`` bash script. It invokes a MPI parallel run for all clouds. The underlying python script is: ``./scripts/CLEO/output_processing/create_inflow_outflow_mpi4py.py``
+
+Like for eulerian views, to create a single, combined netcdf file, you can toggle two options in  ``conservation_views.sh``:
+``` bash
+create_inflow_outflow=true # calls ``./scripts/CLEO/output_processing/create_inflow_outflow_mpi4py.py``
+concatenate_inflow_outflow=true # calls ``./scripts/CLEO/output_processing/concatenate_inflow_outflow.py``
+```
+
+Each cluster has it's own dataset ``conservation_dataset.nc`` written in ``/your/path2data/output_[version_output]/[choice_microphysics]/[cluster_XXX]/``,
+and the combined dataset is stored in ``/your/path2data/output_[version_output]/[choice_microphysics]/combined/conservation_dataset_combined.nc``.
 
 ---
 

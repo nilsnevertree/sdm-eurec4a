@@ -20,7 +20,7 @@
 ### ------------------ Load Modules -------------------- ###
 source ${HOME}/.bashrc
 env=/home/m/m300950/mamba/envs/sdm_eurec4a_env312
-conda activate ${env}
+micromamba activate ${env}
 
 # ------------------ Set Variables --------------------- #
 echo "--------------------------------------------"
@@ -30,12 +30,11 @@ echo "git hash: $(git rev-parse HEAD)"
 echo "git branch: $(git symbolic-ref --short HEAD)"
 echo "============================================"
 
-path2CLEO=${HOME}/CLEO/
-path2sdm_eurec4a=${HOME}/repositories/sdm-eurec4a
+path2sdm_eurec4a=/home/m/m300950/rain-evap-nils/sdm-eurec4a
+path2data=/work/mh1126/m300950/rain-evap-nils/sdm-eurec4a-CLEO/data/output_v4.1/
 
 mean_radius_pythonscript=${path2sdm_eurec4a}/scripts/CLEO/output_processing/mean_radius_calculation.py
 
-path2data=${path2CLEO}/data/output_v4.1/
 
 echo "============================================"
 echo "path2data: ${path2data}"
