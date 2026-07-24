@@ -2,7 +2,7 @@
 #SBATCH --job-name=e1d_eulerian_master
 #SBATCH --partition=compute
 #SBATCH --nodes=1
-#SBATCH --time=01:00:00
+#SBATCH --time=03:00:00
 #SBATCH --mail-user=clara.bayley@mpimet.mpg.de
 #SBATCH --mail-type=FAIL
 #SBATCH --account=mh1126
