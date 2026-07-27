@@ -475,4 +475,6 @@ and the combined dataset is stored in ``/your/path2data/output_[version_output]/
 
 # Plot and Use the Conservation and Eulerian Views.
 
-to handle all the different data mess for all microphysics and clouds, we can use the following:
+To plot specific figures for paper:
+- ``./notebooks/paper/15-NN-compare-thermodynamic-profiles.ipynb`` produces Fig.1 ``compare_observations_cloud_396``
+- ``./notebooks/paper/14-NN-paper-figures.ipynb`` plots lots of the paper's figures.
