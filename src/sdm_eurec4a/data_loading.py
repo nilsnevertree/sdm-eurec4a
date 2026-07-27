@@ -137,8 +137,8 @@ def __post_process_eulerian_dataset__(ds: xr.Dataset) -> xr.Dataset:
     ds["evaporation_rate_energy"] = (
         ds["massdelta_condensation"] * WaterConstants.vapourization_heat
     )  # J/s / m^3 = W / m^3
-    ds["evaporation_rate_energy"] = 1e3 * ds["evaporation_rate_energy"]  # mW / m^3
-    ds["evaporation_rate_energy"].attrs["units"] = r"mW \, m^{-3}"
+    ds["evaporation_rate_energy"] = ds["evaporation_rate_energy"]  # W / m^3
+    ds["evaporation_rate_energy"].attrs["units"] = r"W \, m^{-3}"
     ds["evaporation_rate_energy"].attrs["long_name"] = "Evaporation Rate"
 
     return ds
