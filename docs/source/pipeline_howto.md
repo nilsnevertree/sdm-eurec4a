@@ -375,7 +375,7 @@ Before you begin it is reccomended to create a folder called ``data`` somewhere 
 disk-space allocation e.g. ``/work/[...]/sdm-eurec4a-CLEO/data`` directory. (Do not overwrite ``/work/[...]/sdm-eurec4a/data``!)
 
 Additionally it is advisable to make the logfiles folder, e.g. with
-``cd /work/[...]/sdm-eurec4a/data && mkdir logfiles && cd logfiles && mkdir create_init_files  full_workflow  run_CLEO  run_CLEO_single  run_CLEO_singledebug  update_config``.
+``cd /work/[...]/sdm-eurec4a-CLEO/data && mkdir logfiles && cd logfiles && mkdir create_init_files  full_workflow  run_CLEO  run_CLEO_single  run_CLEO_singledebug  update_config``.
 
 As above for the ``sdm-eurec4a`` repository, before you can begin, first replace all mentions of ``m301096`` and ``m300950``, and ``um1487``, ``mh1126`` and ``bm1183``, with your DKRZ account and project IDs. You will probably also want to edit the email address in SLURM jobs, ``#SBATCH --mail-user=[...]```
 
