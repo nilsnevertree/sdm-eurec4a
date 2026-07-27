@@ -295,10 +295,10 @@ We use the weighting by the cube of the radius.
 This gives more weight to the larger radii, which have much higher mass but very little number concentration and would otherwise be underestimated.
 
 
-The output will be multiple files in the output dir (e.g. ``./data/model/input_v4.2``)
+The output will be multiple files in the output dir (e.g. ``/path/to/your/data_dir/model/input_v4.2``)
 
 **particle_size_distribution_parameters_linear_space.nc**
-File containing the parameters for the bimodal Log-normal distributions for all DSDs. It is a netcdf file, with teh leading dimension being the ``cloud_id``.
+File containing the parameters for the bimodal Log-normal distributions for all DSDs. It is a netcdf file, with the leading dimension being the ``cloud_id``.
 The parameters for the bimodal Log-Normal fits are individual variables.
 
 ````python
@@ -332,7 +332,7 @@ S: ``./notebooks/issues/114/114-enhance-thermodynamic-fit.ipynb``
 ID: defined in the script
 OD: defined in the script
 
-Will produce thermodynamic fits in the output dir (e.g. ``./data/model/input_v4.2``).
+Will produce thermodynamic fits in the output dir (e.g. ``/path/to/your/data_dir/model/input_v4.2``).
 
 There are fits for the
 - potential_temperature : constant in sub cloud layer with linear fit above cloud base
