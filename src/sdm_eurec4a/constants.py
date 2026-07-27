@@ -15,3 +15,9 @@ class WaterConstants:
 class TimeSlices:
     quasi_stationary_state = slice(1500, 3598)
     full_state = slice(0, 3598)
+
+
+class RadiusSlices:
+    cloud = slice(0, 50e-6)
+    cloud_negative = slice(None, 50e-6)
+    rain_and_drizzle = slice(50e-6, None)
