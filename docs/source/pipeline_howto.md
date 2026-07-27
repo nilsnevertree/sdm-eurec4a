@@ -117,15 +117,15 @@ respectively. For the dropsonde data you also need to replace ``SPECIFYLEVEL`` w
 #### A) Prepare the cloud composite dataset
 
 S : ``./scripts/preprocessing/cloud_composite_si_units.py``
-ID: ``./data/observation/cloud_composite/raw`` (location of the downloaded cloud composite files)
-OD: specified by you, e.g. ``data/observation/cloud_composite/processed/cloud_composite_SI_units_20241025.nc``
+ID: ``/path/to/your/data_dir/observation/cloud_composite/raw`` (location of the downloaded cloud composite files)
+OD: specified by you, e.g. ``/path/to/your/data_dir/observation/cloud_composite/processed/cloud_composite_SI_units_20241025.nc``
 
 The script  combines all individual cloud composite files, converts them into SI units and stores the output netcdf file in the ``DESTINATION_FILEPATH`` location.
 
 Please change the following lines in the script before running.
 ````python
-ORIGIN_DIRECTORY = REPO_PATH / Path("data/observation/cloud_composite/raw")
-DESTINATION_DIRECTORY = REPO_PATH / Path("data/observation/cloud_composite/processed")
+ORIGIN_DIRECTORY = DATA_PATH / Path("observation/cloud_composite/raw")
+DESTINATION_DIRECTORY = DATA_PATH / Path("observation/cloud_composite/processed")
 DESTINATION_DIRECTORY.mkdir(parents=True, exist_ok=True)
 DESTINATION_FILENAME = "cloud_composite_SI_units_20241025.nc"
 DESTINATION_FILEPATH = DESTINATION_DIRECTORY / DESTINATION_FILENAME
@@ -136,16 +136,16 @@ log_file_path = DESTINATION_DIRECTORY / "cloud_composite_preprocessing.log"
 #### B) Prepare Drop sonde dataset
 
 S: ``./scripts/preprocessing/drop_sondes.py``
-ID: ``./data/observation/dropsonde/raw/Level_3/EUREC4A_JOANNE_Dropsonde-RD41_Level_3_v2.0.0.nc``
-OD: ``./data/observation/dropsonde/processed/drop_sondes.nc``
+ID: ``/path/to/your/data_dir/observation/dropsonde/raw/Level_3/EUREC4A_JOANNE_Dropsonde-RD41_Level_3_v2.0.0.nc``
+OD: ``/path/to/your/data_dir/observation/dropsonde/processed/drop_sondes.nc``
 
 The script mainly provides more meaningful variable names and uses  "time" (the launch time of the dropsonde) as the leading dimension instead of the dropsonde ID.
 
 #### C) Prepare the Safire Core dataset
 
 S: ``./scripts/preprocessing/safire_core.py``
-ID: ``./data/observation/safire_core/raw/*.nc``
-OD: ``./data/observation/safire_core/processed/safire_core.nc``
+ID: ``/path/to/your/data_dir/observation/safire_core/raw/*.nc``
+OD: ``/path/to/your/data_dir/observation/safire_core/processed/safire_core.nc``
 
 
 ### 1.2 Identify individual rain clouds
@@ -155,8 +155,8 @@ Please use the cluster identification script:
 
 S: ``./scripts/preprocessing/cluster_identification_general.py``
 A: ``./scripts/preprocessing/settings/cluster_identification.yaml``
-ID: specified in A
-OD: specified in A
+ID: ``/path/to/your/data_dir/specified/in/A``
+OD: ``/path/to/your/data_dir/specified/in/A``
 
 The script identifies all individual rain clouds based on the ``rain_mask`` given in the cloud composite dataset.
 The output netcdf file contains the new dimension ``cloud_id``
@@ -169,9 +169,9 @@ The settings file looks like this:
 paths:
   # The paths need to be relative to the root directory of the project.
   # The path to the input file
-  input_filepath: data/observation/cloud_composite/processed/cloud_composite_SI_units_20241025.nc
+  input_filepath: observation/cloud_composite/processed/cloud_composite_SI_units_20241025.nc
   # The path to the directory where the output data will be stored
-  output_directory: data/observation/cloud_composite/processed/identified_clusters/
+  output_directory: observation/cloud_composite/processed/identified_clusters/
   # The output file name. If NULL is provided, the input file will be automatically made:
   # f"identified_clouds_{mask_name}.nc"
   output_file_name : NULL
@@ -188,6 +188,8 @@ setup:
 
 S: ``./scripts/preprocessing/distance_relation_IC_DS.py``
 A: ``./scripts/preprocessing/settings/distance_calculation.yaml``
+ID: ``/path/to/your/data_dir/specified/in/A``
+OD: ``/path/to/your/data_dir/specified/in/A``
 
 Within the settings file, you can specify the input and output files
 
@@ -196,8 +198,8 @@ Within the settings file, you can specify the input and output files
 paths:
   # The paths need to be relative to the root directory of the project.
   # The path to the input file
-  input_filepath_clouds: data/observation/cloud_composite/processed/identified_clusters/identified_clusters_rain_mask_5.nc
-  input_filepath_dropsondes: data/observation/dropsonde/processed/drop_sondes.nc
+  input_filepath_clouds: observation/cloud_composite/processed/identified_clusters/identified_clusters_rain_mask_5.nc
+  input_filepath_dropsondes: observation/dropsonde/processed/drop_sondes.nc
   # The path to the directory where the output data will be stored
   output_directory: data/observation/combined/distance/
   # The output file name. If NULL is provided, the input file will be automatically made:
