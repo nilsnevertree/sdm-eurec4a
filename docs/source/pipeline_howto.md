@@ -85,17 +85,30 @@ The whole idea is to:
 
 ### 1.0 Download observational datasets
 
-**Cloud composite**
+**Cloud Composite**
 There is a yaml-file describing the download procedure, and time of download.
 ``./docs/source/download_info/cloud_composite_download_info.yaml``
 
-**Drop sondes**
+**Dropsondes**
 There is a yaml-file describing the download procedure, and time of download.
 ``./docs/source/download_info/dropsonde_download_info.yaml``
 
-*NOTE:* you will need to replace ``SPECIFYTHIS`` with the name you want for the directory of the data you download. Good ideas are to save them under ``raw`` in seperate folders of a directory called ``data/observation/``, i.e. in ``./data/observation/cloud_composite/raw`` and ``./data/observation/dropsonde/raw`` respectively. For the dropsonde data you also need to replace ``SPECIFYLEVEL`` with the level you want, it's best to download ``Level_3``, ``Level_4`` and ``QC`` within seperate directories of ``./data/observation/dropsonde/raw``, e.g. ``./data/observation/dropsonde/raw/LEVEL_3``. (Although probably you will only use ``Level_3``.)
+**Safire Cores**
+There is a yaml-file describing the download procedure, and time of download.
+``./docs/source/download_info/safire_core_download_info.yaml``
 
-*NOTE:* For the scripts to run automatically, you will then need to move the ``*.nc`` files in ``./data/observation/dropsonde/raw/[Level_3 or Level_4 or QC]/`` out of their nested directories and into ``[...]/raw/[Level_3 or Level_4 or QC]/``, e.g. ``mv ./data/observation/dropsonde/raw/Level_3/eurec4a-data/PRODUCTS/MERGED-MEASUREMENTS/JOANNE/v2.0.0/Level_3/EUREC4A_JOANNE_Dropsonde-RD41_Level_3_v2.0.0.nc ./data/observation/dropsonde/raw/Level_3/`` (and to clean-up: ``rm -rf ./data/observation/dropsonde/raw/Level_3/eurec4a-data``). Likewise you have to move the ``*.nc`` in ``./data/observation/safire_core/raw/eurec4a-data/`` into ``./data/observation/safire_core/raw/`` (and ``rm -rf eurec4a-data``).
+*NOTE:* you will need to replace ``SPECIFYTHIS`` with the name you want for the directory of the data you download. Good ideas are to save them under ``raw`` in seperate folders of a directory called ``/path/to/your/data_dir/observation/``, i.e. in:
+- ``/path/to/your/data_dir/observation/cloud_composite/raw``,
+- ``/path/to/your/data_dir/observation/dropsonde/raw``, and
+- ``/path/to/your/data_dir/observation/safire_core/raw``
+
+respectively. For the dropsonde data you also need to replace ``SPECIFYLEVEL`` with the level you want, it's best to download ``Level_3``, ``Level_4`` and ``QC`` within seperate directories of ``[...]/observation/dropsonde/raw``, e.g. ``[...]/observation/dropsonde/raw/Level_3``. (Although probably you will only use ``Level_3``.)
+
+*NOTE:* For the scripts to run automatically, you will then need to move the ``*.nc`` files in ``[...]/observation/dropsonde/raw/[Level_3 or Level_4 or QC]/`` out of their nested directories and into ``[...]/observation/dropsonde/raw/[Level_3 or Level_4 or QC]/``, e.g.
+
+``mv ./data/observation/dropsonde/raw/Level_3/eurec4a-data/PRODUCTS/MERGED-MEASUREMENTS/JOANNE/v2.0.0/Level_3/EUREC4A_JOANNE_Dropsonde-RD41_Level_3_v2.0.0.nc ./data/observation/dropsonde/raw/Level_3/``
+
+(and to clean-up: ``rm -rf ./data/observation/dropsonde/raw/Level_3/eurec4a-data``). Likewise you have to move the ``*.nc`` in ``./data/observation/safire_core/raw/eurec4a-data/`` into ``./data/observation/safire_core/raw/`` (and ``rm -rf eurec4a-data``).
 
 *NOTE:* while you're at it, it's advisable to make to two further directories in ``data``, ``./data/model`` and ``./data/sharing``.
 
