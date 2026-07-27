@@ -29,11 +29,11 @@ import xarray as xr
 from sdm_eurec4a import get_git_revision_hash
 from sdm_eurec4a import RepositoryPath
 
-REPO_PATH = RepositoryPath("levante_m300950").repo_dir
+DATA_PATH = RepositoryPath("levante_m300950").data_dir
 
-ORIGIN_DIRECTORY = REPO_PATH / Path("data/observation/dropsonde/raw/Level_3")
+ORIGIN_DIRECTORY = DATA_PATH / Path("observation/dropsonde/raw/Level_3")
 ORIGIN_FILENAME = "EUREC4A_JOANNE_Dropsonde-RD41_Level_3_v2.0.0.nc"
-DESTINATION_DIRECTORY = REPO_PATH / Path("data/observation/dropsonde/processed")
+DESTINATION_DIRECTORY = DATA_PATH / Path("observation/dropsonde/processed")
 DESTINATION_DIRECTORY.mkdir(parents=True, exist_ok=True)
 DESTINATION_FILENAME = "drop_sondes.nc"
 
@@ -73,9 +73,9 @@ def handle_exception(exc_type, exc_value, exc_traceback):
 logging.info("============================================================")
 logging.info("Start drop_sondes pre-processing")
 logging.info("Git hash: %s", get_git_revision_hash())
-logging.info("Origin directory: %s", ORIGIN_DIRECTORY.relative_to(REPO_PATH))
+logging.info("Origin directory: %s", ORIGIN_DIRECTORY)
 logging.info("Origin filename: %s", ORIGIN_FILENAME)
-logging.info("Destination directory: %s", DESTINATION_DIRECTORY.relative_to(REPO_PATH))
+logging.info("Destination directory: %s", DESTINATION_DIRECTORY)
 logging.info("Destination filename: %s", DESTINATION_FILENAME)
 
 # --- Load data ---
