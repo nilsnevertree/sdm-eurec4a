@@ -478,6 +478,7 @@ Here you define:
 - your source directory, e.g. ``path2sdmeurec4aCLEO=/home/[...]/sdm-eurec4a-CLEO``
 - your build directory, e.g. ``path2build=/work/[...]/sdm-eurec4a-CLEO/build/``
 - your data directory (for output of runs), e.g. ``path2data=/work/[...]/sdm-eurec4a-CLEO/data/[...]``
+- your yac and yaxt root, e.g. ``yacyaxtroot=/work/mh1126/m300950/yacyaxt/`` (for YAC and YAXT installation details, see CLEO's documentation)
 
 It can be used to build CLEO, compile CLEO, run CLEO simply toggle the lines:
 
