@@ -64,17 +64,15 @@ from sdm_eurec4a.reductions import mean_and_stderror_of_mean
 
 RadiusSlices.rain_and_drizzle
 
-# %%
-# %%
-REPO_PATH = RepositoryPath("levante").repo_dir
-print(f"Repository root is\n\t{REPO_PATH}")
-# Example dataset
-script_path = REPO_PATH / "scripts/preprocessing/cluster_identification_general.py"
-# script_path = Path(os.path.abspath(__file__))
-print(f"Script path is\n\t{script_path}")
-SCRIPT_DIR = script_path.parent
+# %% define paths
+DATA_PATH = RepositoryPath("levante_m300950").data_dir
+print(f"Data path is\n\t{DATA_PATH}")
 
-SETTINGS_PATH = SCRIPT_DIR / "settings" / "cluster_identification.yaml"
+script_path = RepositoryPath("levante_m300950").repo_dir / "scripts/preprocessing/cluster_identification_general.py"
+print(f"Script path is\n\t{script_path}")
+
+SETTINGS_PATH = script_path.parent / "settings" / "cluster_identification.yaml"
+print(f"Settings path is\n\t{SETTINGS_PATH}")
 
 # open settings path
 with open(SETTINGS_PATH, "r") as stream:
@@ -84,10 +82,10 @@ with open(SETTINGS_PATH, "r") as stream:
         raise exc
 
 
-OUTPUT_DIR = REPO_PATH / Path(SETTINGS["paths"]["output_directory"])
+OUTPUT_DIR = DATA_PATH / Path(SETTINGS["paths"]["output_directory"])
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
-INPUT_FILEPATH = REPO_PATH / Path(SETTINGS["paths"]["input_filepath"])
+INPUT_FILEPATH = DATA_PATH / Path(SETTINGS["paths"]["input_filepath"])
 
 # specify the mask to use for cloud identification
 mask_name = SETTINGS["setup"]["mask_name"]
@@ -144,8 +142,8 @@ sys.excepthook = handle_exception
 logging.info("============================================================")
 logging.info("Start cloud identification pre-processing")
 logging.info("Git hash: %s", get_git_revision_hash())
-logging.info("Input file: %s", INPUT_FILEPATH.relative_to(REPO_PATH))
-logging.info("Destination directory: %s", OUTPUT_DIR.relative_to(REPO_PATH))
+logging.info("Input file: %s", INPUT_FILEPATH)
+logging.info("Destination directory: %s", OUTPUT_DIR)
 logging.info("Destination filename: %s", OUTPUT_FILE_NAME)
 logging.info("Mask name: %s", mask_name)
 logging.info("Minimum duration of cloud holes: %s", min_duration_cloud_holes)

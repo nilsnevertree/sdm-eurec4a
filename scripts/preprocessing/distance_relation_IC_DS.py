@@ -23,14 +23,17 @@ from dask.diagnostics import ProgressBar
 from sdm_eurec4a import get_git_revision_hash
 from sdm_eurec4a.calculations import great_circle_distance_np
 
+from sdm_eurec4a import RepositoryPath
 
-# %%
-# Example dataset
+# %% define paths
+DATA_PATH = RepositoryPath("levante_m300950").data_dir
+print(f"Data path is\n\t{DATA_PATH}")
+
 script_path = Path(os.path.abspath(__file__))
 print(f"Script path is\n\t{script_path}")
-SCRIPT_DIR = script_path.parent
 
-SETTINGS_PATH = SCRIPT_DIR / "settings" / "distance_calculation.yaml"
+SETTINGS_PATH = script_path.parent / "settings" / "distance_calculation.yaml"
+print(f"Settings path is\n\t{SETTINGS_PATH}")
 
 # open settings path
 with open(SETTINGS_PATH, "r") as stream:
@@ -39,17 +42,13 @@ with open(SETTINGS_PATH, "r") as stream:
     except yaml.YAMLError as exc:
         raise exc
 
-
-REPO_PATH = Path(script_path).parent.parent.parent
-print(f"Repository root is\n\t{REPO_PATH}")
-
-OUTPUT_DIR = REPO_PATH / Path(SETTINGS["paths"]["output_directory"])
+OUTPUT_DIR = DATA_PATH / Path(SETTINGS["paths"]["output_directory"])
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
-INPUT_FILEPATH_CLOUDS = REPO_PATH / Path(SETTINGS["paths"]["input_filepath_clouds"])
+INPUT_FILEPATH_CLOUDS = DATA_PATH / Path(SETTINGS["paths"]["input_filepath_clouds"])
 INPUT_FILENAME_CLOUDS = INPUT_FILEPATH_CLOUDS.stem
 
-INPUT_FILEPATH_DROPSONDES = REPO_PATH / Path(SETTINGS["paths"]["input_filepath_dropsondes"])
+INPUT_FILEPATH_DROPSONDES = DATA_PATH / Path(SETTINGS["paths"]["input_filepath_dropsondes"])
 
 print(SETTINGS["paths"]["output_file_name"])
 
@@ -105,9 +104,9 @@ sys.excepthook = handle_exception
 logging.info("============================================================")
 logging.info("Start distance calculation")
 logging.info("Git hash: %s", get_git_revision_hash())
-logging.info("Input clouds file: %s", INPUT_FILEPATH_CLOUDS.relative_to(REPO_PATH))
-logging.info("Input dropsondes file: %s", INPUT_FILEPATH_DROPSONDES.relative_to(REPO_PATH))
-logging.info("Destination directory: %s", OUTPUT_DIR.relative_to(REPO_PATH))
+logging.info("Input clouds file: %s", INPUT_FILEPATH_CLOUDS)
+logging.info("Input dropsondes file: %s", INPUT_FILEPATH_DROPSONDES)
+logging.info("Destination directory: %s", OUTPUT_DIR)
 logging.info("Destination filename: %s", OUTPUT_FILE_NAME)
 
 logging.info("Save settings to output directory")

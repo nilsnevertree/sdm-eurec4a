@@ -85,17 +85,30 @@ The whole idea is to:
 
 ### 1.0 Download observational datasets
 
-**Cloud composite**
+**Cloud Composite**
 There is a yaml-file describing the download procedure, and time of download.
 ``./docs/source/download_info/cloud_composite_download_info.yaml``
 
-**Drop sondes**
+**Dropsondes**
 There is a yaml-file describing the download procedure, and time of download.
 ``./docs/source/download_info/dropsonde_download_info.yaml``
 
-*NOTE:* you will need to replace ``SPECIFYTHIS`` with the name you want for the directory of the data you download. Good ideas are to save them under ``raw`` in seperate folders of a directory called ``data/observation/``, i.e. in ``./data/observation/cloud_composite/raw`` and ``./data/observation/dropsonde/raw`` respectively. For the dropsonde data you also need to replace ``SPECIFYLEVEL`` with the level you want, it's best to download ``Level_3``, ``Level_4`` and ``QC`` within seperate directories of ``./data/observation/dropsonde/raw``, e.g. ``./data/observation/dropsonde/raw/LEVEL_3``. (Although probably you will only use ``Level_3``.)
+**Safire Cores**
+There is a yaml-file describing the download procedure, and time of download.
+``./docs/source/download_info/safire_core_download_info.yaml``
 
-*NOTE:* For the scripts to run automatically, you will then need to move the ``*.nc`` files in ``./data/observation/dropsonde/raw/[Level_3 or Level_4 or QC]/`` out of their nested directories and into ``[...]/raw/[Level_3 or Level_4 or QC]/``, e.g. ``mv ./data/observation/dropsonde/raw/Level_3/eurec4a-data/PRODUCTS/MERGED-MEASUREMENTS/JOANNE/v2.0.0/Level_3/EUREC4A_JOANNE_Dropsonde-RD41_Level_3_v2.0.0.nc ./data/observation/dropsonde/raw/Level_3/`` (and to clean-up: ``rm -rf ./data/observation/dropsonde/raw/Level_3/eurec4a-data``). Likewise you have to move the ``*.nc`` in ``./data/observation/safire_core/raw/eurec4a-data/`` into ``./data/observation/safire_core/raw/`` (and ``rm -rf eurec4a-data``).
+*NOTE:* you will need to replace ``SPECIFYTHIS`` with the name you want for the directory of the data you download. Good ideas are to save them under ``raw`` in seperate folders of a directory called ``/path/to/your/data_dir/observation/``, i.e. in:
+- ``/path/to/your/data_dir/observation/cloud_composite/raw``,
+- ``/path/to/your/data_dir/observation/dropsonde/raw``, and
+- ``/path/to/your/data_dir/observation/safire_core/raw``
+
+respectively. For the dropsonde data you also need to replace ``SPECIFYLEVEL`` with the level you want, it's best to download ``Level_3``, ``Level_4`` and ``QC`` within seperate directories of ``[...]/observation/dropsonde/raw``, e.g. ``[...]/observation/dropsonde/raw/Level_3``. (Although probably you will only use ``Level_3``.)
+
+*NOTE:* For the scripts to run automatically, you will then need to move the ``*.nc`` files in ``[...]/observation/dropsonde/raw/[Level_3 or Level_4 or QC]/`` out of their nested directories and into ``[...]/observation/dropsonde/raw/[Level_3 or Level_4 or QC]/``, e.g.
+
+``mv ./data/observation/dropsonde/raw/Level_3/eurec4a-data/PRODUCTS/MERGED-MEASUREMENTS/JOANNE/v2.0.0/Level_3/EUREC4A_JOANNE_Dropsonde-RD41_Level_3_v2.0.0.nc ./data/observation/dropsonde/raw/Level_3/``
+
+(and to clean-up: ``rm -rf ./data/observation/dropsonde/raw/Level_3/eurec4a-data``). Likewise you have to move the ``*.nc`` in ``./data/observation/safire_core/raw/eurec4a-data/`` into ``./data/observation/safire_core/raw/`` (and ``rm -rf eurec4a-data``).
 
 *NOTE:* while you're at it, it's advisable to make to two further directories in ``data``, ``./data/model`` and ``./data/sharing``.
 
@@ -104,15 +117,15 @@ There is a yaml-file describing the download procedure, and time of download.
 #### A) Prepare the cloud composite dataset
 
 S : ``./scripts/preprocessing/cloud_composite_si_units.py``
-ID: ``./data/observation/cloud_composite/raw`` (location of the downloaded cloud composite files)
-OD: specified by you, e.g. ``data/observation/cloud_composite/processed/cloud_composite_SI_units_20241025.nc``
+ID: ``/path/to/your/data_dir/observation/cloud_composite/raw`` (location of the downloaded cloud composite files)
+OD: specified by you, e.g. ``/path/to/your/data_dir/observation/cloud_composite/processed/cloud_composite_SI_units_20241025.nc``
 
 The script  combines all individual cloud composite files, converts them into SI units and stores the output netcdf file in the ``DESTINATION_FILEPATH`` location.
 
 Please change the following lines in the script before running.
 ````python
-ORIGIN_DIRECTORY = REPO_PATH / Path("data/observation/cloud_composite/raw")
-DESTINATION_DIRECTORY = REPO_PATH / Path("data/observation/cloud_composite/processed")
+ORIGIN_DIRECTORY = DATA_PATH / Path("observation/cloud_composite/raw")
+DESTINATION_DIRECTORY = DATA_PATH / Path("observation/cloud_composite/processed")
 DESTINATION_DIRECTORY.mkdir(parents=True, exist_ok=True)
 DESTINATION_FILENAME = "cloud_composite_SI_units_20241025.nc"
 DESTINATION_FILEPATH = DESTINATION_DIRECTORY / DESTINATION_FILENAME
@@ -123,16 +136,16 @@ log_file_path = DESTINATION_DIRECTORY / "cloud_composite_preprocessing.log"
 #### B) Prepare Drop sonde dataset
 
 S: ``./scripts/preprocessing/drop_sondes.py``
-ID: ``./data/observation/dropsonde/raw/Level_3/EUREC4A_JOANNE_Dropsonde-RD41_Level_3_v2.0.0.nc``
-OD: ``./data/observation/dropsonde/processed/drop_sondes.nc``
+ID: ``/path/to/your/data_dir/observation/dropsonde/raw/Level_3/EUREC4A_JOANNE_Dropsonde-RD41_Level_3_v2.0.0.nc``
+OD: ``/path/to/your/data_dir/observation/dropsonde/processed/drop_sondes.nc``
 
 The script mainly provides more meaningful variable names and uses  "time" (the launch time of the dropsonde) as the leading dimension instead of the dropsonde ID.
 
 #### C) Prepare the Safire Core dataset
 
 S: ``./scripts/preprocessing/safire_core.py``
-ID: ``./data/observation/safire_core/raw/*.nc``
-OD: ``./data/observation/safire_core/processed/safire_core.nc``
+ID: ``/path/to/your/data_dir/observation/safire_core/raw/*.nc``
+OD: ``/path/to/your/data_dir/observation/safire_core/processed/safire_core.nc``
 
 
 ### 1.2 Identify individual rain clouds
@@ -142,8 +155,8 @@ Please use the cluster identification script:
 
 S: ``./scripts/preprocessing/cluster_identification_general.py``
 A: ``./scripts/preprocessing/settings/cluster_identification.yaml``
-ID: specified in A
-OD: specified in A
+ID: ``/path/to/your/data_dir/specified/in/A``
+OD: ``/path/to/your/data_dir/specified/in/A``
 
 The script identifies all individual rain clouds based on the ``rain_mask`` given in the cloud composite dataset.
 The output netcdf file contains the new dimension ``cloud_id``
@@ -156,9 +169,9 @@ The settings file looks like this:
 paths:
   # The paths need to be relative to the root directory of the project.
   # The path to the input file
-  input_filepath: data/observation/cloud_composite/processed/cloud_composite_SI_units_20241025.nc
+  input_filepath: observation/cloud_composite/processed/cloud_composite_SI_units_20241025.nc
   # The path to the directory where the output data will be stored
-  output_directory: data/observation/cloud_composite/processed/identified_clusters/
+  output_directory: observation/cloud_composite/processed/identified_clusters/
   # The output file name. If NULL is provided, the input file will be automatically made:
   # f"identified_clouds_{mask_name}.nc"
   output_file_name : NULL
@@ -175,6 +188,8 @@ setup:
 
 S: ``./scripts/preprocessing/distance_relation_IC_DS.py``
 A: ``./scripts/preprocessing/settings/distance_calculation.yaml``
+ID: ``/path/to/your/data_dir/specified/in/A``
+OD: ``/path/to/your/data_dir/specified/in/A``
 
 Within the settings file, you can specify the input and output files
 
@@ -183,8 +198,8 @@ Within the settings file, you can specify the input and output files
 paths:
   # The paths need to be relative to the root directory of the project.
   # The path to the input file
-  input_filepath_clouds: data/observation/cloud_composite/processed/identified_clusters/identified_clusters_rain_mask_5.nc
-  input_filepath_dropsondes: data/observation/dropsonde/processed/drop_sondes.nc
+  input_filepath_clouds: observation/cloud_composite/processed/identified_clusters/identified_clusters_rain_mask_5.nc
+  input_filepath_dropsondes: observation/dropsonde/processed/drop_sondes.nc
   # The path to the directory where the output data will be stored
   output_directory: data/observation/combined/distance/
   # The output file name. If NULL is provided, the input file will be automatically made:
@@ -280,10 +295,10 @@ We use the weighting by the cube of the radius.
 This gives more weight to the larger radii, which have much higher mass but very little number concentration and would otherwise be underestimated.
 
 
-The output will be multiple files in the output dir (e.g. ``./data/model/input_v4.2``)
+The output will be multiple files in the output dir (e.g. ``/path/to/your/data_dir/model/input_v4.2``)
 
 **particle_size_distribution_parameters_linear_space.nc**
-File containing the parameters for the bimodal Log-normal distributions for all DSDs. It is a netcdf file, with teh leading dimension being the ``cloud_id``.
+File containing the parameters for the bimodal Log-normal distributions for all DSDs. It is a netcdf file, with the leading dimension being the ``cloud_id``.
 The parameters for the bimodal Log-Normal fits are individual variables.
 
 ````python
@@ -317,7 +332,7 @@ S: ``./notebooks/issues/114/114-enhance-thermodynamic-fit.ipynb``
 ID: defined in the script
 OD: defined in the script
 
-Will produce thermodynamic fits in the output dir (e.g. ``./data/model/input_v4.2``).
+Will produce thermodynamic fits in the output dir (e.g. ``/path/to/your/data_dir/model/input_v4.2``).
 
 There are fits for the
 - potential_temperature : constant in sub cloud layer with linear fit above cloud base
@@ -360,7 +375,7 @@ Before you begin it is reccomended to create a folder called ``data`` somewhere 
 disk-space allocation e.g. ``/work/[...]/sdm-eurec4a-CLEO/data`` directory. (Do not overwrite ``/work/[...]/sdm-eurec4a/data``!)
 
 Additionally it is advisable to make the logfiles folder, e.g. with
-``cd /work/[...]/sdm-eurec4a/data && mkdir logfiles && cd logfiles && mkdir create_init_files  full_workflow  run_CLEO  run_CLEO_single  run_CLEO_singledebug  update_config``.
+``cd /work/[...]/sdm-eurec4a-CLEO/data && mkdir logfiles && cd logfiles && mkdir create_init_files  full_workflow  run_CLEO  run_CLEO_single  run_CLEO_singledebug  update_config``.
 
 As above for the ``sdm-eurec4a`` repository, before you can begin, first replace all mentions of ``m301096`` and ``m300950``, and ``um1487``, ``mh1126`` and ``bm1183``, with your DKRZ account and project IDs. You will probably also want to edit the email address in SLURM jobs, ``#SBATCH --mail-user=[...]```
 
@@ -475,4 +490,6 @@ and the combined dataset is stored in ``/your/path2data/output_[version_output]/
 
 # Plot and Use the Conservation and Eulerian Views.
 
-to handle all the different data mess for all microphysics and clouds, we can use the following:
+To plot specific figures for paper:
+- ``./notebooks/paper/15-NN-compare-thermodynamic-profiles.ipynb`` produces Fig.1 ``compare_observations_cloud_396``
+- ``./notebooks/paper/14-NN-paper-figures.ipynb`` plots lots of the paper's figures.

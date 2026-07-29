@@ -70,11 +70,12 @@ import xarray as xr
 from sdm_eurec4a import get_git_revision_hash
 from sdm_eurec4a.reductions import validate_datasets_same_attrs
 
+from sdm_eurec4a import RepositoryPath
 
-REPO_PATH = Path(__file__).resolve().parent.parent.parent
+DATA_PATH = RepositoryPath("levante_m300950").data_dir
 
-ORIGIN_DIRECTORY = REPO_PATH / Path("data/observation/safire_core/raw")
-DESTINATION_DIRECTORY = REPO_PATH / Path("data/observation/safire_core/processed")
+ORIGIN_DIRECTORY = DATA_PATH / Path("observation/safire_core/raw")
+DESTINATION_DIRECTORY = DATA_PATH / Path("observation/safire_core/processed")
 DESTINATION_DIRECTORY.mkdir(parents=True, exist_ok=True)
 DESTINATION_FILENAME = "safire_core.nc"
 
@@ -87,8 +88,8 @@ logging.basicConfig(
 logging.info("============================================================")
 logging.info("Start SAFIRE CORE pre-processing")
 logging.info("Git hash: %s", get_git_revision_hash())
-logging.info("Origin directory: %s", ORIGIN_DIRECTORY.relative_to(REPO_PATH))
-logging.info("Destination directory: %s", DESTINATION_DIRECTORY.relative_to(REPO_PATH))
+logging.info("Origin directory: %s", ORIGIN_DIRECTORY)
+logging.info("Destination directory: %s", DESTINATION_DIRECTORY)
 logging.info("Destination filename: %s", DESTINATION_FILENAME)
 
 

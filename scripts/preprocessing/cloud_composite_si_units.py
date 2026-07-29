@@ -36,10 +36,10 @@ from sdm_eurec4a import RepositoryPath
 USER_CONSENT_NEEDED = False
 
 
-REPO_PATH = RepositoryPath("levante_m300950").repo_dir
+DATA_PATH = RepositoryPath("levante_m300950").data_dir
 
-ORIGIN_DIRECTORY = REPO_PATH / Path("data/observation/cloud_composite/raw")
-DESTINATION_DIRECTORY = REPO_PATH / Path("data/observation/cloud_composite/processed")
+ORIGIN_DIRECTORY = DATA_PATH / Path("observation/cloud_composite/raw")
+DESTINATION_DIRECTORY = DATA_PATH / Path("observation/cloud_composite/processed")
 DESTINATION_DIRECTORY.mkdir(parents=True, exist_ok=True)
 DESTINATION_FILENAME = "cloud_composite_SI_units_20241025.nc"
 DESTINATION_FILEPATH = DESTINATION_DIRECTORY / DESTINATION_FILENAME
@@ -82,8 +82,8 @@ sys.excepthook = handle_exception
 logging.info("============================================================")
 logging.info("Start cloud composite pre-processing")
 logging.info("Git hash: %s", get_git_revision_hash())
-logging.info("Origin directory: %s", ORIGIN_DIRECTORY.relative_to(REPO_PATH))
-logging.info("Destination directory: %s", DESTINATION_DIRECTORY.relative_to(REPO_PATH))
+logging.info("Origin directory: %s", ORIGIN_DIRECTORY)
+logging.info("Destination directory: %s", DESTINATION_DIRECTORY)
 logging.info("Destination filename: %s", DESTINATION_FILENAME)
 
 if USER_CONSENT_NEEDED == True:
