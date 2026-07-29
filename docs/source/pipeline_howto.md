@@ -210,24 +210,26 @@ paths:
 ## 2. How to select individual clouds and dropsondes
 
 ````python
+import xarray as xr
+import numpy as np
 
 from sdm_eurec4a.identifications import match_clouds_and_dropsondes, match_clouds_and_cloudcomposite
-import xarray as xr
+from sdm_eurec4a import RepositoryPath
+
 RP = RepositoryPath("levante_m300950")
-repo_dir = RP.repo_dir
 data_dir = RP.data_dir
 
-drop_sondes = xr.open_dataset(repo_dir / "data/observation/dropsonde/processed/drop_sondes.nc")
+drop_sondes = xr.open_dataset(data_dir / "observation/dropsonde/processed/drop_sondes.nc")
 distance = xr.open_dataset(
-    repo_dir
-    / "data/observation/combined/distance/distance_dropsondes_identified_clusters_rain_mask_5.nc"
+    data_dir
+    / "observation/combined/distance/distance_dropsondes_identified_clusters_rain_mask_5.nc"
 )
 cloud_composite = xr.open_dataset(
-    repo_dir / "data/observation/cloud_composite/processed/cloud_composite_SI_units_20241025.nc"
+    data_dir / "observation/cloud_composite/processed/cloud_composite_SI_units_20241025.nc"
 )
 identified_clusters = xr.open_dataset(
-    repo_dir
-    / "data/observation/cloud_composite/processed/identified_clusters/identified_clusters_rain_mask_5.nc"
+    data_dir
+    / "observation/cloud_composite/processed/identified_clusters/identified_clusters_rain_mask_5.nc"
 )
 ````
 
@@ -236,8 +238,10 @@ To select an individual cloud, you can simply select the cloud based on the ``ti
 To select all data of the cloud composite dataset for one cloud, use this code:
 
 ````python
+clouds_to_select = [42, 24]
+
 cloud_composite_selected = match_clouds_and_cloudcomposite(
-    ds_clouds=your_cloud_id,
+    ds_clouds=identified_clusters.sel(cloud_id=clouds_to_select),
     ds_cloudcomposite=cloud_composite,
 )
 ````
@@ -248,6 +252,7 @@ To select data for all drop sondes which were release within spatial distance (1
 
 ````python
 your_cloud_id = 42
+
 # swap ``time`` and ``cloud_id`` to select by your cloud id
 ic = identified_clusters.swap_dims({"time": "cloud_id"}).sel(cloud_id=your_cloud_id)
 
@@ -258,7 +263,7 @@ ds = match_clouds_and_dropsondes(
     ds_clouds=ic,
     ds_sonde=drop_sondes,
     ds_distance=distance,
-    max_temporal_distance=np.timedelta64(3, "h"),
+    max_temporal_distance=np.timedelta64(24, "h"),
     max_spatial_distance=1e2,
 )
 ````
