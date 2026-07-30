@@ -358,6 +358,62 @@ Data variables:
     slope_2   (cloud_id) float64 2kB ...
 ````
 
+### 3.3. Correct the DSDs for all clouds
+
+After running the above notebooks you will need to correct the parameters for the DSD fits to
+better match the observed cloud LWCs. First move the input data folder you've created
+e.g. ``mv input_v4.2 input_v4.2_without_correction`` and then run the following notebook to create
+updated input.
+
+S: ``./notebooks/issues/131/131-create-correct-parameters-dataset.ipynb``
+ID: defined in the script (e.g. ``input_v4.2_without_correction``)
+OD: defined in the script (e.g. ``input_v4.2``)
+
+```python
+------
+particle_size_distribution_parameters.nc
+                     div mean    div std     diff mean   diff std   
+mu1                  1.00e+00    0.00e+00    0.00e+00    0.00e+00   
+sigma1               1.00e+00    0.00e+00    0.00e+00    0.00e+00   
+scale_factor1        2.00e+00    0.00e+00    4.02e+12    5.49e+12   
+mu2                  1.00e+00    0.00e+00    0.00e+00    0.00e+00   
+sigma2               1.00e+00    0.00e+00    0.00e+00    0.00e+00   
+scale_factor2        2.00e+00    0.00e+00    1.30e+06    2.72e+06   
+cloud_id             1.00e+00    0.00e+00    0.00e+00    0.00e+00   
+------
+particle_size_distribution_parameters_linear_space.nc
+                     div mean    div std     diff mean   diff std   
+geometric_mean1      1.00e+00    0.00e+00    0.00e+00    0.00e+00   
+geometric_std_dev1   1.00e+00    0.00e+00    0.00e+00    0.00e+00   
+scale_factor1        2.00e+00    0.00e+00    2.83e+07    4.12e+07   
+geometric_mean2      1.00e+00    0.00e+00    0.00e+00    0.00e+00   
+geometric_std_dev2   1.00e+00    0.00e+00    0.00e+00    0.00e+00   
+scale_factor2        2.00e+00    0.00e+00    2.59e+02    4.89e+02   
+cloud_id             1.00e+00    0.00e+00    0.00e+00    0.00e+00   
+------
+potential_temperature_parameters.nc
+                     div mean    div std     diff mean   diff std   
+f_0                  1.00e+00    0.00e+00    0.00e+00    0.00e+00   
+slope_1              nan         nan         0.00e+00    0.00e+00   
+slope_2              1.00e+00    0.00e+00    0.00e+00    0.00e+00   
+x_split              1.00e+00    0.00e+00    0.00e+00    0.00e+00   
+cloud_id             1.00e+00    0.00e+00    0.00e+00    0.00e+00   
+------
+relative_humidity_parameters.nc
+                     div mean    div std     diff mean   diff std   
+f_0                  1.00e+00    0.00e+00    0.00e+00    0.00e+00   
+slope_1              1.00e+00    0.00e+00    0.00e+00    0.00e+00   
+x_split              1.00e+00    0.00e+00    0.00e+00    0.00e+00   
+slope_2              nan         nan         0.00e+00    0.00e+00   
+cloud_id             1.00e+00    0.00e+00    0.00e+00    0.00e+00   
+------
+pressure_parameters.nc
+                     div mean    div std     diff mean   diff std   
+f_0                  1.00e+00    0.00e+00    0.00e+00    0.00e+00   
+slope                1.00e+00    0.00e+00    0.00e+00    0.00e+00   
+cloud_id             1.00e+00    0.00e+00    0.00e+00    0.00e+00
+```
+
 ---
 
 # Running CLEO based on Observational Fits
