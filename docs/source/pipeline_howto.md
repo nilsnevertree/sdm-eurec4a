@@ -210,24 +210,26 @@ paths:
 ## 2. How to select individual clouds and dropsondes
 
 ````python
+import xarray as xr
+import numpy as np
 
 from sdm_eurec4a.identifications import match_clouds_and_dropsondes, match_clouds_and_cloudcomposite
-import xarray as xr
+from sdm_eurec4a import RepositoryPath
+
 RP = RepositoryPath("levante_m300950")
-repo_dir = RP.repo_dir
 data_dir = RP.data_dir
 
-drop_sondes = xr.open_dataset(repo_dir / "data/observation/dropsonde/processed/drop_sondes.nc")
+drop_sondes = xr.open_dataset(data_dir / "observation/dropsonde/processed/drop_sondes.nc")
 distance = xr.open_dataset(
-    repo_dir
-    / "data/observation/combined/distance/distance_dropsondes_identified_clusters_rain_mask_5.nc"
+    data_dir
+    / "observation/combined/distance/distance_dropsondes_identified_clusters_rain_mask_5.nc"
 )
 cloud_composite = xr.open_dataset(
-    repo_dir / "data/observation/cloud_composite/processed/cloud_composite_SI_units_20241025.nc"
+    data_dir / "observation/cloud_composite/processed/cloud_composite_SI_units_20241025.nc"
 )
 identified_clusters = xr.open_dataset(
-    repo_dir
-    / "data/observation/cloud_composite/processed/identified_clusters/identified_clusters_rain_mask_5.nc"
+    data_dir
+    / "observation/cloud_composite/processed/identified_clusters/identified_clusters_rain_mask_5.nc"
 )
 ````
 
@@ -236,8 +238,10 @@ To select an individual cloud, you can simply select the cloud based on the ``ti
 To select all data of the cloud composite dataset for one cloud, use this code:
 
 ````python
+clouds_to_select = [42, 24]
+
 cloud_composite_selected = match_clouds_and_cloudcomposite(
-    ds_clouds=your_cloud_id,
+    ds_clouds=identified_clusters.sel(cloud_id=clouds_to_select),
     ds_cloudcomposite=cloud_composite,
 )
 ````
@@ -248,6 +252,7 @@ To select data for all drop sondes which were release within spatial distance (1
 
 ````python
 your_cloud_id = 42
+
 # swap ``time`` and ``cloud_id`` to select by your cloud id
 ic = identified_clusters.swap_dims({"time": "cloud_id"}).sel(cloud_id=your_cloud_id)
 
@@ -258,7 +263,7 @@ ds = match_clouds_and_dropsondes(
     ds_clouds=ic,
     ds_sonde=drop_sondes,
     ds_distance=distance,
-    max_temporal_distance=np.timedelta64(3, "h"),
+    max_temporal_distance=np.timedelta64(24, "h"),
     max_spatial_distance=1e2,
 )
 ````
@@ -352,6 +357,62 @@ Data variables:
     x_split   (cloud_id) float64 2kB ...
     slope_2   (cloud_id) float64 2kB ...
 ````
+
+### 3.3. Correct the DSDs for all clouds
+
+After running the above notebooks you will need to correct the parameters for the DSD fits to
+better match the observed cloud LWCs. First move the input data folder you've created
+e.g. ``mv input_v4.2 input_v4.2_without_correction`` and then run the following notebook to create
+updated input.
+
+S: ``./notebooks/issues/131/131-create-correct-parameters-dataset.ipynb``
+ID: defined in the script (e.g. ``input_v4.2_without_correction``)
+OD: defined in the script (e.g. ``input_v4.2``)
+
+```python
+------
+particle_size_distribution_parameters.nc
+                     div mean    div std     diff mean   diff std   
+mu1                  1.00e+00    0.00e+00    0.00e+00    0.00e+00   
+sigma1               1.00e+00    0.00e+00    0.00e+00    0.00e+00   
+scale_factor1        2.00e+00    0.00e+00    4.02e+12    5.49e+12   
+mu2                  1.00e+00    0.00e+00    0.00e+00    0.00e+00   
+sigma2               1.00e+00    0.00e+00    0.00e+00    0.00e+00   
+scale_factor2        2.00e+00    0.00e+00    1.30e+06    2.72e+06   
+cloud_id             1.00e+00    0.00e+00    0.00e+00    0.00e+00   
+------
+particle_size_distribution_parameters_linear_space.nc
+                     div mean    div std     diff mean   diff std   
+geometric_mean1      1.00e+00    0.00e+00    0.00e+00    0.00e+00   
+geometric_std_dev1   1.00e+00    0.00e+00    0.00e+00    0.00e+00   
+scale_factor1        2.00e+00    0.00e+00    2.83e+07    4.12e+07   
+geometric_mean2      1.00e+00    0.00e+00    0.00e+00    0.00e+00   
+geometric_std_dev2   1.00e+00    0.00e+00    0.00e+00    0.00e+00   
+scale_factor2        2.00e+00    0.00e+00    2.59e+02    4.89e+02   
+cloud_id             1.00e+00    0.00e+00    0.00e+00    0.00e+00   
+------
+potential_temperature_parameters.nc
+                     div mean    div std     diff mean   diff std   
+f_0                  1.00e+00    0.00e+00    0.00e+00    0.00e+00   
+slope_1              nan         nan         0.00e+00    0.00e+00   
+slope_2              1.00e+00    0.00e+00    0.00e+00    0.00e+00   
+x_split              1.00e+00    0.00e+00    0.00e+00    0.00e+00   
+cloud_id             1.00e+00    0.00e+00    0.00e+00    0.00e+00   
+------
+relative_humidity_parameters.nc
+                     div mean    div std     diff mean   diff std   
+f_0                  1.00e+00    0.00e+00    0.00e+00    0.00e+00   
+slope_1              1.00e+00    0.00e+00    0.00e+00    0.00e+00   
+x_split              1.00e+00    0.00e+00    0.00e+00    0.00e+00   
+slope_2              nan         nan         0.00e+00    0.00e+00   
+cloud_id             1.00e+00    0.00e+00    0.00e+00    0.00e+00   
+------
+pressure_parameters.nc
+                     div mean    div std     diff mean   diff std   
+f_0                  1.00e+00    0.00e+00    0.00e+00    0.00e+00   
+slope                1.00e+00    0.00e+00    0.00e+00    0.00e+00   
+cloud_id             1.00e+00    0.00e+00    0.00e+00    0.00e+00
+```
 
 ---
 
