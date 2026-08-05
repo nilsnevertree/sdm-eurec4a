@@ -19,6 +19,13 @@ class RepositoryPath:
             CLEO_dir=Path("/home/m/m301096/CLEO/"),
             CLEO_data_dir=Path("/home/m/m301096/CLEO/data/"),
         ),
+        levante_m301096_clara=dict(
+            repo_dir=Path("/home/m/m300950/rain-evap-nils/sdm-eurec4a/"),
+            data_dir=Path("/work/mh1126/m300950/rain-evap-nils/sdm-eurec4a/data/"),
+            fig_dir=Path("/home/m/m301096/repositories/yoctoyotta1024-sdm-eurec4a/results/"),
+            CLEO_dir=Path("/home/m/m300950/rain-evap-nils/sdm-eurec4a-CLEO/"),
+            CLEO_data_dir=Path("/work/mh1126/m300950/rain-evap-nils/sdm-eurec4a-CLEO/data/"),
+        ),
         levante_m300950=dict(
             repo_dir=Path("/home/m/m300950/rain-evap-nils/sdm-eurec4a/"),
             data_dir=Path("/work/mh1126/m300950/rain-evap-nils/sdm-eurec4a/data/"),
