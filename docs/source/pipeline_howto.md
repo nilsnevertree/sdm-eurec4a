@@ -552,8 +552,12 @@ and the combined dataset is stored in ``/your/path2data/output_[version_output]/
 
 # Plot and Use CLEO Datasets and Conservation and Eulerian Views' Datasets
 
-To plot specific figures from the original manuscript submission, run:
-- ``./notebooks/paper/17-NN-figure-review-version.ipynb``
+To plot specific figures from the original manuscript submission:
+- S: ``./notebooks/paper/17-NN-figure-review-version.ipynb``
+- ID: defined in the script, ``OBS_data_dir``, ``input_data_dir = [...]``, ``data_dir = [...]``, and ``data_dir_novent = [...]``
+- OD: defined in the script, ``fig_dir = [...]`` and ``appendix_fig_dir = [...]``
 
-To plot revised paper figures, run:
-- ``./scripts/paper/revised_paper_figures.py``
+To plot revised paper figures:
+- S: ``./scripts/paper/revised_paper_figures.py``
+- ID: defined in the script, ``data_dir_obs``, ``data_dir_model_input``, ``data_dir = [...]``, and ``data_dir_novent = [...]``
+- OD: defined in the script, ``fig_dir = [...]`` and ``appendix_fig_dir = [...]``
