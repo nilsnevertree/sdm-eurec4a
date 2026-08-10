@@ -550,8 +550,10 @@ and the combined dataset is stored in ``/your/path2data/output_[version_output]/
 
 ---
 
-# Plot and Use the Conservation and Eulerian Views.
+# Plot and Use CLEO Datasets and Conservation and Eulerian Views' Datasets
 
-To plot specific figures for paper:
-- ``./notebooks/paper/15-NN-compare-thermodynamic-profiles.ipynb`` produces Fig.1 ``compare_observations_cloud_396``
-- ``./notebooks/paper/14-NN-paper-figures.ipynb`` plots lots of the paper's figures.
+To plot specific figures from the original manuscript submission, run:
+- ``./notebooks/paper/17-NN-figure-review-version.ipynb``
+
+To plot revised paper figures, run:
+- ``./scripts/paper/revised_paper_figures.py``
