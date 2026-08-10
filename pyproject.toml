@@ -45,6 +45,7 @@ dependencies = [
     "mpi4py>=4.1.2",
     "ruamel-yaml>=0.19.1",
     "seaborn>=0.13.2",
+    "zarr>=3.3.0",
 ]
 
 
