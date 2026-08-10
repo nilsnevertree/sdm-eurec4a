@@ -801,8 +801,12 @@ def plot_figure_3(ds, ds_sem, microphysics_styles):
 
     x = ds["cloud_liquid_water_content"]
     x_sem = ds_sem["cloud_liquid_water_content"]
-    y = -ds["outflow_energy"]
-    y_sem = -ds_sem["outflow_energy"]
+    y = conversions.EvaporationUnits(data=-ds["outflow_energy"], input_type="energy").convert_to(
+        "precipitation"
+    )
+    y_sem = conversions.EvaporationUnits(data=-ds_sem["outflow_energy"], input_type="energy").convert_to(
+        "precipitation"
+    )
 
     x_mean = x.mean("cloud_id")
     x_std = propagate_mean_std(x, x_sem, dim="cloud_id")
@@ -814,7 +818,7 @@ def plot_figure_3(ds, ds_sem, microphysics_styles):
     y_median = y.median("cloud_id")
 
     x_bins = np.arange(0, 1, 0.05)
-    y_bins = np.arange(0, 6000, 200)
+    y_bins = np.arange(0, 10, 0.2)
 
     x_dict = dict(
         data=x,
@@ -833,7 +837,7 @@ def plot_figure_3(ds, ds_sem, microphysics_styles):
 
     for mp in ["condensation"]:
         style = microphysics_styles.get_style(mp)
-        for d, _ax, rounding in zip([x_dict, y_dict], [ax_x_hist, ax_y_hist], [2, 0]):
+        for d, _ax, rounding in zip([x_dict, y_dict], [ax_x_hist, ax_y_hist], [2, 2]):
 
             units = d["data"].attrs.get("units", "")
             units = rf"${units}$"
@@ -884,7 +888,7 @@ def plot_figure_3(ds, ds_sem, microphysics_styles):
     ax_x_hist.set_xlabel(label_from_attrs(x))
     ax_y_hist.set_xlabel(label_from_attrs(y))
 
-    # ax_y_hist.set_xticks(np.arange(0, 17, 2))
+    ax_y_hist.set_xticks(np.arange(0, 12, 2))
     for _ax in axs.flatten():
         _ax.set_ylabel("Counts")
         _ax.set_ylim(ylim)
@@ -892,10 +896,10 @@ def plot_figure_3(ds, ds_sem, microphysics_styles):
         _ax.set_xlim(0, None)
 
     y_ticks = xr.DataArray(ax_y_hist.get_xticks(), attrs=y.attrs.copy())
-    new_y_ticks: xr.DataArray = conversions.EvaporationUnits(data=y_ticks, input_type="energy").convert_to(
-        "precipitation"
+    new_y_ticks: xr.DataArray = conversions.EvaporationUnits(data=y_ticks, input_type="precipitation").convert_to(
+        "energy"
     )
-    new_ticks_func = lambda _: [f"{round(new_x, 2):.2f}" for x, new_x in zip(y_ticks, new_y_ticks.data)]
+    new_ticks_func = lambda _: [f"{round(new_x, 2):.0f}" for x, new_x in zip(y_ticks, new_y_ticks.data)]
     add_additional_axis(
         ax=ax_y_hist,
         new_ticks_func=new_ticks_func,
@@ -903,7 +907,6 @@ def plot_figure_3(ds, ds_sem, microphysics_styles):
         position="top",
         offset_position=["axes", 1],
     )
-
 
     add_subplotlabel([ax_x_hist, ax_y_hist], location="title", zorder=100)
 
