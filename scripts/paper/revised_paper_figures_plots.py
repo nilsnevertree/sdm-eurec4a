@@ -1495,7 +1495,7 @@ def plot_figure_10(ds_normalized, ds_normalized_sem, microphysics_styles):
 
     y_ticks = [0, 0.5, 1]
 
-    fig, axs = plt.subplots(nrows=3, ncols=1, figsize=(5, 5), sharex=True, sharey=True)
+    fig, axs = plt.subplots(nrows=3, ncols=1, figsize=(5, 5), sharey=True)
 
 
     plot_microphysics = [
@@ -1560,13 +1560,15 @@ def plot_figure_10(ds_normalized, ds_normalized_sem, microphysics_styles):
 
     for _ax in axs:
         _ax.axvline(0, color="k", linestyle="--", alpha=0.5, zorder=10)
-        _ax.set_xlim(-15, 15)
         _ax.set_ylim(0, 1)
         _ax.set_yticks(y_ticks)
 
+    for _ax in [axs[0], axs[1]]:
+        _ax.set_xlim(-15, 15)
+    axs[2].set_xlim(-15, 150)
+
     fig.supxlabel(label_from_attrs(x, name_width=40))
     fig.supylabel(label_from_attrs(y))
-    fig.tight_layout()
 
     add_subplotlabel(axs=list(axs))
 
