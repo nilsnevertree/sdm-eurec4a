@@ -117,6 +117,10 @@ def __post_process_eulerian_dataset__(ds: xr.Dataset) -> xr.Dataset:
     ds["cloud_mass_radius_mean"].attrs["long_name"] = "Cloud Mean Mass Radius"
     ds["cloud_mass_radius_mean"].attrs["units"] = "µm"
 
+    ds["cloud_mass_radius_std"] = ds["mass_radius_std"].sel(gridbox=ds["max_gridbox"])
+    ds["cloud_mass_radius_std"].attrs["long_name"] = "Standard Deviation in Cloud Mean Mass Radius"
+    ds["cloud_mass_radius_std"].attrs["units"] = "µm"
+
     # ds["small_cloud_mass_radius_mean"] = ds["small_mass_radius_mean"].sel(gridbox=ds["max_gridbox"])
     # ds["small_cloud_mass_radius_mean"].attrs["long_name"] = "Cloud mean mass radius"
     # ds["small_cloud_mass_radius_mean"].attrs["units"] = "µm"
