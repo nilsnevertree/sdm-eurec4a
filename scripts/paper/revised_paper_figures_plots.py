@@ -508,6 +508,23 @@ def plot_4_all(identified_clusters,
     fig.tight_layout()
     return fig, axs
 
+def add_zoom_box(ax, xlims, ylims):
+    from matplotlib.patches import Rectangle
+
+    rect = Rectangle(
+        (xlims[0], ylims[0]),
+        xlims[1] - xlims[0],
+        ylims[1] - ylims[0],
+        linewidth=1,
+        linestyle="--",
+        edgecolor='darkblue',
+        facecolor='none'
+    )
+    ax.add_patch(rect)
+
+    return ax
+
+
 ### Plot specific figure functions
 def plot_figure_1(cloud_composite,
                   dropsonde,
@@ -1262,6 +1279,13 @@ def plot_figure_6(ds, microphysics_styles):
     ax1 = plot_isolines(ax1, xlim, ylim, high_res=True)
     ax1 = add_second_axis(ax1, x, y)
 
+    add_zoom_box(ax0,
+                 [ax1.get_xlim()[0]*1.025, ax1.get_xlim()[1]*0.95],
+                 [ax1.get_ylim()[0]*1.025, ax1.get_ylim()[1]*0.95])
+    add_zoom_box(ax1,
+                 [ax1.get_xlim()[0]*1.025, ax1.get_xlim()[1]*0.975],
+                 [ax1.get_ylim()[0]*1.025, ax1.get_ylim()[1]*0.975])
+
     fig.tight_layout()
 
     return fig
@@ -1627,6 +1651,22 @@ def plot_figure_11(ds, microphysics_styles):
     for _ax in [axs[0,1], axs[1,1]]:
         _ax.set_ylim(-25, 100)
         _ax.set_xlim(left=1e-1)
+
+    add_zoom_box(axs[0,0],
+                 [axs[0,1].get_xlim()[0]*1.015, axs[0,1].get_xlim()[1]*0.95],
+                 [axs[0,1].get_ylim()[0]*0.975, axs[0,1].get_ylim()[1]])
+
+    add_zoom_box(axs[0,1],
+                 [axs[0,1].get_xlim()[0]*1.015, axs[0,1].get_xlim()[1]*0.975],
+                 [axs[0,1].get_ylim()[0]*0.975, axs[0,1].get_ylim()[1]])
+
+    add_zoom_box(axs[1,0],
+                 [axs[1,1].get_xlim()[0]*1.015, axs[1,1].get_xlim()[1]*0.95],
+                 [axs[1,1].get_ylim()[0]*0.975, axs[1,1].get_ylim()[1]])
+
+    add_zoom_box(axs[1,1],
+                 [axs[1,1].get_xlim()[0]*1.015, axs[1,1].get_xlim()[1]*0.975],
+                 [axs[1,1].get_ylim()[0]*0.975, axs[1,1].get_ylim()[1]])
 
     fig.tight_layout()
 
