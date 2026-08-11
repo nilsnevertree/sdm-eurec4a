@@ -136,7 +136,7 @@ save_figure(fig=fig,
             filepath=fig_dir / "fig7")
 
 # %% PLOT FIGURE 8
-fig = plots.plot_figure_8(ds)
+fig = plots.plot_figure_8(ds_normalized)
 save_figure(fig=fig,
             filepath=fig_dir / "fig8")
 

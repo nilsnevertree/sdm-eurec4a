@@ -67,8 +67,8 @@ large_square_fig_size = large_fig_size[0], large_fig_size[0]
 wide_fig_size = large_fig_size[0], small_fig_size[1]
 
 ###  Color Settings and Colormap defintion
-def fetch_truncated_colormap():
-    def truncate_colormap(cmap, minval=0.0, maxval=1.0, n=256):
+def fetch_truncated_colormap(minval=0.0, maxval=1.0, n=256):
+    def truncate_colormap(cmap, minval, maxval, n):
         """https://stackoverflow.com/a/18926541/16372843"""
         new_cmap = mcolors.LinearSegmentedColormap.from_list(
             "trunc({n},{a:.2f},{b:.2f})".format(n=cmap.name, a=minval, b=maxval),
@@ -78,7 +78,7 @@ def fetch_truncated_colormap():
 
     # strength_cmap = sns.cubehelix_palette(start=0.5, rot=-0.5, as_cmap=True)
     full_strength_cmap = sns.color_palette("mako_r", as_cmap=True)
-    return truncate_colormap(full_strength_cmap, 0.05, 1)
+    return truncate_colormap(full_strength_cmap, minval=minval, maxval=maxval, n=n)
 
 default_colors = set_paper_rcParams()
 # pltrcParams.update({'figure.autolayout': True}) # make sure that figures are not cut off
@@ -1315,97 +1315,58 @@ def plot_figure_7(ds, ds_correlations_EF, ds_correlations_CIE, ds_correlations_M
 
     return fig
 
-def plot_figure_8(ds):
-    x_vars = ("relative_humidity", "liquid_water_content", "mass_radius_mean")
+def plot_figure_8(ds_normalized):
+    fig, axs = plt.subplots(1, 3, figsize=(small_fig_size[0]*2.0, small_fig_size[1]))
+    #fig, axs = plt.subplots(2, 2, figsize=(large_fig_size[0], large_fig_size[1]*1.25))
+    axs = axs.flatten()
+    cmap = fetch_truncated_colormap()
 
-    correlated_var = -ds["evaporation_rate_energy"].transpose("gridbox", ...)
+    def plot_hexbin(ax, x, y, w, xscale="linear", vmin=0.0, vmax=None, tile=True):
+        if tile:
+            y_flat = np.tile(y.values, x.sizes.get("cloud_id", 1))
+        else:
+            y_flat = y.values.flatten()
+        hb = ax.hexbin(x.values.flatten(), y_flat, w.values.flatten(), reduce_C_function=np.mean,
+                       gridsize=(5,3), xscale=xscale,  cmap=cmap, vmin=vmin, vmax=vmax)
+        fig.colorbar(hb, ax=ax, label='Evaporation rate [$W \\, m^{-3}$]')
 
-    correlations = dict()
-    for var in x_vars:
-        x = ds[var].transpose("gridbox", ...)
-        correlation = xr.corr(correlated_var, x, dim="gridbox")
-        correlations[var] = correlation
+    w = -ds_normalized.evaporation_rate_energy.sel(microphysics="condensation")
 
-    # store correlations in dataset
-    ds_vertical_correlations = xr.Dataset(correlations)
-
-    fig, ax = plt.subplots(figsize=small_fig_size)
-
-    keys = [
-        "mass_radius_mean",
-        "liquid_water_content",
-        "relative_humidity",
-    ]
+    # evaporation_rate on 'x' vs. normalised height
+    keys = ("relative_humidity", "liquid_water_content", "mass_radius_mean")
 
     labels = {
-        "mass_radius_mean": label_from_attrs(ds["mass_radius_mean"], return_units=False),
-        "liquid_water_content": label_from_attrs(ds["liquid_water_content"], return_units=False),
-        "relative_humidity": label_from_attrs(ds["relative_humidity"], return_units=False),
+        "mass_radius_mean": label_from_attrs(ds_normalized["mass_radius_mean"], return_units=False),
+        "liquid_water_content": label_from_attrs(ds_normalized["liquid_water_content"], return_units=True),
+        "relative_humidity": label_from_attrs(ds_normalized["relative_humidity"], return_units=True),
     }
-    labels["mass_radius_mean"] = "Mean mass radius"
+    labels["mass_radius_mean"] = "Mean mass radius [µm]"
 
-    labels_long = labels.copy()
+    y = ds_normalized.normalized_gridbox_coord3
+    for k, key in enumerate(keys):
+        ax, label = axs[k], labels[key]
+        x = ds_normalized[key].sel(microphysics="condensation")
+        xscale="linear"
+        vmax = 0.5
+        if key == "liquid_water_content":
+            vmax = 1.5
+        
+        plot_hexbin(ax, x, y, w, xscale=xscale, vmax=vmax)
 
+        if k == 0:
+            ax.set_ylabel("Normalized height []") 
+        ax.set_xlabel(label)
 
-    colors = {
-        "mass_radius_mean": adjust_lightness(default_colors[1], 1.3),
-        "liquid_water_content": adjust_lightness(default_colors[1], 1.1),
-        "relative_humidity": adjust_lightness(default_colors[1], 0.75),
-    }
+        fig.tight_layout()
 
-    inds = {
-        "mass_radius_mean": 2,
-        "liquid_water_content": 1,
-        "relative_humidity": 0,
-    }
+    # ### evaporation_rate on LWC vs RelH
+    # ax = axs[-1]
+    # x = ds_normalized["liquid_water_content"].sel(microphysics="condensation")
+    # y = ds_normalized["relative_humidity"].sel(microphysics="condensation")
+    # plot_hexbin(ax, x, y, w, xscale="linear", tile=False) 
+    # ax.set_xlabel("liquid water content")
+    # ax.set_ylabel("relative humidity") 
 
-    y = ds_vertical_correlations.sel(microphysics="condensation")
-    data = np.array([y[key].data for key in keys])
-    means, stds = y.mean("cloud_id"), y.std("cloud_id")
-
-
-    for key in keys:
-
-        unit = y[key].attrs.get("units", "")
-
-        labels_long[key] += "\n" + f"{means[key].data:.2f} " + r"$\pm$" + f" {stds[key].data:.2f} {unit}"
-
-        m = means[key]
-        s = stds[key]
-        c = colors[key]
-        i = inds[key]
-        ax.barh(y=i, width=m, height=0.5, color=c, label=labels_long[key])
-
-        lower = m - s
-        upper = m + s
-        upper, lower = max(lower, upper), min(lower, upper)
-
-        ax.scatter(m, i, marker="o", color="k", s=30, zorder=10)
-        ax.scatter(lower, i, marker="|", color="k", s=30, zorder=10)
-        ax.scatter(upper, i, marker="|", color="k", s=30, zorder=10)
-
-        ax.hlines(i, lower, upper, color="k", linestyle="-", lw=1, zorder=3)
-
-
-    # ax.set_xlim(-1, 1)
-
-
-    ax.set_xlabel(
-        f"Correlation along altitude with {label_from_attrs(correlated_var, return_units = False)}",
-    )
-
-    # set size
-    yticks_size = ax.yaxis.label.get_size()
-
-
-    ax.set_ylim(min(inds.values()) - 0.6, max(inds.values()) + 0.5)
-    ax.set_yticks([])
-    # ax.set_yticks(list(inds.values()), list(labels_long.values()), fontsize = yticks_size)
-    ax.set_xticks(np.arange(-1, 1.1, 0.5))
-    ax.xaxis.set_tick_params(rotation=0)
-    ax.set_xlim(-1.3, 1.3)
-
-    ax.legend(loc="lower right")
     fig.tight_layout()
 
     return fig
