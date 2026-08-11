@@ -1146,94 +1146,121 @@ def plot_figure_5(ds, ds_normalized, microphysics_styles):
     return fig
 
 def plot_figure_6(ds, microphysics_styles):
-    fig, ax = plt.subplots(1, 1, figsize=(small_fig_size[0], small_fig_size[1] * 1.25))
-    # ax_no_ventilation = plt.Axes = axs[1]
+    def plot_subfigure(ax):
 
-    x = ds["inflow_energy"]
-    y = -ds["source_energy"]
+        x = ds["inflow_energy"]
+        y = -ds["source_energy"]
 
-    # x_no_ventilation = ds_no_ventilation["inflow_precipitation"]
-    # y_no_ventilation = - ds_no_ventilation["source_precipitation"]
+        for mp in ["condensation"]:
+            style = microphysics_styles.get_style(mp)
+            ax.scatter(
+                x.sel(microphysics=mp),
+                y.sel(microphysics=mp),
+                **style,
+            )
 
+        return ax, x, y
 
-    for mp in ["condensation"]:
-        style = microphysics_styles.get_style(mp)
-        ax.scatter(
-            x.sel(microphysics=mp),
-            y.sel(microphysics=mp),
-            **style,
+    def plot_isolines(ax, xlim, ylim, high_res=False):
+        lims = np.concatenate([xlim, ylim])
+        p_x_values = np.geomspace(lims.min(), lims.max(), 100)
+
+        values_label_size = 10
+
+        if high_res:
+            # p_list = [1, 0.31622, 0.1, 0.031622, 0.01]
+            p_list = [1, 0.9, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3, 0.2, 0.1, 0.01]
+            _x_list = [7.5] + [None]*8 + [280, 3e3]
+            _y = 25
+        else:
+            p_list = [1, 0.1, 0.01]
+            _x_list = [0.13, 13, 130]
+            _y = 0.9
+
+        for i in range(len(p_list)):
+            p = p_list[i]
+            style = dict(color="black", alpha=p ** (1 / 3.5))
+            ax.plot(p_x_values, p * p_x_values, "--", linewidth=1, zorder=0, **style)
+
+            if high_res:
+                _x =_x_list[i]
+                if _x is not None:
+                    ax.annotate(
+                        f"{100 * p:.0f} %",
+                        xy=(_x, _y),
+                        xytext=(0, 0),
+                        textcoords="offset points",
+                        va="top",
+                        ha="left",
+                        size=values_label_size,
+                        **style,
+                    )
+            else:
+                _x =_x_list[i]
+                if _x is not None:
+                    ax.annotate(
+                        f"{100 * p:.0f} %",
+                        xy=(_x, _y),
+                        xytext=(0, 0),
+                        textcoords="offset points",
+                        va="top",
+                        ha="left",
+                        size=values_label_size,
+                        **style,
+                    )
+
+        return ax
+
+    def add_second_axis(ax, x, y):
+        x_ticks = xr.DataArray(ax.get_xticks(), attrs=x.attrs.copy())
+        new_x_ticks: xr.DataArray = conversions.EvaporationUnits(data=x_ticks, input_type="energy").convert_to(
+            "precipitation"
         )
 
+        factor = new_x_ticks / x_ticks
 
-    ax.set_xscale("log")
-    ax.set_yscale("log")
-    ax.set_ylim(3e-3, 3e3)
-    ax.set_xlim(1e-1, 1e4)
-    xlim = np.array(ax.get_xlim())
-    ylim = np.array(ax.get_ylim())
+        assert (
+            np.abs(factor.std() / factor.mean()) < 1e-6
+        ), f"Conversion factor is not constant: std={factor.std}, mean={factor.mean}"
+        factor = factor.mean().data    
 
-    lims = np.concatenate([xlim, ylim])
+        # add a second xaxis
+        ax2 = ax.twiny()
+        ax2.set_xscale("log")
+        ax2.set_yscale("log")
+        ax2.set_xlim(factor * xlim)  # Sync the x-limits
+        ax2.set_ylim(ylim)  # Sync the x-limits
 
-    p_x_values = np.geomspace(lims.min(), lims.max(), 100)
+        ax2.set_xlabel(label_from_attrs(da=new_x_ticks))
+        ax.grid(color="grey", alpha=0.25, linewidth=0.75)
+        ax2.grid(color="grey", alpha=0.25, linewidth=0.75, linestyle=":")
 
-    values_label_size = 10
+        ax.set_xlabel(label_from_attrs(x))
+        ax.set_ylabel(label_from_attrs(y, name_width=20))
 
-    for p in [1, 0.1, 0.01]:
-        style = dict(color="grey", alpha=p ** (1 / 5))
-        lines = ax.plot(p_x_values, p * p_x_values, "--", linewidth=1, zorder=0, **style)
-        line = lines[0]
-        _x = 2e4
-        _y = p * _x
+        return ax
 
-        ax.annotate(
-            f"{100 * p:.0f} %",
-            xy=(_x, _y),
-            xytext=(10, 10),
-            textcoords="offset points",
-            va="top",
-            ha="left",
-            size=values_label_size,
-            **style,
-        )
-        _x = 2e0
-        _y = p * _x
+    fig, axs = plt.subplots(1, 2, figsize=(large_fig_size[0] * 1.25, large_fig_size[1]))
 
-        ax.annotate(
-            f"{100 * p:.0f} %",
-            xy=(_x, _y),
-            xytext=(0, 0),
-            textcoords="offset points",
-            va="top",
-            ha="left",
-            size=values_label_size,
-            **style,
-        )
+    ax0, x, y = plot_subfigure(axs[0])
+    ax0.set_xscale("log")
+    ax0.set_yscale("log")
+    ax0.set_ylim(5e-3, 1e3)
+    ax0.set_xlim(1e-1, 1e4)
+    xlim = np.array(ax0.get_xlim())
+    ylim = np.array(ax0.get_ylim())
+    ax0 = plot_isolines(ax0, xlim, ylim)
+    ax0 = add_second_axis(ax0, x, y)
 
-    x_ticks = xr.DataArray(ax.get_xticks(), attrs=x.attrs.copy())
-    new_x_ticks: xr.DataArray = conversions.EvaporationUnits(data=x_ticks, input_type="energy").convert_to(
-        "precipitation"
-    )
-
-    factor = new_x_ticks / x_ticks
-
-    assert (
-        np.abs(factor.std() / factor.mean()) < 1e-6
-    ), f"Conversion factor is not constant: std={factor.std}, mean={factor.mean}"
-    factor = factor.mean().data
-
-    # add a second xaxis
-    ax2 = ax.twiny()
-    ax2.set_xscale("log")
-    ax2.set_yscale("log")
-    ax2.set_xlim(factor * xlim)  # Sync the x-limits
-    ax2.set_ylim(ylim)  # Sync the x-limits
-
-    ax2.set_xlabel(label_from_attrs(da=new_x_ticks))
-    ax.grid(color="grey", alpha=0.25, linewidth=0.75)
-    ax2.grid(color="grey", alpha=0.25, linewidth=0.75, linestyle=":")
-
-    ax.set_xlabel(label_from_attrs(x))
-    ax.set_ylabel(label_from_attrs(y, name_width=20))
+    ax1, x, y = plot_subfigure(axs[1])
+    ax1.set_xscale("log")
+    ax1.set_yscale("log")
+    ax1.set_ylim(5, 1e3)
+    ax1.set_xlim(7, 1e4)
+    xlim = np.array(ax1.get_xlim())
+    ylim = np.array(ax1.get_ylim())
+    ax1 = plot_isolines(ax1, xlim, ylim, high_res=True)
+    ax1 = add_second_axis(ax1, x, y)
 
     fig.tight_layout()
 
