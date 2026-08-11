@@ -1340,19 +1340,21 @@ def plot_figure_7(ds, ds_correlations_EF, ds_correlations_CIE, ds_correlations_M
     return fig
 
 def plot_figure_8(ds_normalized):
-    fig, axs = plt.subplots(1, 3, figsize=(small_fig_size[0]*2.0, small_fig_size[1]))
+    fig, axs = plt.subplots(1, 3, figsize=(small_fig_size[0]*1.75, small_fig_size[1]))
     #fig, axs = plt.subplots(2, 2, figsize=(large_fig_size[0], large_fig_size[1]*1.25))
     axs = axs.flatten()
     cmap = fetch_truncated_colormap()
 
-    def plot_hexbin(ax, x, y, w, xscale="linear", vmin=0.0, vmax=None, tile=True):
+    def plot_hexbin(ax, x, y, w, xscale="linear", vmin=0.0, vmax=None, tile=True, cbar=True):
         if tile:
             y_flat = np.tile(y.values, x.sizes.get("cloud_id", 1))
         else:
             y_flat = y.values.flatten()
         hb = ax.hexbin(x.values.flatten(), y_flat, w.values.flatten(), reduce_C_function=np.mean,
                        gridsize=(5,3), xscale=xscale,  cmap=cmap, vmin=vmin, vmax=vmax)
-        fig.colorbar(hb, ax=ax, label='Evaporation rate [$W \\, m^{-3}$]')
+
+        if cbar:
+            fig.colorbar(hb, ax=ax, label='Evaporation rate [$W \\, m^{-3}$]')
 
     w = -ds_normalized.evaporation_rate_energy.sel(microphysics="condensation")
 
@@ -1370,12 +1372,18 @@ def plot_figure_8(ds_normalized):
     for k, key in enumerate(keys):
         ax, label = axs[k], labels[key]
         x = ds_normalized[key].sel(microphysics="condensation")
+
         xscale="linear"
-        vmax = 0.5
-        if key == "liquid_water_content":
-            vmax = 1.5
-        
-        plot_hexbin(ax, x, y, w, xscale=xscale, vmax=vmax)
+
+        # vmax = 0.5
+        # if key == "liquid_water_content":
+        vmax = 1.5
+
+        cbar = False
+        if key == keys[-1]:
+            cbar = True
+
+        plot_hexbin(ax, x, y, w, xscale=xscale, vmax=vmax, cbar=cbar)
 
         if k == 0:
             ax.set_ylabel("Normalized height []") 
