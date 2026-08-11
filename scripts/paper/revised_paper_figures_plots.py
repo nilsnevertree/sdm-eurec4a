@@ -1574,13 +1574,12 @@ def plot_figure_10(ds_normalized, ds_normalized_sem, microphysics_styles):
 
     return fig
 
-def plot_figure_11(ds, ds_sem, microphysics_styles):
+def plot_figure_11(ds, microphysics_styles):
     def plot_relative_differences(
         ax: plt.Axes,
         y_var_name: str,
         x_var_name: str,
         ds: xr.Dataset,
-        ds_sem: xr.Dataset,
         microphysics_list: list = [
             "collision_condensation",
             "coalbure_condensation_small",
@@ -1593,18 +1592,12 @@ def plot_figure_11(ds, ds_sem, microphysics_styles):
         x_all = ds[y_var_name]
         x_refernce = x_all.sel(microphysics="condensation")
 
-        x_sem_all = ds_sem[y_var_name]
-        x_sem_refernce = x_sem_all.sel(microphysics="condensation")
-
         attrs = x_all.attrs.copy()
 
         A = x_all
         B = x_refernce
-        dA = x_sem_all
-        dB = x_sem_refernce
 
         f = (A - B) / B
-        df = ((1 / B * dA) ** 2 + (-A / B**2 * dB) ** 2) ** 0.5
 
         x = f * 100
 
@@ -1644,7 +1637,6 @@ def plot_figure_11(ds, ds_sem, microphysics_styles):
 
 
     fig, axs = plt.subplots(nrows=2, ncols=2, figsize=large_fig_size * 1.2)
-
     axs2 = []
 
     for _ax, (_x, _y) in zip(
@@ -1660,7 +1652,6 @@ def plot_figure_11(ds, ds_sem, microphysics_styles):
             x_var_name=_x,
             y_var_name=_y,
             ds=ds,
-            ds_sem=ds_sem,
             microphysics_list=[
                 "coalbure_condensation_large",
                 "collision_condensation",

@@ -158,7 +158,7 @@ save_figure(fig=fig,
             filepath=fig_dir / "fig10")
 
 # %% PLOT FIGURE 11
-fig = plots.plot_figure_11(ds, ds_sem, microphysics_styles)
+fig = plots.plot_figure_11(ds, microphysics_styles)
 save_figure(fig=fig,
             filepath=fig_dir / "fig11")
 
