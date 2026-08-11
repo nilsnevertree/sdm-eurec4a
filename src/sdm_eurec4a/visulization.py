@@ -87,9 +87,9 @@ def set_custom_rcParams() -> list:
     plt.rc(
         "axes.spines",
         **{
-            "left": False,
+            "left": True,
             "right": False,
-            "bottom": False,
+            "bottom": True,
             "top": False,
         },
     )
@@ -151,9 +151,9 @@ def set_paper_rcParams() -> list:
     plt.rc(
         "axes.spines",
         **{
-            "left": False,
+            "left": True,
             "right": False,
-            "bottom": False,
+            "bottom": True,
             "top": False,
         },
     )
