@@ -158,7 +158,7 @@ save_figure(fig=fig,
             filepath=fig_dir / "fig10")
 
 # %% PLOT FIGURE 11
-fig = plots.plot_figure_11(ds, microphysics_styles)
+fig = plots.plot_figure_11(ds, ds_sem, microphysics_styles)
 save_figure(fig=fig,
             filepath=fig_dir / "fig11")
 
@@ -167,11 +167,7 @@ fig = plots.plot_figure_appdx_1(ds, ds_sem, microphysics_styles)
 save_figure(fig=fig, filepath=fig_dir / "fig_appdx_1")
 
 # %% PLOT FIGURE A2
-fig = plots.plot_figure_appdx_2(ds, ds_sem, microphysics_styles)
-save_figure(fig=fig, filepath=fig_dir / "fig_appdx_2")
-
-# %% PLOT FIGURE A3
-fig = plots.plot_figure_appdx_3(ds,
+fig = plots.plot_figure_appdx_2(ds,
                                 ds_correlations_EF,
                                 ds_correlations_CIE,
                                 ds_correlations_MEH,
@@ -179,4 +175,5 @@ fig = plots.plot_figure_appdx_3(ds,
                                 ds_correlations_log_CIE,
                                 ds_correlations_log_MEH,
                                 microphysics_styles)
-save_figure(fig=fig, filepath=fig_dir / "fig_appdx_3")
+save_figure(fig=fig, filepath=fig_dir / "fig_appdx_2")
+
