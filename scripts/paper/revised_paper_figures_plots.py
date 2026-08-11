@@ -1579,36 +1579,30 @@ def plot_figure_10(ds_normalized, ds_normalized_sem, microphysics_styles):
 def plot_figure_11(ds, microphysics_styles):
     def plot_relative_differences(
         ax: plt.Axes,
-        y_var_name: str,
-        x_var_name: str,
         ds: xr.Dataset,
+        x_var_name: str,
+        y_var_name: str,
         microphysics_list: list = [
             "collision_condensation",
             "coalbure_condensation_small",
             "coalbure_condensation_large",
         ],
     ):
+        x = ds[x_var_name]
+        if x_var_name == "inflow_energy":
+            x = conversions.EvaporationUnits(data=x, input_type="energy").convert_to("precipitation")
 
-        y = ds[x_var_name]
+        y_all = ds[y_var_name]
+        y_refernce = y_all.sel(microphysics="condensation")
+        attrs = y_all.attrs.copy()
+        y = (y_all - y_refernce) / y_refernce * 100
 
-        x_all = ds[y_var_name]
-        x_refernce = x_all.sel(microphysics="condensation")
-
-        attrs = x_all.attrs.copy()
-
-        A = x_all
-        B = x_refernce
-
-        f = (A - B) / B
-
-        x = f * 100
-
-        x.attrs.update(
-            long_name=f"{attrs['long_name']} relative difference to {microphysics_styles['condensation']['name']}",
+        y.attrs.update(
+            # long_name=f"{attrs['long_name']} relative difference to {microphysics_styles['condensation']['name']}",
+            long_name=f"{attrs['long_name']} relative difference",
             units=r"\%",
         )
 
-        x, y = y, x
         x = x.sel(microphysics=microphysics_list)
         y = y.sel(microphysics=microphysics_list)
 
@@ -1624,86 +1618,54 @@ def plot_figure_11(ds, microphysics_styles):
         ax.axhline(0, color="black", linestyle="--", linewidth=0.5, zorder=0)
 
         ax.set_xlabel(label_from_attrs(x))
-        ax.set_ylabel(label_from_attrs(y, name_width=20))
+        ax.set_ylabel(label_from_attrs(y, name_width=25))
 
         return ax
 
     variable_combinations = [
         ("inflow_energy", "source_energy"),
-        ("cloud_mass_radius_mean", "source_energy"),
-        # ("mean_evaporation_height", "source_precipitation"),
+        ("inflow_energy", "source_energy"),
+        # ("cloud_mass_radius_mean", "source_energy"),
         ("inflow_energy", "evaporation_fraction"),
-        ("cloud_mass_radius_mean", "evaporation_fraction"),
-        # ('mean_evaporation_height', "evaporation_fraction"),
+        ("inflow_energy", "evaporation_fraction"),
+        # ("cloud_mass_radius_mean", "evaporation_fraction"),
     ]
 
-
     fig, axs = plt.subplots(nrows=2, ncols=2, figsize=large_fig_size * 1.2)
-    axs2 = []
 
     for _ax, (_x, _y) in zip(
         axs.flatten(),
         variable_combinations,
     ):
-
-        x = ds[_x]
-        y = ds[_y]
-
         _ax = plot_relative_differences(
             ax=_ax,
+            ds=ds,
             x_var_name=_x,
             y_var_name=_y,
-            ds=ds,
             microphysics_list=[
                 "coalbure_condensation_large",
                 "collision_condensation",
                 "coalbure_condensation_small",
             ],
         )
+
+    # remove repeated labels
+    for ax in axs[0,:]:
+        ax.set_xlabel(None)
+    for ax in axs[:,1]:
+        ax.set_ylabel(None)
+
+    for _ax in axs.flatten():
         _ax.set_xscale("log")
-        _ax.set_yscale("linear")
-        _ax.set_ylim(-22, 80)
-        _ax.set_xlabel(label_from_attrs(da=x))
 
-        # add additional x axis with converted units
-        _ax.grid(color="grey", alpha=0.25, linewidth=0.75)
+    axs[0,0].legend(loc="upper left")
 
-        if _x == "inflow_energy":
-            x_ticks = xr.DataArray(_ax.get_xticks(), attrs=x.attrs.copy())
-            new_x_ticks: xr.DataArray = conversions.EvaporationUnits(
-                data=x_ticks, input_type="energy"
-            ).convert_to("precipitation")
+    for _ax in [axs[0,0], axs[1,0]]:
+        _ax.set_ylim(-25, 800)
 
-            factor = new_x_ticks / x_ticks
-
-            assert (
-                np.abs(factor.std() / factor.mean()) < 1e-6
-            ), f"Conversion factor is not constant: std={factor.std}, mean={factor.mean}"
-            factor = factor.mean().data
-
-            # add a second xaxis
-            _xlim = np.array(_ax.get_xlim())
-            _ax2 = _ax.twiny()
-            _ax2.set_xscale("log")
-            _ax2.set_yscale("linear")
-            _ax2.set_xlim(factor * _xlim)  # Sync the x-limits
-            _ax2.set_xlabel(label_from_attrs(da=new_x_ticks))
-
-            _ax2.grid(color="grey", alpha=0.25, linewidth=0.75, linestyle=":")
-
-            axs2.append(_ax2)
-
-    for _ax in axs[0, :]:
-        _ax.set_xlabel("")
-        _ax.set_xticklabels([])
-    for i in range(2):
-        axs[i, 1].set_ylabel("")
-        axs[i, 1].set_yticklabels(axs[i, 0].get_yticklabels())
-
-    add_subplotlabel(axs=axs.flatten(), location="upper left")
-
-    axs2[1].set_xlabel("")
-    axs2[1].set_xticklabels([])
+    for _ax in [axs[0,1], axs[1,1]]:
+        _ax.set_ylim(-25, 100)
+        _ax.set_xlim(left=1e-1)
 
     fig.tight_layout()
 
