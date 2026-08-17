@@ -435,7 +435,7 @@ if __name__ == "__main__":
         args.path2setup,
         args.path2grid,
         args.path2output,
-        plot_sanitycheck=True,
+        plot_sanitycheck=False,
     )
 
 # # %% EXAMPLE FOR TESTING
