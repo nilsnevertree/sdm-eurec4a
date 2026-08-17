@@ -561,3 +561,9 @@ To plot revised paper figures:
 - S: ``./scripts/paper/revised_paper_figures.py``
 - ID: defined in the script, ``data_dir_obs``, ``data_dir_model_input``, ``data_dir = [...]``, and ``data_dir_novent = [...]``
 - OD: defined in the script, ``fig_dir = [...]`` and ``appendix_fig_dir = [...]``
+
+To plot the DSD paper figures you run ``./scripts/paper/revised_paper_figures_dsds.py``, but first
+you need to create the DSD datasets using:
+- S: ``scripts/paper/dsd_datasets_for_all_clusters.sh``
+- ID: defined in the script as ``microphysics = [...]`` and ``path2data = [...]``
+- OD: defined in the script ``dsd_datasets_for_all_clusters.py`` as ``path2output = [...]``
