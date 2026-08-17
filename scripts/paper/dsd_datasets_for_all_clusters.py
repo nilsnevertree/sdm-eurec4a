@@ -37,23 +37,32 @@ def find_clusters(path2clusters):
 
     return clusters
 # %% ### ------------------------- MAIN PROGRAM ------------------------- ### 
-def main(path2sdmeurec4aCLEO, path2clusters):
+def _run_cluster(args):
     from pathlib import Path
     import subprocess
+    
+    script2run, path2sdmeurec4aCLEO, cpath = args
+    cpath = Path(cpath)
+    path2zarr = cpath / "eurec4a1d_sol.zarr"
+    path2setup = cpath / "config" / "eurec4a1d_setup.txt"
+    path2grid = cpath / "share" / "eurec4a1d_ddimlessGBxboundaries.dat"
+    path2output = cpath / "processed"
+
+    subprocess.run(["python", str(script2run), str(path2sdmeurec4aCLEO), str(path2zarr), str(path2setup), str(path2grid), str(path2output)], check=True)
+
+def main(path2sdmeurec4aCLEO, path2clusters):
+    from pathlib import Path
+    from concurrent.futures import ThreadPoolExecutor
 
     script2run = Path(__file__).resolve().parent / "create_dsd_datasets.py"
 
     check_paths(path2sdmeurec4aCLEO, path2clusters, script2run)
 
     cluster_paths = find_clusters(path2clusters)
+    print("clusters_found:", [Path(cpath).name for cpath in sorted(cluster_paths)])
 
-    for cpath in cluster_paths:
-      cpath = Path(cpath)
-      path2zarr = cpath / "eurec4a1d_sol.zarr"
-      path2setup = cpath / "config" / "eurec4a1d_setup.txt"
-      path2grid = cpath / "share" / "eurec4a1d_ddimlessGBxboundaries.dat"
-      path2output = cpath / "processed"
-      subprocess.run(["python", str(script2run), str(path2sdmeurec4aCLEO), str(path2zarr), str(path2setup), str(path2grid), str(path2output)], check=True)
+    with ThreadPoolExecutor() as executor:
+        executor.map(_run_cluster, [(script2run, path2sdmeurec4aCLEO, cpath) for cpath in cluster_paths])
 
 # # %% Run main
 # if __name__ == "__main__":
