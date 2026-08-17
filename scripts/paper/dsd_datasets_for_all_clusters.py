@@ -64,25 +64,21 @@ def main(path2sdmeurec4aCLEO, path2clusters):
     with ThreadPoolExecutor() as executor:
         executor.map(_run_cluster, [(script2run, path2sdmeurec4aCLEO, cpath) for cpath in cluster_paths])
 
-# # %% Run main
-# if __name__ == "__main__":
-#     args = parse_arguments()
-#     main(
-#         args.path2sdmeurec4aCLEO,
-#         args. path2clusters
-#     )
-
-# %% EXAMPLE FOR TESTING
-from pathlib import Path
-
-path2sdmeurec4aCLEO = Path("/Users/yoctoyotta1024/Documents/c1_springsummer2024/nils_masters/rain-evap-nils/sdm-eurec4a-CLEO/")
-path2clusters = Path("/Users/yoctoyotta1024/Downloads/rain-evap-nils/sdm-eurec4a-CLEO/data/output_v4.2/condensation/")
-
-main(
-    path2sdmeurec4aCLEO,
-    path2clusters
+# %% Run main
+if __name__ == "__main__":
+    args = parse_arguments()
+    main(
+        args.path2sdmeurec4aCLEO,
+        args. path2clusters
     )
 
-# %% ### TODO:
-# - load many datasets, select by cluster attribute
-# --> goal: plot for many clusters and for diff microphysics
+# # %% EXAMPLE FOR TESTING
+# from pathlib import Path
+
+# path2sdmeurec4aCLEO = Path("/Users/yoctoyotta1024/Documents/c1_springsummer2024/nils_masters/rain-evap-nils/sdm-eurec4a-CLEO/")
+# path2clusters = Path("/Users/yoctoyotta1024/Downloads/rain-evap-nils/sdm-eurec4a-CLEO/data/output_v4.2/condensation/")
+
+# main(
+#     path2sdmeurec4aCLEO,
+#     path2clusters
+#     )
