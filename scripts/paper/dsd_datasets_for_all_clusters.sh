@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --job-name=dsd_datasets
 #SBATCH --partition=compute
-#SBATCH --time=08:00:00
+#SBATCH --time=00:30:00
 #SBATCH --mail-user=clara.bayley@mpimet.mpg.de
 #SBATCH --mail-type=FAIL
 #SBATCH --account=mh1126
@@ -40,6 +40,7 @@ microphysics="condensation"
 path2sdm_eurec4a=/home/m/m300950/rain-evap-nils/sdm-eurec4a
 path2sdm_eurec4a_cleo=/home/m/m300950/rain-evap-nils/sdm-eurec4a-CLEO
 path2data=/work/mh1126/m300950/rain-evap-nils/sdm-eurec4a-CLEO/data/output_v4.2/${microphysics}/
+# path2data=/work/mh1126/m300950/rain-evap-nils/sdm-eurec4a-CLEO/data/output_v4.2_novent/condensation/
 
 pythonscript=${path2sdm_eurec4a}/scripts/paper/dsd_datasets_for_all_clusters.py
 
