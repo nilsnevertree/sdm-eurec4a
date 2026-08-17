@@ -1,3 +1,11 @@
+# %% Thread-safe print wrapper for use of script with ThreadPoolExecutor
+import threading
+_print_lock = threading.Lock()
+def tprint(*args, **kwargs):
+    """Thread-safe print wrapper that preserves print kwargs."""
+    with _print_lock:
+        print(*args, **kwargs)
+
 # %%
 ### ------------------------- FUNCTION DEFINITIONS ------------------------- ###
 def parse_arguments():
@@ -43,11 +51,11 @@ def check_paths(path2sdmeurec4aCLEO, path2zarr, path2setup, path2grid, path2outp
             path2output
         ).parent.is_dir(), "Directory for output doesn't exist"
 
-    print("path2sdmeurec4aCLEO:", path2sdmeurec4aCLEO)
-    print("path2zarr:", path2zarr)
-    print("path2setup:", path2setup)
-    print("path2grid:", path2grid)
-    print("path2output:", path2output)
+    tprint("path2sdmeurec4aCLEO:", path2sdmeurec4aCLEO)
+    tprint("path2zarr:", path2zarr)
+    tprint("path2setup:", path2setup)
+    tprint("path2grid:", path2grid)
+    tprint("path2output:", path2output)
 
 def get_cluster_name(path2zarr):
     return str(path2zarr.parent.name)  # "cluster_XXX"
@@ -282,10 +290,10 @@ def normalise_dataset_heights(ds, nlevels=50):
 
 def write_zarr_dataset(ds, ds_name):
     if ds_name.is_dir():
-        print(f"WARNING: not writing {ds_name}, dataset already exists")
+        tprint(f"WARNING: not writing {ds_name}, dataset already exists")
     else:
         ds.to_zarr(ds_name, mode="w")
-        print(f"written dataset: {ds_name}")
+        tprint(f"written dataset: {ds_name}")
 
 # %% sanity check plotting functions
 def sanity_check_plots(ds, ds_norm):
@@ -407,11 +415,11 @@ def main(path2sdmeurec4aCLEO, path2zarr, path2setup, path2grid, path2output, plo
     ds_norm_name = path2output / "droplet_pdfdistribs_normheight.zarr"
 
     if ds_name.is_dir() and ds_norm_name.is_dir(): 
-        print("opening existing datasets")
+        tprint("opening existing datasets")
         ds = xr.open_dataset(ds_name, engine="zarr")
         ds_norm = xr.open_dataset(ds_norm_name, engine="zarr")
     else:
-        print("writing new datasets")
+        tprint("writing new datasets")
         ds = create_pdf_distribution_dataset(path2sdmeurec4aCLEO, path2zarr, path2setup, path2grid)
         ds_norm = normalise_dataset_heights(ds)
 
