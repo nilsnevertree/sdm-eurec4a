@@ -51,7 +51,7 @@ echo "microphysics: ${microphysics}"
 if [ ! -d "$path2data" ]; then
     echo "Invalid path to data: ${path2data}"
     exit 1
-elif [ ! -f "$path2sdm_eurec4a_cleo" ]; then
+elif [ ! -d "$path2sdm_eurec4a_cleo" ]; then
     echo "sdm-eurec4a-cleo directory not found: ${path2sdm_eurec4a_cleo}"
     exit 1
 elif [ ! -f "$pythonscript" ]; then
