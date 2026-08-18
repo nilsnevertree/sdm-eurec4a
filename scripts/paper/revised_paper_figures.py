@@ -1,6 +1,5 @@
 ### script adapted from ``./notebooks/paper/17-NN-figure-review-version.ipynb``
 # %% Imports
-import numpy as np
 import xarray as xr
 
 from importlib import reload
@@ -9,12 +8,6 @@ from pathlib import Path
 from sdm_eurec4a import RepositoryPath
 from sdm_eurec4a import data_loading
 from sdm_eurec4a.visulization import (
-    set_paper_rcParams,
-    adjust_lightness_array,
-    adjust_lightness,
-    label_from_attrs,
-    add_additional_axis,
-    add_subplotlabel,
     save_figure,
 )
 

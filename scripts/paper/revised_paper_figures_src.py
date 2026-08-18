@@ -2,59 +2,25 @@
 ### Imports
 import numpy as np
 import matplotlib.pyplot as plt
-import matplotlib.colors as mcolors
-import matplotlib.patches as patches
-import matplotlib.collections as mcollections
-import matplotlib.patches as mpatches
-import seaborn as sns
 import textwrap
 import xarray as xr
 
 from pathlib import Path
 from tqdm import tqdm
 from ruamel.yaml import YAML
-from typing import Tuple, Literal, Union
 
 from sdm_eurec4a.visulization import (
-    set_paper_rcParams,
-    adjust_lightness_array,
-    adjust_lightness,
     label_from_attrs,
-    add_additional_axis,
-    add_subplotlabel,
-    save_figure,
 )
-from sdm_eurec4a import RepositoryPath
 from sdm_eurec4a import data_loading
 from sdm_eurec4a.constants import TimeSlices
-from sdm_eurec4a import conversions
-from sdm_eurec4a.input_processing import models as smodels
-from sdm_eurec4a.identifications import match_clouds_and_cloudcomposite, match_clouds_and_dropsondes
 from sdm_eurec4a.constants import TimeSlices
 from sdm_eurec4a.visulization import (
-    set_custom_rcParams,
-    set_paper_rcParams,
     label_from_attrs,
-    adjust_lightness_array,
-    plot_one_one,
-    handler_map_alpha,
-    save_figure,
-    add_subplotlabel,
 )
 
 from sdm_eurec4a import data_loading
-from sdm_eurec4a.reductions import mean_and_stderror_of_mean
-from sdm_eurec4a.conversions import (
-    msd_from_psd_dataarray,
-    potential_temperature_from_temperature_pressure,
-    relative_humidity_from_tps,
-    temperature_from_potential_temperature_pressure,
-)
-from sdm_eurec4a.input_processing import models as smodels
-from sdm_eurec4a.identifications import match_clouds_and_cloudcomposite, match_clouds_and_dropsondes
 from sdm_eurec4a.constants import TimeSlices
-
-from sdm_eurec4a.reductions import mean_and_stderror_of_mean
 
 ### Ensemble Mean and Spread Definitions
 def propagate_mean_sem(data, data_std, dim: str):
