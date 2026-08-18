@@ -123,7 +123,6 @@ save_figure(fig=fig,
 fig = plots.plot_figure_7(ds,
                           ds_correlations_EF,
                           ds_correlations_CIE,
-                          ds_correlations_MEH,
                           microphysics_styles)
 save_figure(fig=fig,
             filepath=fig_dir / "fig7")

@@ -1274,13 +1274,25 @@ def plot_figure_6(ds, microphysics_styles):
 
     return fig
 
-def plot_figure_7(ds, ds_correlations_EF, ds_correlations_CIE, ds_correlations_MEH, microphysics_styles):
-    fig, axs = plt.subplots(ncols=3, figsize=wide_fig_size)
+def plot_figure_7(ds, ds_correlations_EF, ds_correlations_CIE, microphysics_styles):
+    fig, axs = plt.subplots(ncols=2, figsize=[small_fig_size[0]*1.1, small_fig_size[1]*1.1])
+
+    axs_cie: plt.Axes = axs[0]
+    y = -ds["source_energy"].sel(microphysics="condensation")
+    x = ds["inflow_energy"].sel(microphysics="condensation")
+    x = conversions.EvaporationUnits(data=x, input_type="energy").convert_to("precipitation")
+    # x = ds["cloud_liquid_water_content"].sel(microphysics="condensation")
+    correlation = ds_correlations_CIE[x.name].sel(microphysics="condensation")
+    axs_cie.set_title(f" R = {correlation.data:.2f}")
+    axs_cie.scatter(
+        x,
+        y,
+        **microphysics_styles.get_style("condensation"),
+    )
+    axs_cie.set_xlabel(label_from_attrs(x, name_width=20))
+    axs_cie.set_ylabel(label_from_attrs(y, name_width=20))
 
     axs_ef: plt.Axes = axs[1]
-    axs_cie: plt.Axes = axs[0]
-    axs_meh: plt.Axes = axs[2]
-
     y = ds["evaporation_fraction"].sel(microphysics="condensation")
     x = ds["cloud_mass_radius_mean"].sel(microphysics="condensation")
     correlation = ds_correlations_EF[x.name].sel(microphysics="condensation")
@@ -1293,30 +1305,7 @@ def plot_figure_7(ds, ds_correlations_EF, ds_correlations_CIE, ds_correlations_M
     axs_ef.set_xlabel(label_from_attrs(x, name_width=20))
     axs_ef.set_ylabel(label_from_attrs(y, name_width=20))
 
-    y = -ds["source_energy"].sel(microphysics="condensation")
-    x = ds["inflow_energy"].sel(microphysics="condensation")
-    correlation = ds_correlations_CIE[x.name].sel(microphysics="condensation")
-    axs_cie.set_title(f" R = {correlation.data:.2f}")
-    axs_cie.scatter(
-        x,
-        y,
-        **microphysics_styles.get_style("condensation"),
-    )
-    axs_cie.set_xlabel(label_from_attrs(x, name_width=20))
-    axs_cie.set_ylabel(label_from_attrs(y, name_width=20))
-
-    y = ds["mean_evaporation_height"].sel(microphysics="condensation")
-    x = ds["cloud_mass_radius_mean"].sel(microphysics="condensation")
-    correlation = ds_correlations_MEH[x.name].sel(microphysics="condensation")
-    axs_meh.set_title(f" R = {correlation.data:.2f}")
-    axs_meh.scatter(
-        x,
-        y,
-        **microphysics_styles.get_style("condensation"),
-    )
-    axs_meh.set_xlabel(label_from_attrs(x, name_width=20))
-    axs_meh.set_ylabel(label_from_attrs(y, name_width=20))
-
+    
     add_subplotlabel(axs=axs, location="upper left")
 
     fig.tight_layout()
