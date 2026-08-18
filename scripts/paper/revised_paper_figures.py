@@ -27,8 +27,6 @@ data_dir_novent = Path("/work/mh1126/m300950/rain-evap-nils/sdm-eurec4a-CLEO/dat
 
 fig_dir = RepoPaths.fig_dir / Path("paper-revised")
 fig_dir.mkdir(exist_ok=True, parents=False)
-appendix_fig_dir = fig_dir / "appendix"
-appendix_fig_dir.mkdir(exist_ok=True, parents=False)
 
 print(f"Using data from {data_dir}")
 print(f"data_dir_novent: {data_dir_novent}")
