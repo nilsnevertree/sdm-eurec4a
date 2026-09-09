@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "sdm_eurec4a"
-version = "0.2.0"
+version = "1.0.0"
 author = "Nils Niebaum"
 authors = [{name = "Nils Niebaum", email = "nils.niebaum@gmx.de"},{name = "Clara Bayley", email = "yoctoyotta1024@yahoo.com"}]
 description = "Use Super-Droplet Model and EUREC4A data to simulate rain evaporation"
